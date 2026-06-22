@@ -1,5 +1,7 @@
 # Codex Video Workflow Skill
 
+English | [简体中文](README.zh-CN.md)
+
 Produce reviewable narrated videos from a brief: script first, render second, evidence at the end.
 
 `codex-video-workflow` is a local Codex skill for planning, rendering, and validating rights-safe explainer, product, tutorial, and oral-series videos. It does not treat video generation as a single black-box render. It creates the narration material, voice direction, visual system, motion plan, cover package, subtitles, screenshots, and QC report as inspectable artifacts.
@@ -211,6 +213,7 @@ Images:
 codex-video-workflow/
 ├── SKILL.md
 ├── README.md
+├── README.zh-CN.md
 ├── agents/openai.yaml
 ├── assets/examples/authorized-brief.json
 ├── media/
