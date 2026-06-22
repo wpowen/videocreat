@@ -20,8 +20,9 @@ const MELOTTS_ZH_LANGUAGE = "ZH";
 const MELOTTS_ZH_DEFAULT_SPEED = "0.95";
 const MELOTTS_EN_LANGUAGE = "en";
 const MELOTTS_EN_DEFAULT_SPEED = "1.0";
-const MIN_AUDIBLE_MEAN_DB = -36;
-const MIN_AUDIBLE_MAX_DB = -18;
+const MIN_AUDIBLE_MEAN_DB = -20;
+const MIN_AUDIBLE_MAX_DB = -8;
+const FINAL_AUDIO_NORMALIZE_FILTER = "volume=1.55,acompressor=threshold=-22dB:ratio=2.2:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9,alimiter=limit=0.90,loudnorm=I=-15:TP=-1.5:LRA=8";
 const SHORT_PUNCTUATION_PAUSE_SECONDS = 0.5;
 const SENTENCE_END_PAUSE_SECONDS = "tts-default";
 const COVER_INTRO_SECONDS = 2;
@@ -2602,7 +2603,7 @@ function generateAudio({ out, narration, duration, voiceBackend = "auto", allowS
     "-y",
     "-i", narrationM4a,
     "-i", bgm,
-    "-filter_complex", "[0:a]volume=1.2,highpass=f=70,acompressor=threshold=-20dB:ratio=3:attack=8:release=120:makeup=2,dynaudnorm=f=150:g=9:p=0.9[a0];[1:a]volume=0.35[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=10[a]",
+    "-filter_complex", "[0:a]volume=1.45,highpass=f=70,acompressor=threshold=-22dB:ratio=2.4:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9[a0];[1:a]volume=0.28[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.92,loudnorm=I=-15:TP=-1.5:LRA=8[a]",
     "-map", "[a]",
     "-c:a", "aac",
     "-b:a", "192k",
@@ -2648,12 +2649,12 @@ function generateAudio({ out, narration, duration, voiceBackend = "auto", allowS
           }
       : undefined,
     loudnessPolicy: {
-      target: "normal spoken-video volume; slightly amplified narration is preferred over quiet narration",
+      target: "present spoken-video volume; narration should be clearly audible on laptop speakers without maxing the system volume",
       minMeanDb: MIN_AUDIBLE_MEAN_DB,
       minMaxDb: MIN_AUDIBLE_MAX_DB,
     },
     dynamicsProcessing: {
-      filterChain: "volume=1.2,highpass=f=70,acompressor=threshold=-20dB:ratio=3:attack=8:release=120:makeup=2,dynaudnorm=f=150:g=9:p=0.9,alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=10",
+      filterChain: "mix: volume=1.45,highpass=f=70,acompressor=threshold=-22dB:ratio=2.4:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9,alimiter=limit=0.92,loudnorm=I=-15:TP=-1.5:LRA=8; final MP4: volume=1.55,acompressor=threshold=-22dB:ratio=2.2:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9,alimiter=limit=0.90,loudnorm=I=-15:TP=-1.5:LRA=8",
       purpose: "reduce noticeable narration loudness swings while preserving clear口播 presence",
     },
     timing: {
@@ -2875,6 +2876,34 @@ function renderWithFallback({ out, frames, audio, duration, designPlan }) {
   return final;
 }
 
+function normalizeFinalAudio({ out, finalMp4 }) {
+  const normalized = join(out, "renders", "final.audio-normalized.mp4");
+  run("ffmpeg", [
+    "-y",
+    "-i", finalMp4,
+    "-map", "0:v:0",
+    "-map", "0:a:0",
+    "-c:v", "copy",
+    "-af", FINAL_AUDIO_NORMALIZE_FILTER,
+    "-c:a", "aac",
+    "-b:a", "192k",
+    normalized,
+  ], { cwd: out, category: "audio-post" });
+  copyFileSync(normalized, finalMp4);
+  writeJson(join(out, "workflow", "final-audio-normalization.json"), {
+    input: relative(out, finalMp4),
+    temporaryOutput: relative(out, normalized),
+    output: relative(out, finalMp4),
+    filter: FINAL_AUDIO_NORMALIZE_FILTER,
+    target: {
+      approximateMeanDb: -15,
+      truePeakDb: -1.5,
+      lra: 8,
+    },
+    purpose: "Raise final delivered MP4 loudness after renderer muxing so口播 is clearly audible in normal playback.",
+  });
+}
+
 function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDegradedRenderer = false }) {
   const logs = join(out, "logs");
   const screenshots = join(out, "screenshots");
@@ -2964,6 +2993,7 @@ function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDegradedR
     "workflow/voice-direction.json",
     "workflow/voice-subtitle-manifest.json",
     "workflow/sync-timecode-plan.json",
+    "workflow/final-audio-normalization.json",
     "workflow/cover-design.json",
     "workflow/content-presentation-design.json",
     "workflow/quality-consistency-contract.json",
@@ -3459,6 +3489,7 @@ async function main() {
     finalMp4 = renderWithFallback({ out, frames, audio, duration: finalDuration, designPlan });
   }
   if (!existsSync(finalMp4)) fail(`Expected final MP4 was not created: ${finalMp4}`);
+  normalizeFinalAudio({ out, finalMp4 });
   copyFileSync(finalMp4, join(out, "final.mp4"));
   const deliveryManifest = {
     finalMp4: "renders/final.mp4",

@@ -50,7 +50,7 @@ Strict execution rule: do not replace this skill with an ad hoc static renderer,
    - Treat comma-like punctuation (`，`, `,`, `、`) as short in-clause pauses, not line-break or sentence-end pauses. If an explicit pause duration is inserted, use `0.5s`; leave sentence-ending punctuation (`。`, `！`, `？`, `!`, `?`) on the backend/default pause.
    - Do not insert pauses between subject and predicate, verb and object, number and unit, or setup and required answer.
    - Use different voice rules for tutorials, explainers, story narration, news analysis, product demos, and documentary narration.
-   - Use normal audible口播 loudness. Prefer a slightly amplified voice mix over a quiet narration; final QC must include `volumedetect` and fail if the voice is barely audible.
+   - Use normal audible口播 loudness. Prefer a clearly present voice mix over a quiet narration; final QC must include `volumedetect` and fail if the voice is not comfortably audible at normal playback volume.
    - Control dynamics, not only average volume. Apply compression/dynamic normalization/limiting/loudness normalization when narration sounds uneven, and record the filter chain.
    - For MeloTTS Chinese narration, use the uppercase language code `ZH`, CPU device by default, and a Chinese default speed around `0.95` unless a different speed is intentionally recorded in the manifest.
 6. Build one authoritative timecode plan before final render:
@@ -103,6 +103,7 @@ Expected outputs:
 - `script/narration.txt`, `script/narration-spoken.txt`, `script/frame-narration-segments.json`, `script/storyboard.md`, `script/subtitles.srt`
 - `workflow/voice-direction.json`
 - `workflow/voice-subtitle-manifest.json` with actual per-frame TTS segment timings
+- `workflow/final-audio-normalization.json`
 - `workflow/sync-timecode-plan.json`
 - `workflow/cover-design.json`, `cover/*`
 - `workflow/content-presentation-design.json`

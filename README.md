@@ -29,6 +29,7 @@ Demo evidence is included as [`media/qc/codex-video-workflow-zh-qc.json`](media/
 - **Image prompt manifest**: can write GPT Image 2-compatible prompts while keeping local deterministic SVG fallback assets.
 - **Cover package**: creates video-opening and platform-specific cover variants.
 - **QC evidence**: emits final MP4, screenshots, subtitles, manifests, FFprobe data, black-frame checks, volume checks, and `logs/qc.json`.
+- **Final loudness normalization**: raises delivered MP4 narration to a clear playback level and records the filter in `workflow/final-audio-normalization.json`.
 
 ## Quick Start
 
@@ -133,10 +134,11 @@ Typical output includes:
 - `workflow/image2-prompts.json`
 - `workflow/visual-asset-manifest.json`
 - `workflow/voice-subtitle-manifest.json`
+- `workflow/final-audio-normalization.json`
 - `logs/qc.json`
 - `screenshots/frame-*.png`
 
-QC passes only when video/audio metadata, local voice compliance, voice pause policy, platform cover variants, video-internal cover ratio, aesthetic planning, HTML motion-template selection, image prompt manifests, inserted visuals, screenshots, and black-frame checks are present.
+QC passes only when video/audio metadata, local voice compliance, voice pause policy, final MP4 loudness, platform cover variants, video-internal cover ratio, aesthetic planning, HTML motion-template selection, image prompt manifests, inserted visuals, screenshots, and black-frame checks are present.
 
 After editing motion templates, run:
 
