@@ -1,0 +1,84 @@
+{
+  "title": "爆款小说写作技巧",
+  "language": "zh",
+  "audience": "想快速提升网文或短篇小说开头、章节悬念和反转设计的中文创作者",
+  "objective": "制作一个 48 秒、节奏清晰、全本地生成、可人工复核后发布的写作技巧短视频",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 48,
+  "videoType": "writing-method",
+  "imageSource": "image2-dryrun",
+  "style": "editorial-light",
+  "voiceBackend": "auto",
+  "speechStyle": "conversational",
+  "rights": {
+    "text": "original for this workflow",
+    "visuals": "original HTML/CSS/SVG generated locally, with image2-compatible prompts recorded for optional GPT Image 2 generation",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "label": "开场钩子",
+      "kicker": "01 / HOOK",
+      "headline": ["爆款小说", "不是文笔好", "是停不下来"],
+      "stat": "1秒",
+      "body": "先给异常，不急着解释。",
+      "subtitle": "先别追求文笔。每一章都要让读者带着问题往下滑。",
+      "palette": "red"
+    },
+    {
+      "id": "opening",
+      "label": "第一秒异常",
+      "kicker": "02 / FIRST LINE",
+      "headline": ["他推开门", "看见自己的", "葬礼"],
+      "stat": "异常",
+      "body": "世界观可以慢一点，异常必须快一点。",
+      "subtitle": "开头第一秒先给异常，比如：他推开门，看见自己的葬礼。",
+      "palette": "ink"
+    },
+    {
+      "id": "triangle",
+      "label": "冲突三角",
+      "kicker": "03 / CONFLICT",
+      "headline": ["欲望", "阻碍", "倒计时"],
+      "stat": "3角",
+      "body": "主角想要什么？谁拦着？多久必须解决？",
+      "subtitle": "第二步，搭冲突三角：欲望、阻碍、倒计时，缺一角就松。",
+      "palette": "blue"
+    },
+    {
+      "id": "question",
+      "label": "章节悬念",
+      "kicker": "04 / CHAPTER",
+      "headline": ["一章只问", "一个问题"],
+      "stat": "?",
+      "body": "她能不能逃出去？真凶到底是谁？",
+      "subtitle": "每一章只服务一个悬念，让答案延迟半拍。",
+      "palette": "green"
+    },
+    {
+      "id": "reversal",
+      "label": "反转原则",
+      "kicker": "05 / TWIST",
+      "headline": ["反转不是硬拧", "是新信息", "重写旧场景"],
+      "stat": "重写",
+      "body": "让读者回想：原来刚才那句不是闲话。",
+      "subtitle": "反转不是硬拧剧情，而是用新信息重写旧场景。",
+      "palette": "purple"
+    },
+    {
+      "id": "edit",
+      "label": "三刀检查",
+      "kicker": "06 / EDIT",
+      "headline": ["删总结", "删解释", "删过渡"],
+      "stat": "3刀",
+      "body": "把解释换成动作，把设定换成代价。",
+      "subtitle": "最后三刀：删作者总结，删情绪解释，删无效过渡。",
+      "palette": "gold"
+    }
+  ],
+  "narration": "想让小说更像爆款，先别追求文笔。记住一个公式：每一章都让读者带着问题往下滑。开头第一秒，先给异常，不解释。比如，他推开门，看见自己的葬礼。第二步，搭冲突三角：主角想要什么，谁拦着他，多久之内必须解决。第三步，每一章只服务一个悬念：她能不能逃出去，真凶到底是谁。第四步，反转不是硬拧剧情，而是用新信息，重写读者刚刚看过的旧场景。最后检查三刀：删作者总结，删情绪解释，删无效过渡。把解释换成动作，把设定换成代价。读者不是被你说服的，是被下一秒发生什么勾住的。"
+}

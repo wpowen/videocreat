@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Semantic Timeline Reveal</title>
+  <style>
+    :root { --bg:#111316; --paper:#fff8e8; --ink:#151414; --accent:#e32735; --blue:#2477c7; --p:0; }
+    * { box-sizing: border-box; }
+    body { margin:0; overflow:hidden; font-family:"PingFang SC","Hiragino Sans GB",system-ui,sans-serif; background:var(--bg); }
+    .stage { width:100vw; height:100vh; color:var(--paper); background: radial-gradient(circle at 75% 20%, rgba(227,39,53,.22), transparent 28%), linear-gradient(135deg,#111316,#25262a); padding:7vh 6vw; }
+    .kicker { color:#ffc86a; font-size:34px; font-weight:850; letter-spacing:0; }
+    .title { margin:2vh 0 5vh; max-width:70vw; font-size:clamp(56px,7vw,132px); line-height:1; font-weight:950; }
+    .rail { position:absolute; left:7vw; right:7vw; top:55vh; height:14px; background:rgba(255,255,255,.15); border-radius:999px; }
+    .rail::after { content:""; position:absolute; inset:0 auto 0 0; width:calc(var(--p) * 100%); border-radius:999px; background:linear-gradient(90deg,#ffc86a,var(--accent)); transition:width .35s ease-out; }
+    .nodes { position:absolute; left:7vw; right:7vw; top:49vh; display:flex; justify-content:space-between; }
+    .node { width:132px; height:132px; border:6px solid var(--paper); border-radius:50%; display:grid; place-items:center; background:#22252a; color:var(--paper); font-size:30px; font-weight:900; transform:scale(.72); opacity:.45; transition:transform .38s cubic-bezier(.16,1,.3,1), opacity .38s, background .38s; }
+    .node.active { transform:scale(1); opacity:1; background:var(--accent); }
+    .panel { position:absolute; right:6vw; bottom:18vh; width:38vw; min-height:22vh; padding:34px; border-radius:28px; background:var(--paper); color:var(--ink); box-shadow:20px 20px 0 rgba(0,0,0,.6); }
+    .panel h2 { margin:0 0 16px; font-size:clamp(34px,3.6vw,70px); line-height:1.05; }
+    .panel p { margin:0; font-size:clamp(22px,1.8vw,36px); line-height:1.35; color:#453c33; font-weight:720; }
+    .caption { position:absolute; left:10vw; right:10vw; bottom:5vh; min-height:96px; display:grid; place-items:center; border-radius:20px; background:rgba(0,0,0,.88); color:var(--paper); font-size:clamp(26px,2.2vw,42px); font-weight:760; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="kicker" data-field="kicker">MODEL</div>
+    <h1 class="title" data-field="title">承诺、压力、选择、代价</h1>
+    <div class="rail"></div>
+    <div class="nodes" data-field="nodes">
+      <div class="node active">承诺</div><div class="node">压力</div><div class="node">选择</div><div class="node">代价</div><div class="node">改变</div><div class="node">新承诺</div>
+    </div>
+    <section class="panel"><h2 data-field="panelTitle">旧债被偿还</h2><p data-field="panelBody">新的问题同时被打开，故事才会继续。</p></section>
+    <div class="caption" data-field="caption">字幕跟随同一份时间轴。</div>
+  </main>
+  <script>
+    const nodes = [...document.querySelectorAll(".node")];
+    window.motionTemplate = {
+      id: "semantic-timeline-reveal",
+      setContent(data = {}) {
+        if (Array.isArray(data.nodes)) {
+          document.querySelector('[data-field="nodes"]').innerHTML = data.nodes.map((n, i) => `<div class="node${i === 0 ? " active" : ""}">${n}</div>`).join("");
+        }
+        for (const [key, value] of Object.entries(data)) {
+          if (key === "nodes") continue;
+          const el = document.querySelector(`[data-field="${key}"]`);
+          if (el) el.textContent = value;
+        }
+      },
+      setProgress(progress = 0) {
+        const p = Math.max(0, Math.min(1, progress));
+        document.documentElement.style.setProperty("--p", p);
+        const current = Math.min(document.querySelectorAll(".node").length - 1, Math.floor(p * document.querySelectorAll(".node").length));
+        document.querySelectorAll(".node").forEach((node, i) => node.classList.toggle("active", i <= current));
+      }
+    };
+  </script>
+</body>
+</html>

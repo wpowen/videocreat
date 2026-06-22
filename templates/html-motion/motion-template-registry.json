@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "usage": "Copy or adapt these local-first HTML motion templates after writing workflow/motion-template-selection.json. Exact Chinese text should remain deterministic in HTML/SVG/CSS layers.",
+  "templates": [
+    {
+      "id": "kinetic-editorial-explainer",
+      "file": "templates/html-motion/kinetic-editorial-explainer.html",
+      "engine": "CSS keyframes + Web Animations API",
+      "bestFor": ["knowledge explainer", "writing method", "business concept", "contradiction hook"],
+      "motionVerbs": ["reveal", "compare", "emphasize", "resolve"],
+      "signature": "large editorial type, evidence card, proof seal, semantic subtitle rail",
+      "verification": ["opening screenshot", "mid-motion screenshot", "motion-difference check"]
+    },
+    {
+      "id": "semantic-timeline-reveal",
+      "file": "templates/html-motion/semantic-timeline-reveal.html",
+      "engine": "CSS variables + Web Animations API progress driver",
+      "bestFor": ["process", "chapter model", "workflow", "before-after sequence"],
+      "motionVerbs": ["trace", "accumulate", "step", "payoff"],
+      "signature": "timecode-bound nodes, progress beam, active beat detail panel",
+      "verification": ["node state changes at beat timestamps", "progress bar follows sync-timecode-plan"]
+    },
+    {
+      "id": "interactive-proof-board",
+      "file": "templates/html-motion/interactive-proof-board.html",
+      "engine": "CSS transforms + SVG connector motion + pointer-responsive parallax",
+      "bestFor": ["argument", "mystery", "diagnosis", "story structure", "cause-effect proof"],
+      "motionVerbs": ["connect", "inspect", "pressure", "reframe"],
+      "signature": "evidence cards, animated red thread, focus lens, stateful highlight",
+      "verification": ["connectors animate", "focus target changes", "caption safe area remains clear"]
+    }
+  ],
+  "externalPlatformRouting": {
+    "gsap": "Use for advanced timeline, SVG path, scroll-like scrub, or MotionPath choreography when local CSS/WAAPI becomes too complex.",
+    "motion": "Use for React app-like transitions, shared layout, gesture, and state-driven interaction.",
+    "animejs": "Use for compact imperative timeline/stagger/SVG animation.",
+    "rive": "Use only with authorized .riv assets and clear state-machine value.",
+    "lottie": "Use only with authored or licensed .json/.lottie assets for compact icon/illustration loops.",
+    "threejs": "Use for meaningful 3D scenes; verify nonblank canvas and framing."
+  }
+}

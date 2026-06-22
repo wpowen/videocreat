@@ -1,0 +1,29 @@
+{
+  "selectedTemplate": "interactive-proof-board",
+  "registry": "templates/html-motion/motion-template-registry.json",
+  "sourcePlatformLogic": "local CSS transforms + SVG connector motion + pointer-responsive parallax, inspired by evidence-board and UI interaction patterns",
+  "whyThisTemplate": "The scene explains that reader promise is proven through action, relationship, information gap, object detail, and state change. An evidence board makes these causal links visible.",
+  "motionJobs": {
+    "entrance": "evidence cards pop in as separate proof points",
+    "reveal": "red thread draws connections between cards",
+    "emphasis": "focus lens highlights the decisive proof",
+    "transition": "board parallax settles into the next chapter model",
+    "exit": "connected proof resolves into a short takeaway"
+  },
+  "semanticBinding": "The first card appears when narration says action, the connector draws through relationship/information gap, and the focus lens lands when state change is mentioned.",
+  "interactionFeeling": "Pointer/parallax behavior and focus-lens movement make the rendered frame feel inspected rather than static.",
+  "implementationPath": "templates/html-motion/interactive-proof-board.html",
+  "fallbackPolicy": "If rendering falls back to FFmpeg/PIL, preserve evidence cards, connector progression, focus highlight, caption safe area, and timing order.",
+  "verification": [
+    "capture initial and 1.6s screenshots",
+    "confirm visible pixel difference between timestamps",
+    "confirm subtitle safe area remains readable"
+  ],
+  "rejectList": [
+    "static evidence cards with no connector motion",
+    "random floating decoration",
+    "motion unrelated to narration",
+    "copied third-party demo style",
+    "caption overlap"
+  ]
+}

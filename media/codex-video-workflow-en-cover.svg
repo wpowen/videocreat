@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160">
+  <rect width="3840" height="2160" fill="#f7f3eb"/>
+  <g opacity=".24" stroke="#d8cdbb" stroke-width="4">
+    <path d="M-3840 0 L0 2160"/><path d="M-3360 0 L480 2160"/><path d="M-2880 0 L960 2160"/><path d="M-2400 0 L1440 2160"/><path d="M-1920 0 L1920 2160"/><path d="M-1440 0 L2400 2160"/><path d="M-960 0 L2880 2160"/><path d="M-480 0 L3360 2160"/><path d="M0 0 L3840 2160"/><path d="M480 0 L4320 2160"/><path d="M960 0 L4800 2160"/><path d="M1440 0 L5280 2160"/><path d="M1920 0 L5760 2160"/><path d="M2400 0 L6240 2160"/><path d="M2880 0 L6720 2160"/><path d="M3360 0 L7200 2160"/><path d="M3840 0 L7680 2160"/><path d="M4320 0 L8160 2160"/>
+  </g>
+  <rect x="140" y="140" width="3560" height="1880" rx="54" fill="#fffdf8" stroke="#171411" stroke-width="11"/>
+  <rect x="140" y="216" width="1612.8" height="54" fill="#d21f2b"/>
+  <text x="307.2" y="345.6" font-size="60" font-weight="850" fill="#d21f2b" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">Not just a render</text>
+  <text x="307.2" y="604.8000000000001" font-size="324" font-weight="950" fill="#171411" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">Proof not just ren</text>
+<text x="307.2" y="944.8000000000001" font-size="324" font-weight="950" fill="#171411" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">der</text>
+  <rect x="307.2" y="1383.52" width="1612.8" height="208.25" rx="41.65" fill="#171411"/>
+  <text x="372.65" y="1488.24" font-size="119" font-weight="850" fill="#fffdf8" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">an MP4 export</text>
+  <g transform="translate(2918.4 1015.1999999999999)">
+    <circle cx="0" cy="0" r="475" fill="#d21f2b" stroke="#171411" stroke-width="17"/>
+    <circle cx="0" cy="0" r="294.5" fill="#fffdf8" stroke="#171411" stroke-width="11"/>
+    <text x="0" y="-47.5" text-anchor="middle" font-size="109.25" font-weight="950" fill="#171411" font-family="PingFang SC, sans-serif">PROOF</text>
+    <text x="0" y="114" text-anchor="middle" font-size="61.75" font-weight="850" fill="#d21f2b" font-family="PingFang SC, sans-serif">QC</text>
+    <path d="M-451.25 370.5 L451.25 -370.5" stroke="#171411" stroke-width="20" stroke-linecap="round"/>
+  </g>
+  <text x="307.2" y="1943" font-size="54" font-weight="760" fill="#5c5044" font-family="PingFang SC, sans-serif">Brief · Voice · Motion · Cover · QC</text>
+</svg>

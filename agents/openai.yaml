@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Video Workflow"
+  short_description: "Research, plan, render, QC local videos"
+  default_prompt: "Use $codex-video-workflow to create a rights-safe local video workflow package and final MP4."
