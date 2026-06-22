@@ -21,7 +21,7 @@ Strict execution rule: do not replace this skill with an ad hoc static renderer,
 ## Do Not Use By Default
 
 - Paid/cloud video APIs, production platform accounts, cloud GPU, private uploads, external TTS, real-person voice cloning, celebrity/likeness imitation, commercial stock, unlicensed music, unlicensed fonts, or platform-restricted assets.
-- macOS `say` as a normal Chinese narration path. It is allowed only when the caller explicitly passes `--allow-say-fallback`, and the manifest must mark it as degraded fallback evidence.
+- macOS `say` as a normal final-quality narration path in any language. It is allowed only when the caller explicitly passes `--allow-say-fallback`, and the manifest must mark it as degraded fallback evidence.
 - OpenAI Sora Videos API as a default path: official OpenAI docs state Sora video generation models/API are deprecated and scheduled to shut down on September 24, 2026.
 - Any copied creator script, shot order, packaging, persona, brand treatment, or recognizable expression. Extract only abstract methods and quality criteria.
 
@@ -121,7 +121,7 @@ Voice defaults:
 - `--voice-backend auto`: try `cosyvoice_local`, then `melotts_local`.
 - `--voice-backend cosyvoice_local`: prefer CosyVoice, then MeloTTS.
 - `--voice-backend melotts_local`: prefer MeloTTS, then CosyVoice.
-- `--allow-say-fallback`: optional degraded fallback only; do not use for final Chinese videos unless the local TTS environments are unavailable and the limitation is reported.
+- `--allow-say-fallback`: optional degraded fallback only; do not use for final-quality videos unless the local TTS environments are unavailable and the limitation is reported.
 - Local TTS outputs are cached within the output directory by backend, text, speaker/language, and speed. Reusing the same output directory may skip unchanged TTS work; changing narration or voice settings invalidates the cache.
 - Second-pass edits should use `--base-project` or the same `--out` directory to reuse previous covers, voice cache, visual assets, logs, and evidence where the requested change does not invalidate them.
 

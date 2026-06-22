@@ -18,6 +18,8 @@ const DEFAULT_DURATION = 48;
 const MIN_DURATION_SECONDS = 8;
 const MELOTTS_ZH_LANGUAGE = "ZH";
 const MELOTTS_ZH_DEFAULT_SPEED = "0.95";
+const MELOTTS_EN_LANGUAGE = "en";
+const MELOTTS_EN_DEFAULT_SPEED = "1.0";
 const MIN_AUDIBLE_MEAN_DB = -36;
 const MIN_AUDIBLE_MAX_DB = -18;
 const SHORT_PUNCTUATION_PAUSE_SECONDS = 0.5;
@@ -2297,7 +2299,41 @@ function buildSegmentTimings({ segments, filesBySegment, rawDuration }) {
   return timings;
 }
 
-function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narrationSegments = null }) {
+function normalizedVoiceLanguage(language) {
+  const raw = String(language || "zh").trim().toLowerCase();
+  if (raw.startsWith("en")) return "en";
+  if (raw.startsWith("zh") || raw === "cn") return "zh";
+  return raw || "zh";
+}
+
+function cosyVoiceSpeakerForLanguage(language) {
+  if (process.env.COSYVOICE_SPEAKER) return process.env.COSYVOICE_SPEAKER;
+  const normalized = normalizedVoiceLanguage(language);
+  if (normalized === "en") return "英文女";
+  if (normalized === "ja" || normalized === "jp") return "日语男";
+  if (normalized === "ko" || normalized === "kr") return "韩语女";
+  return "中文女";
+}
+
+function meloTtsSettingsForLanguage(language) {
+  const normalized = normalizedVoiceLanguage(language);
+  if (normalized === "en") {
+    return {
+      language: MELOTTS_EN_LANGUAGE,
+      speed: process.env.MELOTTS_SPEED || MELOTTS_EN_DEFAULT_SPEED,
+      speaker: process.env.MELOTTS_SPEAKER || "EN-US",
+      requiredLanguageCase: "lowercase en",
+    };
+  }
+  return {
+    language: MELOTTS_ZH_LANGUAGE,
+    speed: process.env.MELOTTS_SPEED || MELOTTS_ZH_DEFAULT_SPEED,
+    speaker: null,
+    requiredLanguageCase: "uppercase ZH",
+  };
+}
+
+function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narrationSegments = null, language = "zh" }) {
   const python = join(voiceRoot || "", "cosyvoice", ".venv", "bin", "python");
   const repo = join(voiceRoot || "", "cosyvoice", "CosyVoice");
   const model = join(repo, "pretrained_models", "CosyVoice-300M-SFT");
@@ -2308,9 +2344,10 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
   writeJson(join(out, "script", "tts-segments-cosyvoice.json"), segments);
   const outputDir = join(out, "assets", "voice", "cosyvoice");
   ensureDir(outputDir);
-  const speaker = process.env.COSYVOICE_SPEAKER || "中文女";
+  const normalizedLanguage = normalizedVoiceLanguage(language);
+  const speaker = cosyVoiceSpeakerForLanguage(normalizedLanguage);
   const cachePath = join(outputDir, "cache-manifest.json");
-  const cacheKey = fileHash(JSON.stringify({ backend: "cosyvoice_local", speaker, segments }));
+  const cacheKey = fileHash(JSON.stringify({ backend: "cosyvoice_local", language: normalizedLanguage, speaker, segments }));
   const files = segments.map((segment) => join(outputDir, `segment-${String(segment.index).padStart(4, "0")}.wav`));
   const cached = readJsonIfExists(cachePath);
   const cacheHit = cached?.cacheKey === cacheKey && files.every((file) => fileExists(file, 1000));
@@ -2346,7 +2383,7 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
         CUDA_VISIBLE_DEVICES: "",
       },
     });
-    writeJson(cachePath, { cacheKey, backend: "cosyvoice_local", speaker, segments: segments.length, generatedAt: new Date().toISOString() });
+    writeJson(cachePath, { cacheKey, backend: "cosyvoice_local", language: normalizedLanguage, speaker, segments: segments.length, generatedAt: new Date().toISOString() });
   }
   const missing = files.filter((file) => !existsSync(file));
   if (missing.length) throw new Error(`CosyVoice missing ${missing.length} segment files`);
@@ -2364,17 +2401,18 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
     rawDurationSeconds: rawDuration,
     segmentTimings,
     segmentTimingSource: "actual_per_frame_tts_segments",
+    language: normalizedLanguage,
     speaker,
     cacheHit,
   };
 }
 
-function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null }) {
+function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null, language = "zh" }) {
   const melo = join(voiceRoot || "", "melotts", ".venv", "bin", "melo");
   if (!voiceRoot || !existsSync(melo)) {
     throw new Error("MeloTTS local POC environment not found under " + (voiceRoot || "<missing voice-quality-poc>"));
   }
-  const speed = process.env.MELOTTS_SPEED || MELOTTS_ZH_DEFAULT_SPEED;
+  const settings = meloTtsSettingsForLanguage(language);
   const segments = normalizeTtsInputSegments(readFileSync(narrationPath, "utf8"), narrationSegments);
   writeJson(join(out, "script", "tts-segments-melotts.json"), segments);
   const outputDir = join(out, "assets", "voice", "melotts");
@@ -2382,8 +2420,9 @@ function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrati
   const cachePath = join(outputDir, "cache-manifest.json");
   const cacheKey = fileHash(JSON.stringify({
     backend: "melotts_local",
-    language: MELOTTS_ZH_LANGUAGE,
-    speed,
+    language: settings.language,
+    speaker: settings.speaker,
+    speed: settings.speed,
     segments,
   }));
   const cached = readJsonIfExists(cachePath);
@@ -2408,13 +2447,15 @@ function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrati
       const segmentTextPath = join(out, "script", `melotts-segment-${String(segment.index).padStart(4, "0")}.txt`);
       const segmentOutput = join(outputDir, `segment-${String(segment.index).padStart(4, "0")}.wav`);
       write(segmentTextPath, `${segment.text}\n`);
-      run(melo, [
-        "-l", MELOTTS_ZH_LANGUAGE,
-        "-s", speed,
+      const args = [
+        "-l", settings.language,
+        "-s", settings.speed,
         "-d", "cpu",
         "-f", segmentTextPath,
         segmentOutput,
-      ], {
+      ];
+      if (settings.speaker) args.splice(2, 0, "-spk", settings.speaker);
+      run(melo, args, {
         cwd: out,
         category: "tts",
         timeout: 3 * 60 * 60 * 1000,
@@ -2425,7 +2466,7 @@ function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrati
         },
       });
     }
-    writeJson(cachePath, { cacheKey, backend: "melotts_local", language: MELOTTS_ZH_LANGUAGE, speed, segments: segments.length, generatedAt: new Date().toISOString() });
+    writeJson(cachePath, { cacheKey, backend: "melotts_local", language: settings.language, speaker: settings.speaker, speed: settings.speed, segments: segments.length, generatedAt: new Date().toISOString() });
   }
   const missing = files.filter((file) => !existsSync(file));
   if (missing.length) throw new Error(`MeloTTS missing ${missing.length} segment files`);
@@ -2440,9 +2481,11 @@ function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrati
     rawDurationSeconds: rawDuration,
     segmentTimings,
     segmentTimingSource: "actual_per_frame_tts_segments",
-    language: MELOTTS_ZH_LANGUAGE,
+    language: settings.language,
     device: "cpu",
-    speed,
+    speaker: settings.speaker,
+    requiredLanguageCase: settings.requiredLanguageCase,
+    speed: settings.speed,
     cacheHit,
   };
 }
@@ -2493,7 +2536,7 @@ function voiceBackendOrder(value, allowSayFallback) {
   return order;
 }
 
-function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null }) {
+function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null, language = "zh" }) {
   const assets = join(out, "assets");
   const raw = join(assets, "narration.raw.wav");
   const narrationM4a = join(assets, "narration.m4a");
@@ -2508,9 +2551,9 @@ function generateAudio({ out, narration, duration, voiceBackend = "auto", allowS
   for (const backend of order) {
     try {
       if (backend === "cosyvoice_local") {
-        selected = generateWithCosyVoice({ out, voiceRoot, narration, rawOutput: raw, narrationSegments });
+        selected = generateWithCosyVoice({ out, voiceRoot, narration, rawOutput: raw, narrationSegments, language });
       } else if (backend === "melotts_local") {
-        selected = generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments });
+        selected = generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments, language });
       } else if (backend === "say") {
         selected = generateWithSay({ out, narration, rawOutput: raw, narrationSegments });
       }
@@ -2589,8 +2632,14 @@ function generateAudio({ out, narration, duration, voiceBackend = "auto", allowS
           language: selected.language,
           speed: selected.speed,
           device: selected.device,
-          requiredLanguageCase: "uppercase ZH",
+          speaker: selected.speaker,
+          requiredLanguageCase: selected.requiredLanguageCase,
         }
+      : selected.backend === "cosyvoice_local"
+        ? {
+            language: selected.language,
+            speaker: selected.speaker,
+          }
       : selected.backend === "say"
         ? {
             voice: selected.voice,
@@ -2614,7 +2663,7 @@ function generateAudio({ out, narration, duration, voiceBackend = "auto", allowS
       finalDurationSeconds: finalDuration,
       policy: "Final duration follows actual generated narration plus the opening cover. Each main visual scene duration must be bound to its own generated TTS segment duration, not an average split.",
     },
-    policy: "CosyVoice/MeloTTS local generation by default. No voice cloning, no celebrity/likeness imitation, no private upload, no paid API. macOS say is allowed only with --allow-say-fallback.",
+    policy: "CosyVoice/MeloTTS local generation by default for every language. No voice cloning, no celebrity/likeness imitation, no private upload, no paid API. macOS say is allowed only with --allow-say-fallback and is not final-quality compliant.",
   });
   return { voiceBackend: selected.backend, narrationM4a, bgm, mixed, rawDurationSeconds: rawDuration, durationSeconds: finalDuration, coverIntroSeconds, segmentTimings: selected.segmentTimings || [], segmentTimingSource: selected.segmentTimingSource || "unknown" };
 }
@@ -2731,7 +2780,7 @@ async function renderWithHtmlVideo({ out, brief, frames, narration, audio, desig
       : frameHtml(frame, sceneIndex, frames.length, designPlan.pages[sceneIndex]);
     await ctx.orchestrator.writeFrameHtml(project.id, frame.id, html);
   }
-  await ctx.orchestrator.addFileAsset(project.id, audio.narrationM4a, "Chinese system TTS narration");
+  await ctx.orchestrator.addFileAsset(project.id, audio.narrationM4a, "Local TTS narration");
   await ctx.orchestrator.addFileAsset(project.id, audio.bgm, "Generated sine-pad background");
   const withAssets = await ctx.orchestrator.load(project.id);
   const narrationAsset = withAssets.assets.find((asset) => asset.metadata.filename === "narration.m4a");
@@ -2941,8 +2990,7 @@ function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDegradedR
       && loudness.maxVolume !== null
       && loudness.meanVolume >= MIN_AUDIBLE_MEAN_DB
       && loudness.maxVolume >= MIN_AUDIBLE_MAX_DB,
-    voiceBackendCompliant: ["cosyvoice_local", "melotts_local"].includes(voiceBackend)
-      || (brief.language === "en" && voiceBackend === "say"),
+    voiceBackendCompliant: ["cosyvoice_local", "melotts_local"].includes(voiceBackend),
     voiceDirectionPresent: existsSync(join(out, "workflow", "voice-direction.json")),
     contentPresentationDesignPresent: (() => {
       try {
@@ -3213,7 +3261,7 @@ function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDegradedR
     ["Audio/subtitle alignment", checks.hasAudio && checks.audibleAudio && checks.frameAudioTimingBound ? "PASS" : "FAIL", `Voice backend: ${voiceBackend}; mean ${loudness.meanVolume ?? "n/a"} dB; max ${loudness.maxVolume ?? "n/a"} dB; SRT scenes match TTS segment timing.`],
     ["Narration continuity", checks.narrationContinuityOk ? "PASS" : "FAIL", longNarrationSilences.length ? `Long post-opening silence detected: ${JSON.stringify(longNarrationSilences)}` : "No long post-opening narration silence detected."],
     ["Voice direction", checks.voiceDirectionPresent && checks.voicePausePolicyPresent ? "PASS" : "FAIL", "Speech style, sentence-complete pause policy, comma short-pause policy, and spoken narration file are generated before TTS."],
-    ["Voice backend compliance", checks.voiceBackendCompliant ? "PASS" : "FAIL", "Chinese narration must use cosyvoice_local or melotts_local for final-quality runs."],
+    ["Voice backend compliance", checks.voiceBackendCompliant ? "PASS" : "FAIL", "Final narration in every language must use cosyvoice_local or melotts_local for final-quality runs."],
     ["Render stability", pass ? "PASS" : "WARN", `Renderer: ${renderer}; blackdetect clean: ${checks.blackdetectClean}.`],
     ["Platform readiness", "WARN", "Human review still required for AI labeling, licensing, policy, and editorial suitability."],
   ];
@@ -3338,6 +3386,7 @@ async function main() {
     voiceDirection,
     coverIntroSeconds: COVER_INTRO_SECONDS,
     narrationSegments,
+    language: brief.language || "zh",
   });
   const finalDuration = audio.durationSeconds;
   frames = applyAudioTimingsToFrames(frames, audio.segmentTimings);

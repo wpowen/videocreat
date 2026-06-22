@@ -5,7 +5,7 @@
 - Video type: spoken product explainer
 - Audience: creators, engineers, and operators who want Codex to produce a reviewable local video package
 - Core promise: this skill does more than export an MP4. It turns a brief into a planned, narrated, animated, covered, QC-checked, evidence-backed video package.
-- Rights boundary: original English narration; local generated visuals; local system TTS for this English promo; no voice cloning; no stock media; no external platform assets.
+- Rights boundary: original English narration; local CosyVoice/MeloTTS workflow for this English promo; no voice cloning; no stock media; no external platform assets.
 
 ## Narration
 

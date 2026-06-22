@@ -13,7 +13,7 @@ Open the bilingual player:
 | Chinese oral-series cut | English oral-series cut |
 | --- | --- |
 | [![Chinese demo cover](media/codex-video-workflow-zh-cover.svg)](media/codex-video-workflow-zh.mp4) | [![English demo cover](media/codex-video-workflow-en-cover.svg)](media/codex-video-workflow-en.mp4) |
-| Local authorized Chinese voice workflow, 74s, 1080p. | System TTS English demo path, 82s, 1080p. |
+| Local authorized Chinese voice workflow, 74s, 1080p. | Same local voice workflow with English CosyVoice speaker, 86s, 1080p. |
 
 GitHub README pages can render committed MP4 files differently across contexts. The cover images above link directly to the MP4 files, while `media/demo.html` provides the language switcher and player for local or hosted viewing.
 
@@ -24,7 +24,7 @@ Demo evidence is included as [`media/qc/codex-video-workflow-zh-qc.json`](media/
 - **Narration before rendering**: writes the oral script and TTS-ready spoken text before video generation.
 - **Voice policy**: keeps comma-like punctuation as short in-clause pauses and only inserts semantic line breaks after complete sentences or beats.
 - **Content presentation design**: selects a visual system, aesthetic brief, motion template, and scene metaphor before render.
-- **Local voice path**: supports local CosyVoice and MeloTTS for authorized Chinese narration; English demo runs can use macOS `say` for reproducible smoke checks.
+- **Local voice path**: supports local CosyVoice and MeloTTS for authorized narration in both Chinese and English final-quality runs.
 - **HTML motion rendering**: uses the local `html-video` renderer when available, with FFmpeg fallback paths recorded in the logs.
 - **Image prompt manifest**: can write GPT Image 2-compatible prompts while keeping local deterministic SVG fallback assets.
 - **Cover package**: creates video-opening and platform-specific cover variants.
@@ -54,12 +54,12 @@ Required:
 
 - Node.js 18+
 - FFmpeg / FFprobe
-- local CosyVoice or MeloTTS workspace for production Chinese narration
+- local CosyVoice or MeloTTS workspace for production narration
 
 Optional:
 
 - local `html-video` clone/build at `research/html-video-research/html-video/packages/cli/dist/index.js`
-- macOS `say` for English demo and smoke-test narration
+- macOS `say` only for explicitly degraded smoke checks
 - macOS Quick Look (`qlmanage`) for the FFmpeg fallback card path
 - `OPENAI_API_KEY` only when running with `--image-source image2`
 
@@ -100,16 +100,14 @@ node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
   --image-source image2-dryrun
 ```
 
-English demo path with system TTS:
+English demo path with the same local voice workflow:
 
 ```bash
-SAY_VOICE=Samantha SAY_RATE=185 \
 node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
   --brief .agents/skills/codex-video-workflow/media/oral-materials/skill-capability-brief-en.json \
   --out research/codex-video-workflow-promo/runs/skill-capability-oral-series-en \
   --mode recommended \
-  --voice-backend say \
-  --allow-say-fallback \
+  --voice-backend auto \
   --speech-style conversational \
   --image-source image2-dryrun
 ```
@@ -170,7 +168,7 @@ Voice:
 --allow-say-fallback
 ```
 
-Use `say` or `--allow-say-fallback` for English demo and degraded smoke checks. Final Chinese videos should use CosyVoice or MeloTTS.
+Use `say` or `--allow-say-fallback` only for explicitly degraded smoke checks. Final-quality videos in any language should use CosyVoice or MeloTTS.
 
 Speech style:
 
