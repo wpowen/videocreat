@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Curve Trace</title>
+  <style>
+    :root {
+      --bg: #10131a;
+      --ink: #f4f1de;
+      --muted: #9aa6bd;
+      --axis: #46536d;
+      --line: #06d6a0;
+      --accent: #ffd166;
+      --alert: #ef476f;
+      --panel: rgba(255, 255, 255, 0.045);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: 72px 104px 112px;
+      background:
+        radial-gradient(circle at 76% 18%, rgba(6, 214, 160, 0.12), transparent 28%),
+        linear-gradient(180deg, #111722 0%, #0b0f15 100%);
+    }
+
+    .kicker {
+      color: var(--accent);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 1180px;
+      margin: 12px 0 8px;
+      font-size: 58px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      max-width: 980px;
+      color: var(--muted);
+      font-size: 25px;
+      line-height: 1.35;
+    }
+
+    .chart-wrap {
+      position: absolute;
+      left: 104px;
+      right: 104px;
+      top: 262px;
+      bottom: 132px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .grid {
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 1;
+    }
+
+    .axis {
+      stroke: var(--axis);
+      stroke-width: 2;
+    }
+
+    .tick-label {
+      fill: var(--muted);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .curve {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 12px rgba(6, 214, 160, 0.2));
+    }
+
+    .ghost {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.14);
+      stroke-width: 3;
+      stroke-dasharray: 6 9;
+    }
+
+    .focus-dot {
+      fill: var(--accent);
+      stroke: #111722;
+      stroke-width: 5;
+    }
+
+    .callout-line {
+      stroke: var(--accent);
+      stroke-width: 2;
+      stroke-dasharray: 5 7;
+    }
+
+    .callout {
+      fill: rgba(16, 19, 26, 0.88);
+      stroke: rgba(255, 209, 102, 0.42);
+      stroke-width: 1.5;
+      rx: 8;
+    }
+
+    .callout-text {
+      fill: var(--ink);
+      font-size: 20px;
+      font-weight: 750;
+    }
+
+    .value-text {
+      fill: var(--accent);
+      font-size: 28px;
+      font-weight: 850;
+    }
+
+    .source {
+      position: absolute;
+      left: 104px;
+      right: 104px;
+      bottom: 72px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="kicker" id="kicker">DATA TRACE</div>
+    <h1 id="title">Curve change should be drawn from sourced values</h1>
+    <div class="summary" id="summary">The line traces over time, then pauses on the point the narration is explaining.</div>
+    <section class="chart-wrap" aria-label="data curve trace">
+      <svg id="chart" viewBox="0 0 1600 620" role="img" aria-labelledby="title summary"></svg>
+    </section>
+    <div class="source" id="source">Source: workflow/data-source-plan.json</div>
+  </main>
+
+  <script>
+    const state = {
+      progress: 0,
+      content: {
+        kicker: "DATA TRACE",
+        title: "A sourced curve earns the claim",
+        summary: "Use this when the scene needs trend, slope, inflection, or endpoint evidence.",
+        unit: "index",
+        source: "Source: demo values, replace with workflow/data-series.json",
+        points: [
+          { label: "2020", value: 42 },
+          { label: "2021", value: 48 },
+          { label: "2022", value: 61 },
+          { label: "2023", value: 86 },
+          { label: "2024", value: 103 },
+          { label: "2025", value: 128 }
+        ],
+        callout: "inflection",
+        endpointLabel: "latest"
+      }
+    };
+
+    const chart = document.getElementById("chart");
+    const title = document.getElementById("title");
+    const kicker = document.getElementById("kicker");
+    const summary = document.getElementById("summary");
+    const source = document.getElementById("source");
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function scale(points) {
+      const width = 1600;
+      const height = 620;
+      const pad = { left: 104, right: 92, top: 62, bottom: 86 };
+      const values = points.map((point) => Number(point.value)).filter(Number.isFinite);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const spread = Math.max(1, max - min);
+      const yMin = min - spread * 0.18;
+      const yMax = max + spread * 0.18;
+      return {
+        x(index) {
+          const denom = Math.max(1, points.length - 1);
+          return pad.left + (index / denom) * (width - pad.left - pad.right);
+        },
+        y(value) {
+          return pad.top + (1 - (value - yMin) / (yMax - yMin)) * (height - pad.top - pad.bottom);
+        },
+        pad,
+        width,
+        height,
+        yMin,
+        yMax
+      };
+    }
+
+    function pathFromPoints(points, s) {
+      return points.map((point, index) => {
+        const x = s.x(index);
+        const y = s.y(point.value);
+        return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+      }).join(" ");
+    }
+
+    function draw() {
+      const points = (state.content.points || []).filter((point) => Number.isFinite(Number(point.value)));
+      const safePoints = points.length >= 2 ? points : state.content.points;
+      const s = scale(safePoints);
+      const reveal = clamp(state.progress / 0.72, 0, 1);
+      const focusIndex = Math.max(0, Math.min(safePoints.length - 1, Math.floor(reveal * (safePoints.length - 1))));
+      const active = safePoints[focusIndex] || safePoints[safePoints.length - 1];
+      const path = pathFromPoints(safePoints, s);
+      const totalLength = 1800;
+      const dashOffset = totalLength * (1 - reveal);
+
+      title.textContent = state.content.title || "";
+      kicker.textContent = state.content.kicker || "DATA TRACE";
+      summary.textContent = state.content.summary || "";
+      source.textContent = state.content.source || "Source: workflow/data-source-plan.json";
+
+      const grid = [0.25, 0.5, 0.75].map((ratio) => {
+        const y = s.pad.top + ratio * (s.height - s.pad.top - s.pad.bottom);
+        return `<line class="grid" x1="${s.pad.left}" y1="${y}" x2="${s.width - s.pad.right}" y2="${y}"></line>`;
+      }).join("");
+      const labels = safePoints.map((point, index) => {
+        if (index !== 0 && index !== safePoints.length - 1 && index % 2 !== 0) return "";
+        return `<text class="tick-label" x="${s.x(index)}" y="${s.height - 38}" text-anchor="middle">${point.label || index + 1}</text>`;
+      }).join("");
+      const focusX = s.x(focusIndex);
+      const focusY = s.y(active.value);
+      const calloutX = Math.min(s.width - 360, focusX + 34);
+      const calloutY = Math.max(44, focusY - 86);
+      const endpointOpacity = clamp((state.progress - 0.62) / 0.24, 0, 1);
+
+      chart.innerHTML = `
+        ${grid}
+        <line class="axis" x1="${s.pad.left}" y1="${s.height - s.pad.bottom}" x2="${s.width - s.pad.right}" y2="${s.height - s.pad.bottom}"></line>
+        <line class="axis" x1="${s.pad.left}" y1="${s.pad.top}" x2="${s.pad.left}" y2="${s.height - s.pad.bottom}"></line>
+        ${labels}
+        <path class="ghost" d="${path}"></path>
+        <path class="curve" d="${path}" pathLength="${totalLength}" style="stroke-dasharray:${totalLength};stroke-dashoffset:${dashOffset};"></path>
+        <line class="callout-line" x1="${focusX}" y1="${focusY}" x2="${calloutX}" y2="${calloutY + 38}" opacity="${endpointOpacity}"></line>
+        <circle class="focus-dot" cx="${focusX}" cy="${focusY}" r="${10 + endpointOpacity * 4}" opacity="${Math.max(0.35, reveal)}"></circle>
+        <g opacity="${endpointOpacity}">
+          <rect class="callout" x="${calloutX}" y="${calloutY}" width="292" height="96"></rect>
+          <text class="callout-text" x="${calloutX + 22}" y="${calloutY + 36}">${state.content.callout || "focus point"}</text>
+          <text class="value-text" x="${calloutX + 22}" y="${calloutY + 73}">${active.value} ${state.content.unit || ""}</text>
+        </g>
+      `;
+    }
+
+    window.motionTemplate = {
+      setContent(nextContent = {}) {
+        state.content = { ...state.content, ...nextContent };
+        draw();
+      },
+      setProgress(progress = 0) {
+        state.progress = clamp(Number(progress) || 0, 0, 1);
+        draw();
+      }
+    };
+
+    draw();
+  </script>
+</body>
+</html>

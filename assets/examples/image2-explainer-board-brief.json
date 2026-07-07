@@ -1,0 +1,49 @@
+{
+  "title": "Agent 为什么要会调用工具",
+  "language": "zh",
+  "audience": "想理解 Agent 工作机制的技术产品和科普视频观众",
+  "objective": "制作一个讲解型科普视频，用 Image2 生成可拆成分镜的高信息密度图解底图，再由 HTML/SVG 叠加精确中文文字和字幕。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 30,
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "sceneImageGenerationPolicy": "auto",
+  "styleArchetype": "animated-infographic",
+  "image2Strategy": "讲解型 Slides, ponchi-e diagram, soft public explainer illustration, high information density briefing board",
+  "userStyleNote": "需要把科普图解底图做成多个可裁切分镜；不要把正文、字幕、数字或标签烘焙进图片。",
+  "rights": {
+    "text": "original for this workflow",
+    "visuals": "original HTML/CSS/SVG plus image2-compatible explainer-board prompts recorded for optional GPT Image 2 generation",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "task-split",
+      "label": "拆任务",
+      "headline": ["Agent 先把目标", "拆成可执行步骤"],
+      "body": "不是一句话直接给答案，而是先判断目标、约束和缺口。",
+      "subtitle": "Agent 的第一步不是回答，而是把目标拆成能执行的小任务。",
+      "palette": "blue"
+    },
+    {
+      "id": "tool-call",
+      "label": "调工具",
+      "headline": ["需要证据时", "就调用工具"],
+      "body": "搜索、读取文件、运行测试、生成图片，都应该绑定到当前分镜。",
+      "subtitle": "答案不够时，它会调用搜索、文件、测试或 Image2 这类工具补齐证据。",
+      "palette": "green"
+    },
+    {
+      "id": "observe-retry",
+      "label": "观察反馈",
+      "headline": ["观察结果", "再修正下一步"],
+      "body": "工具返回不是结束，而是进入观察、修正、重试的循环。",
+      "subtitle": "工具结果会反过来修改计划，形成观察、修正、重试的循环。",
+      "palette": "gold"
+    }
+  ],
+  "narration": "Agent 的第一步不是立刻回答，而是把目标拆成能执行的小任务。遇到证据不够的地方，它会调用搜索、文件、测试或 Image2 这类工具，把抽象概念变成可检查的素材。工具结果不是结束，而是进入观察、修正、重试的循环，所以一个好的 Agent 视频，也应该把这些过程画成能被观众看懂的分镜。"
+}

@@ -31,11 +31,15 @@ function main() {
   expect(/sentenceEnd:\s*SENTENCE_END_PAUSE_SECONDS/.test(script), "voice direction must record sentenceEnd default", failures);
   expect(/commaLikePunctuation:\s*\["，", ",", "、"\]/.test(script), "voice direction must list comma-like punctuation", failures);
   expect(/hasLineBreakAfterComma/.test(script), "QC must reject comma-to-line-break conversion", failures);
-  const sentenceSplitMatch = script.match(/split\(\s*\/\(\?<\=\[([^\]]+)\]\)\/u\s*\)/);
-  const sentenceSplitChars = sentenceSplitMatch?.[1] || "";
-  expect(Boolean(sentenceSplitMatch), "script must define sentence splitting by terminal punctuation", failures);
-  expect(/[。！？]/.test(sentenceSplitChars) && /[.!?]/.test(sentenceSplitChars), "sentence splitting must include Chinese and English terminal punctuation", failures);
-  expect(!/[，,、]/.test(sentenceSplitChars), "sentence splitting must not include comma-like punctuation", failures);
+  const splitSentencesBody = script.match(/function\s+splitSentences\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  const legacySentencePattern = splitSentencesBody.match(/const pattern = \/([^/]+)\/gu;/)?.[1] || "";
+  const terminatorTestPattern = splitSentencesBody.match(/!\s*\/([^/]+)\/u\.test\(char\)/)?.[1] || "";
+  const sentenceSplitPattern = legacySentencePattern || terminatorTestPattern;
+  const hasDotTerminatorGuard = /char\s*!==\s*"\."/u.test(splitSentencesBody);
+  expect(/function\s+splitSemanticCueTexts/.test(script), "script must define semantic subtitle cue splitting", failures);
+  expect(Boolean(sentenceSplitPattern), "script must define sentence splitting by terminal punctuation", failures);
+  expect(/[。！？]/.test(sentenceSplitPattern) && /[!?]/.test(sentenceSplitPattern) && hasDotTerminatorGuard, "sentence splitting must include Chinese and English terminal punctuation", failures);
+  expect(!/[，,、]/.test(sentenceSplitPattern), "sentence splitting must not include comma-like punctuation", failures);
 
   for (const [name, content] of [
     ["SKILL.md", skill],

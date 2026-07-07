@@ -1,0 +1,95 @@
+{
+  "title": "MG 语义识别覆盖测试",
+  "language": "zh",
+  "audience": "验证本地视频工作流的开发者和内容策划",
+  "objective": "生成一个专门覆盖排名、比例、趋势、对比、因果、时间线、三段论的测试视频，验证自动识别数据、概念和逻辑并选择固定 MG 组件。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 64,
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "style": "technical-dark",
+  "voiceBackend": "auto",
+  "speechStyle": "tutorial",
+  "coverTheme": "一条视频测完 7 类 MG 组件",
+  "rights": {
+    "text": "original synthetic validation brief",
+    "visuals": "original HTML/CSS/SVG generated locally",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "ranking-bars",
+      "label": "排名柱状图",
+      "kicker": "01 / RANKING",
+      "headline": ["排名测试", "第1名 86分", "第2名 68分"],
+      "stat": "TOP3",
+      "body": "这段必须识别为排名数据。",
+      "subtitle": "第一类，排名：方案A第1名八十六分，方案B第2名六十八分，方案C第3名四十四分。",
+      "palette": "blue"
+    },
+    {
+      "id": "share-donut",
+      "label": "比例环形图",
+      "kicker": "02 / SHARE",
+      "headline": ["比例测试", "百分之六十八", "环形展示"],
+      "stat": "68%",
+      "body": "这段必须识别为比例或占比。",
+      "subtitle": "第二类，比例：自动化素材候选占比百分之六十八，人工补充占比百分之三十二。",
+      "palette": "green"
+    },
+    {
+      "id": "trend-line",
+      "label": "趋势折线图",
+      "kicker": "03 / TREND",
+      "headline": ["趋势测试", "连续三周增长", "折线展示"],
+      "stat": "+42%",
+      "body": "这段必须识别为趋势变化。",
+      "subtitle": "第三类，趋势：从第一周到第三周，点击率连续增长，整体提升百分之四十二。",
+      "palette": "purple"
+    },
+    {
+      "id": "compare-swap",
+      "label": "对比转换卡",
+      "kicker": "04 / COMPARE",
+      "headline": ["对比测试", "不是堆素材", "而是讲逻辑"],
+      "stat": "VS",
+      "body": "这段必须识别为对比判断。",
+      "subtitle": "第四类，对比：不是把素材堆满屏幕，而是让每个画面服务一个明确判断。",
+      "palette": "red"
+    },
+    {
+      "id": "causal-chain",
+      "label": "因果链路图",
+      "kicker": "05 / CAUSAL",
+      "headline": ["因果测试", "因为信息密度高", "所以需要分层"],
+      "stat": "因果",
+      "body": "这段必须识别为原因、机制、结果。",
+      "subtitle": "第五类，因果：因为信息密度变高，所以系统先分层，再触发可视化组件，结果是观众更容易理解。",
+      "palette": "gold"
+    },
+    {
+      "id": "timeline-ribbon",
+      "label": "时间线递进",
+      "kicker": "06 / TIMELINE",
+      "headline": ["时间线测试", "从脚本到分镜", "再到渲染"],
+      "stat": "3阶段",
+      "body": "这段必须识别为时间轴或阶段。",
+      "subtitle": "第六类，时间线：第一阶段写脚本，第二阶段生成分镜，第三阶段渲染并质检。",
+      "palette": "ink"
+    },
+    {
+      "id": "syllogism-stack",
+      "label": "三段论逻辑栈",
+      "kicker": "07 / LOGIC",
+      "headline": ["三段论测试", "大前提 小前提", "推出结论"],
+      "stat": "逻辑",
+      "body": "这段必须识别为三段论。",
+      "subtitle": "第七类，三段论：大前提是复杂信息需要结构，小前提是视频也是信息结构，所以结论是视频需要 MG 语法。",
+      "palette": "blue"
+    }
+  ],
+  "narration": "我们开始验证 MG 语义识别。第一类，排名：方案A第1名八十六分，方案B第2名六十八分，方案C第3名四十四分，应该生成柱状图。第二类，比例：自动化素材候选占比百分之六十八，人工补充占比百分之三十二，应该生成环形图。第三类，趋势：从第一周到第三周，点击率连续增长，整体提升百分之四十二，应该生成折线图。第四类，对比：不是把素材堆满屏幕，而是让每个画面服务一个明确判断，应该生成对比转换卡。第五类，因果：因为信息密度变高，所以系统先分层，再触发可视化组件，结果是观众更容易理解，应该生成因果链路图。第六类，时间线：第一阶段写脚本，第二阶段生成分镜，第三阶段渲染并质检，应该生成时间线递进动画。第七类，三段论：大前提是复杂信息需要结构，小前提是视频也是信息结构，所以结论是视频需要 MG 语法，应该生成三段论逻辑栈。"
+}

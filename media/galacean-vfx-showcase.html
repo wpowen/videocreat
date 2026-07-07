@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>视觉特效能力展示</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232864d9'/%3E%3Cpath d='M16 5l2.6 8.3h8.7l-7 5.1 2.7 8.3-7-5.1-7 5.1 2.7-8.3-7-5.1h8.7z' fill='%23ffb25f'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1a1d25;
+      --muted: #667085;
+      --paper: #f8f4ec;
+      --panel: #ffffff;
+      --line: rgba(31, 35, 45, 0.12);
+      --accent: #2864d9;
+      --warm: #ffb25f;
+      --danger: #cf3f4a;
+      --violet: #6b4eff;
+      --green: #13875b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f7f1e7 0%, #eef4f8 48%, #f8f4ec 100%);
+      color: var(--ink);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 850px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stage-wrap {
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: 0 24px 70px rgba(35, 39, 48, 0.10);
+    }
+
+    .video-stage {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 6px;
+      background: #111827;
+      isolation: isolate;
+    }
+
+    canvas,
+    .depth-orbit,
+    .scan-overlay,
+    .transition-flash {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .scene-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 196, 110, 0.34), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(72, 111, 215, 0.24), transparent 34%),
+        linear-gradient(135deg, #f8f0df, #edf4f7 48%, #e9e2d7);
+      transition: background 260ms ease;
+    }
+
+    .scene-content {
+      position: absolute;
+      inset: 7% 7% 16%;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 4%;
+      align-items: center;
+    }
+
+    .copy-block {
+      display: grid;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      width: max-content;
+      max-width: 100%;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(31, 35, 45, 0.12);
+      color: #384152;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .scene-title {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
+      max-width: 9em;
+    }
+
+    .scene-text {
+      margin: 0;
+      max-width: 31em;
+      color: #3e4655;
+      font-size: clamp(14px, 1.6vw, 18px);
+      line-height: 1.65;
+    }
+
+    .visual-panel {
+      position: relative;
+      min-height: 300px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(31, 35, 45, 0.13);
+      box-shadow: 0 18px 48px rgba(34, 42, 56, 0.16);
+      overflow: hidden;
+    }
+
+    .visual-panel::before {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border: 1px solid rgba(31, 35, 45, 0.08);
+      border-radius: 6px;
+    }
+
+    .metric {
+      position: absolute;
+      left: 8%;
+      top: 12%;
+      display: grid;
+      gap: 4px;
+    }
+
+    .metric strong {
+      font-size: clamp(42px, 5vw, 76px);
+      line-height: 1;
+    }
+
+    .metric span,
+    .node span,
+    .status-line {
+      color: #657083;
+      font-size: 13px;
+    }
+
+    .node-grid {
+      position: absolute;
+      right: 8%;
+      bottom: 12%;
+      width: 54%;
+      display: grid;
+      gap: 10px;
+    }
+
+    .node {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 14px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(31, 35, 45, 0.12);
+    }
+
+    .node b {
+      font-size: 15px;
+    }
+
+    .caption {
+      position: absolute;
+      left: 50%;
+      bottom: 4.2%;
+      transform: translateX(-50%);
+      z-index: 9;
+      width: min(80%, 780px);
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      border-radius: 7px;
+      background: rgba(16, 20, 28, 0.82);
+      color: #fff;
+      font-size: clamp(15px, 1.7vw, 22px);
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+    }
+
+    aside {
+      display: grid;
+      gap: 12px;
+    }
+
+    .scene-button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .scene-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(40, 100, 217, 0.38);
+    }
+
+    .scene-button[aria-pressed="true"] {
+      background: #ffffff;
+      border-color: rgba(40, 100, 217, 0.55);
+      box-shadow: inset 3px 0 0 var(--accent), 0 12px 28px rgba(37, 64, 110, 0.10);
+    }
+
+    .scene-button b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 15px;
+    }
+
+    .scene-button span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .rules {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .rule {
+      min-height: 118px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .rule h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .rule p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .depth-orbit {
+      opacity: 0;
+      transform-style: preserve-3d;
+      perspective: 800px;
+      transition: opacity 220ms ease;
+    }
+
+    .orb {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 360px;
+      height: 160px;
+      margin-left: -180px;
+      margin-top: -80px;
+      border: 1px solid rgba(40, 100, 217, 0.28);
+      border-radius: 50%;
+      animation: orbit 7s linear infinite;
+    }
+
+    .orb:nth-child(2) {
+      width: 450px;
+      height: 210px;
+      margin-left: -225px;
+      margin-top: -105px;
+      transform: rotateX(64deg) rotateZ(52deg);
+      border-color: rgba(255, 178, 95, 0.34);
+      animation-duration: 10s;
+    }
+
+    .orb:nth-child(3) {
+      width: 300px;
+      height: 128px;
+      margin-left: -150px;
+      margin-top: -64px;
+      transform: rotateX(64deg) rotateZ(-38deg);
+      border-color: rgba(19, 135, 91, 0.34);
+      animation-duration: 8.5s;
+    }
+
+    .scan-overlay {
+      opacity: 0;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(207, 63, 74, 0.12) 48%, rgba(207, 63, 74, 0.36) 50%, rgba(207, 63, 74, 0.12) 52%, transparent 100%);
+      transform: translateX(-100%);
+    }
+
+    .transition-flash {
+      opacity: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 178, 95, 0.72), rgba(107, 78, 255, 0.34) 34%, transparent 68%);
+      mix-blend-mode: screen;
+    }
+
+    .mode-scan .scan-overlay {
+      opacity: 1;
+      animation: scan 2.4s ease-in-out infinite;
+    }
+
+    .mode-orbit .depth-orbit {
+      opacity: 1;
+    }
+
+    .mode-transition .transition-flash {
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .mode-payoff .scene-bg {
+      background:
+        radial-gradient(circle at 78% 24%, rgba(255, 178, 95, 0.44), transparent 28%),
+        radial-gradient(circle at 18% 74%, rgba(19, 135, 91, 0.26), transparent 32%),
+        linear-gradient(135deg, #fbf1df, #edf4f0 52%, #ede7dc);
+    }
+
+    .mode-risk .scene-bg {
+      background:
+        radial-gradient(circle at 78% 18%, rgba(207, 63, 74, 0.20), transparent 26%),
+        linear-gradient(135deg, #f7eee7, #eef3f6 48%, #efe7dd);
+    }
+
+    .mode-orbit .scene-bg {
+      background:
+        radial-gradient(circle at 40% 36%, rgba(40, 100, 217, 0.28), transparent 28%),
+        radial-gradient(circle at 70% 60%, rgba(107, 78, 255, 0.24), transparent 30%),
+        linear-gradient(135deg, #eef3f8, #f8f1e4);
+    }
+
+    @keyframes orbit {
+      from { transform: rotateX(64deg) rotateZ(0deg); }
+      to { transform: rotateX(64deg) rotateZ(360deg); }
+    }
+
+    @keyframes scan {
+      0% { transform: translateX(-100%); }
+      55% { transform: translateX(100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0; transform: scale(0.75); }
+      50% { opacity: 1; transform: scale(1.18); }
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100vw - 20px, 760px);
+        padding-top: 18px;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .scene-content {
+        inset: 7% 6% 18%;
+        grid-template-columns: 1fr;
+      }
+
+      .visual-panel {
+        min-height: 180px;
+      }
+
+      .scene-title {
+        font-size: clamp(24px, 7vw, 36px);
+      }
+
+      .scene-text {
+        display: none;
+      }
+
+      .rules {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>视觉特效能力展示</h1>
+      <p class="lead">这里展示的是“特效层”的视觉工作方式：特效只服务于钩子、揭示、转场、风险扫描、空间隐喻和结尾 payoff；字幕、标题、图表和关键文字始终由确定性图层掌控。</p>
+    </header>
+
+    <section class="shell" aria-label="特效展示">
+      <div class="stage-wrap">
+        <div class="video-stage mode-hook" id="stage">
+          <div class="scene-bg"></div>
+          <canvas id="vfx-canvas" aria-hidden="true"></canvas>
+          <div class="depth-orbit" aria-hidden="true">
+            <div class="orb"></div>
+            <div class="orb"></div>
+            <div class="orb"></div>
+          </div>
+          <div class="scan-overlay" aria-hidden="true"></div>
+          <div class="transition-flash" aria-hidden="true"></div>
+
+          <div class="scene-content">
+            <div class="copy-block">
+              <div class="eyebrow" id="eyebrow">开场聚焦</div>
+              <h2 class="scene-title" id="scene-title">先把注意力拉到核心承诺</h2>
+              <p class="scene-text" id="scene-text">粒子和光束只围绕主语运动，不进入字幕区，也不替代标题文字。</p>
+            </div>
+            <div class="visual-panel" id="visual-panel">
+              <div class="metric">
+                <strong id="metric">3s</strong>
+                <span id="metric-label">首屏承诺</span>
+              </div>
+              <div class="node-grid">
+                <div class="node"><b id="node-a">问题</b><span>聚焦</span></div>
+                <div class="node"><b id="node-b">证据</b><span>揭示</span></div>
+                <div class="node"><b id="node-c">结果</b><span>兑现</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="caption" id="caption">特效在内容背后服务注意力，字幕保持最上层。</div>
+        </div>
+      </div>
+
+      <aside aria-label="示例场景选择">
+        <button class="scene-button" type="button" data-scene="hook" aria-pressed="true">
+          <b>开场聚焦</b>
+          <span>粒子场 + 能量光束，把视线推向首屏承诺。</span>
+        </button>
+        <button class="scene-button" type="button" data-scene="payoff" aria-pressed="false">
+          <b>结论烟花</b>
+          <span>结论出现时爆发，强调“结果已经兑现”。</span>
+        </button>
+        <button class="scene-button" type="button" data-scene="risk" aria-pressed="false">
+          <b>风险扫描</b>
+          <span>扫描线和红色粒子只标记异常区域。</span>
+        </button>
+        <button class="scene-button" type="button" data-scene="orbit" aria-pressed="false">
+          <b>3D 能量轨道</b>
+          <span>用深度关系解释系统结构，文字仍在 HTML 层。</span>
+        </button>
+        <button class="scene-button" type="button" data-scene="transition" aria-pressed="false">
+          <b>转场爆发</b>
+          <span>章节切换时短暂全屏，下一帧恢复干净画面。</span>
+        </button>
+      </aside>
+    </section>
+
+    <section class="rules" aria-label="规则摘要">
+      <article class="rule">
+        <h2>什么时候用</h2>
+        <p>钩子、揭示、转场、风险扫描、抽象系统、产品激活和结尾 payoff。</p>
+      </article>
+      <article class="rule">
+        <h2>什么时候不用</h2>
+        <p>密集文字、精确数据、字幕压力大、权利不清、严肃声明或纯装饰场景。</p>
+      </article>
+      <article class="rule">
+        <h2>放在哪里</h2>
+        <p>背景、边缘、主体周围或转场中；字幕和关键文字永远在最上层且可读。</p>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const scenes = {
+      hook: {
+        mode: "mode-hook",
+        particleMode: "stream",
+        eyebrow: "开场聚焦",
+        title: "先把注意力拉到核心承诺",
+        text: "粒子和光束只围绕主语运动，不进入字幕区，也不替代标题文字。",
+        metric: "3s",
+        metricLabel: "首屏承诺",
+        nodes: ["问题", "证据", "结果"],
+        caption: "特效在内容背后服务注意力，字幕保持最上层。",
+        color: "#2864d9"
+      },
+      payoff: {
+        mode: "mode-payoff",
+        particleMode: "firework",
+        eyebrow: "结论烟花",
+        title: "结果出现时，才允许庆祝",
+        text: "烟花峰值对齐结论词，持续时间短，避开标题和字幕区域。",
+        metric: "100%",
+        metricLabel: "兑现",
+        nodes: ["推理", "转化", "完成"],
+        caption: "结论被讲出来的瞬间，前景烟花只持续一个节拍。",
+        color: "#ff9f43"
+      },
+      risk: {
+        mode: "mode-risk mode-scan",
+        particleMode: "risk",
+        eyebrow: "风险扫描",
+        title: "用扫描线指出真正的异常",
+        text: "红色粒子只出现在风险区域，不能覆盖证据文字和来源脚注。",
+        metric: "2",
+        metricLabel: "异常点",
+        nodes: ["输入", "偏差", "修正"],
+        caption: "扫描效果服务诊断，不把画面变成噪声背景。",
+        color: "#cf3f4a"
+      },
+      orbit: {
+        mode: "mode-orbit",
+        particleMode: "orbit",
+        eyebrow: "3D 能量轨道",
+        title: "深度只在它能解释关系时出现",
+        text: "轨道承载空间隐喻，标题、标签和字幕仍然保持确定性渲染。",
+        metric: "3",
+        metricLabel: "关系层",
+        nodes: ["角色", "约束", "反馈"],
+        caption: "3D 负责空间关系，中文文字不放进 WebGL 纹理。",
+        color: "#6b4eff"
+      },
+      transition: {
+        mode: "mode-transition",
+        particleMode: "burst",
+        eyebrow: "转场爆发",
+        title: "切换章节时，短促而干净",
+        text: "转场可以全屏，但必须在下一帧清场，不能持续遮挡新内容。",
+        metric: "0.6s",
+        metricLabel: "转场",
+        nodes: ["上一幕", "切换", "下一幕"],
+        caption: "转场特效结束后，标题和字幕立即恢复完整可读。",
+        color: "#13875b"
+      }
+    };
+
+    const stage = document.getElementById("stage");
+    const canvas = document.getElementById("vfx-canvas");
+    const ctx = canvas.getContext("2d");
+    const buttons = Array.from(document.querySelectorAll(".scene-button"));
+    const fields = {
+      eyebrow: document.getElementById("eyebrow"),
+      title: document.getElementById("scene-title"),
+      text: document.getElementById("scene-text"),
+      metric: document.getElementById("metric"),
+      metricLabel: document.getElementById("metric-label"),
+      nodes: [document.getElementById("node-a"), document.getElementById("node-b"), document.getElementById("node-c")],
+      caption: document.getElementById("caption")
+    };
+
+    let current = "hook";
+    let particles = [];
+    let lastSize = { width: 0, height: 0 };
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      if (rect.width === lastSize.width && rect.height === lastSize.height) return;
+      lastSize = { width: rect.width, height: rect.height };
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      resetParticles();
+    }
+
+    function resetParticles() {
+      const { width, height } = lastSize;
+      const scene = scenes[current];
+      const count = scene.particleMode === "firework" ? 120 : scene.particleMode === "burst" ? 90 : 70;
+      particles = Array.from({ length: count }, (_, index) => createParticle(index, width, height, scene));
+    }
+
+    function createParticle(index, width, height, scene) {
+      const centerX = width * 0.70;
+      const centerY = height * 0.42;
+      if (scene.particleMode === "firework") {
+        const angle = (Math.PI * 2 * index) / 120;
+        const speed = 0.7 + Math.random() * 1.8;
+        return {
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: Math.random(),
+          size: 1.5 + Math.random() * 3,
+          color: scene.color
+        };
+      }
+      if (scene.particleMode === "risk") {
+        return {
+          x: width * (0.55 + Math.random() * 0.35),
+          y: height * (0.15 + Math.random() * 0.55),
+          vx: -0.15 - Math.random() * 0.35,
+          vy: -0.12 + Math.random() * 0.24,
+          life: Math.random(),
+          size: 1 + Math.random() * 2.5,
+          color: scene.color
+        };
+      }
+      if (scene.particleMode === "burst") {
+        return {
+          x: width * Math.random(),
+          y: height * (0.18 + Math.random() * 0.56),
+          vx: -2.0 + Math.random() * 4.0,
+          vy: -0.2 + Math.random() * 0.4,
+          life: Math.random(),
+          size: 1 + Math.random() * 3.2,
+          color: scene.color
+        };
+      }
+      return {
+        x: width * Math.random(),
+        y: height * Math.random() * 0.76,
+        vx: 0.18 + Math.random() * 0.62,
+        vy: -0.14 + Math.random() * 0.28,
+        life: Math.random(),
+        size: 1 + Math.random() * 2.8,
+        color: scene.color
+      };
+    }
+
+    function draw(time) {
+      resizeCanvas();
+      const { width, height } = lastSize;
+      const scene = scenes[current];
+      ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = "source-over";
+
+      if (scene.particleMode === "stream" || scene.particleMode === "orbit") {
+        const gradient = ctx.createRadialGradient(width * 0.72, height * 0.42, 10, width * 0.72, height * 0.42, width * 0.32);
+        gradient.addColorStop(0, hexToRgba(scene.color, 0.22));
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life += 0.008;
+
+        if (scene.particleMode === "firework") {
+          p.vx *= 0.992;
+          p.vy = p.vy * 0.992 + 0.01;
+          if (p.life > 1.1) Object.assign(p, createParticle(Math.floor(Math.random() * 120), width, height, scene));
+        } else if (scene.particleMode === "burst") {
+          if (p.x < -20 || p.x > width + 20 || p.life > 1.2) Object.assign(p, createParticle(0, width, height, scene));
+        } else {
+          if (p.x > width + 20 || p.y < -20 || p.y > height * 0.82 || p.life > 1.35) Object.assign(p, createParticle(0, width, height, scene));
+        }
+
+        const alpha = Math.max(0, 0.75 - p.life * 0.42);
+        ctx.beginPath();
+        ctx.fillStyle = hexToRgba(p.color, alpha);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (scene.particleMode === "stream") {
+        const beamY = height * (0.25 + 0.03 * Math.sin(time / 620));
+        const beam = ctx.createLinearGradient(width * 0.18, beamY, width * 0.78, height * 0.46);
+        beam.addColorStop(0, "rgba(255,255,255,0)");
+        beam.addColorStop(0.5, hexToRgba(scene.color, 0.34));
+        beam.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.strokeStyle = beam;
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.18, beamY);
+        ctx.quadraticCurveTo(width * 0.48, height * 0.28, width * 0.78, height * 0.46);
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    function setScene(id) {
+      current = id;
+      const scene = scenes[id];
+      stage.className = `video-stage ${scene.mode}`;
+      fields.eyebrow.textContent = scene.eyebrow;
+      fields.title.textContent = scene.title;
+      fields.text.textContent = scene.text;
+      fields.metric.textContent = scene.metric;
+      fields.metricLabel.textContent = scene.metricLabel;
+      fields.nodes.forEach((node, index) => {
+        node.textContent = scene.nodes[index];
+      });
+      fields.caption.textContent = scene.caption;
+      buttons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.scene === id));
+      });
+      resetParticles();
+    }
+
+    function hexToRgba(hex, alpha) {
+      const value = hex.replace("#", "");
+      const r = parseInt(value.slice(0, 2), 16);
+      const g = parseInt(value.slice(2, 4), 16);
+      const b = parseInt(value.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setScene(button.dataset.scene));
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    resetParticles();
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>

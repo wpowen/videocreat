@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "skill": "codex-video-workflow",
+  "profile": "stable-local-defaults-2026-07",
+  "defaults": {
+    "imageSource": "image2-dryrun",
+    "sceneImagePolicy": "auto",
+    "freeStockPolicy": "auto",
+    "voiceBackend": "auto",
+    "speechStyle": "auto",
+    "speedProfile": "standard",
+    "ttsWorkers": 1,
+    "ttsDevice": "cpu",
+    "ttsCacheRoot": ".video-maker/tts-cache",
+    "ttsCacheMaxBytes": 5368709120,
+    "finalAudioMode": "reencode-video",
+    "coverIntroSeconds": 0,
+    "maxVisualFrames": 24,
+    "allowSayFallback": false,
+    "allowDegradedRenderer": false,
+    "coverLocalRecompositionPreview": false
+  },
+  "explicitOptIn": {
+    "image2Api": "Use --image-source image2 explicitly; OPENAI_API_KEY alone must not change the default image route.",
+    "codexBuiltinImages": "Use --image-source codex-builtin --codex-image-assets-dir <dir> for Codex/Cos X app image_gen assets; this is the normal final-quality cover handoff and does not require OPENAI_API_KEY.",
+    "sayFallback": "Use --allow-say-fallback explicitly; macOS say is degraded smoke evidence only.",
+    "degradedRenderer": "Use --allow-degraded-renderer explicitly; ffmpeg fallback is not final-quality by default.",
+    "speedProfile": "Use --speed-profile fast for faster iteration: bounded MeloTTS workers plus copy-video final audio normalization when not otherwise overridden.",
+    "ttsWorkers": "Use --tts-workers 5 only for explicit benchmark/turbo runs; fast profile defaults to 3 on CPU, and non-CPU device paths stay at 1 unless benchmarked.",
+    "ttsCacheMaxBytes": "Shared MeloTTS segment cache is capped at 5 GiB by default and pruned by least-recently-used audio files down to an 85% target when over limit. Override with --tts-cache-max-gb.",
+    "finalAudioMode": "Use --final-audio-mode copy-video for fast iteration; default reencode-video preserves the conservative crisp-text bitrate chain.",
+    "coverLocalRecompositionPreview": "Set COVER_LOCAL_RECOMPOSITION_PREVIEW=1 explicitly for non-upload review previews only."
+  },
+  "requiredRuntimeArtifact": "workflow/runtime-config.json"
+}

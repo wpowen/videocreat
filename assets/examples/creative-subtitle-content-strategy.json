@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "status": "example-creative-subtitle-content-strategy",
+  "catalogReference": "assets/caption-style-catalog.json",
+  "strategyReference": "references/creative-subtitle-strategy.md",
+  "globalContract": {
+    "timingOwner": "workflow/voice-subtitle-manifest.json actual per-cue TTS timings",
+    "visualOwner": "captionText / subtitleCues[] rendered as deterministic HTML/CSS overlay",
+    "keywordEmphasisIsVisualOnly": true,
+    "noNewAudioCutsFromVisualStyle": true,
+    "displayMode": "single-line-sequential"
+  },
+  "examples": [
+    {
+      "sceneJob": "hook",
+      "primaryCaption": "为什么观众总是在这里划走？",
+      "semanticCueType": "question",
+      "emphasisTokens": ["观众", "划走"],
+      "selectedStyleId": "vertical-thumb-guard",
+      "fallbackStyleId": "kinetic-slab",
+      "motionVerb": "retention-pop",
+      "usageReason": "Short-form hook needs large mobile-safe readability plus two clear attention words."
+    },
+    {
+      "sceneJob": "contrast",
+      "primaryCaption": "普通字幕解释内容，高级字幕组织注意力。",
+      "semanticCueType": "contrast",
+      "emphasisTokens": ["普通字幕", "高级字幕", "注意力"],
+      "selectedStyleId": "premium-karaoke-tokens",
+      "fallbackStyleId": "proof-highlight",
+      "motionVerb": "token-pulse",
+      "usageReason": "Contrast cue benefits from word-level rhythm without adding audio cuts."
+    },
+    {
+      "sceneJob": "metric",
+      "primaryCaption": "完播率提升，往往来自更少的阅读阻力。",
+      "semanticCueType": "metric",
+      "emphasisTokens": ["完播率", "阅读阻力"],
+      "selectedStyleId": "stat-counter-lockup",
+      "fallbackStyleId": "data-pill",
+      "motionVerb": "dock",
+      "usageReason": "Metric cue should feel measured and UI-native instead of decorative."
+    },
+    {
+      "sceneJob": "step",
+      "primaryCaption": "先压缩信息，再放大关键词。",
+      "semanticCueType": "step",
+      "emphasisTokens": ["压缩信息", "关键词"],
+      "selectedStyleId": "command-palette",
+      "fallbackStyleId": "soft-ui-dock",
+      "motionVerb": "type",
+      "usageReason": "Workflow/tutorial scenes should make captions feel like a command surface."
+    },
+    {
+      "sceneJob": "quote",
+      "primaryCaption": "读者不是被说服的，是被下一秒勾住的。",
+      "semanticCueType": "quote",
+      "emphasisTokens": ["下一秒", "勾住"],
+      "selectedStyleId": "quote-glass-seal",
+      "fallbackStyleId": "split-quote-frame",
+      "motionVerb": "glass-sweep",
+      "usageReason": "A quote should gain editorial weight while preserving quiet readability."
+    },
+    {
+      "sceneJob": "warning",
+      "primaryCaption": "别让视觉换行，反过来切碎口播。",
+      "semanticCueType": "warning",
+      "emphasisTokens": ["视觉换行", "切碎口播"],
+      "selectedStyleId": "alert-ribbon",
+      "fallbackStyleId": "annotated-bracket",
+      "motionVerb": "wipe",
+      "usageReason": "Risk captions may use warning color briefly, but cannot flash or split TTS."
+    },
+    {
+      "sceneJob": "bilingual",
+      "primaryCaption": "字幕要像界面组件，而不是黑色补丁。",
+      "secondaryText": "Captions should feel designed, not patched on.",
+      "semanticCueType": "translation",
+      "emphasisTokens": ["界面组件", "黑色补丁"],
+      "selectedStyleId": "split-bilingual",
+      "fallbackStyleId": "interview-lower-third",
+      "motionVerb": "dual-layer-rise",
+      "usageReason": "Bilingual captions need primary/secondary hierarchy, not two competing spoken lines."
+    },
+    {
+      "sceneJob": "imageFirst",
+      "primaryCaption": "这时字幕应该让位，但不能消失。",
+      "semanticCueType": "recap",
+      "emphasisTokens": ["让位", "不能消失"],
+      "selectedStyleId": "edge-caption-rail",
+      "fallbackStyleId": "minimal-borderless",
+      "motionVerb": "soft-fade",
+      "usageReason": "Footage-heavy scenes need low obstruction while keeping spoken text legible."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "title": "免费商用素材引擎演示",
+  "objective": "验证口播稿驱动的免费素材检索、下载、入账、归一化与 B-roll 融入视频机制。",
+  "language": "zh",
+  "platform": "local-review",
+  "aspectRatio": "16:9",
+  "speechStyle": "explainer",
+  "imageSource": "local",
+  "freeStockEngine": true,
+  "allowFreeStockFixture": true,
+  "freeStockSceneLimit": 3,
+  "freeStockProviderOrder": ["local-authorized", "direct-url", "nasa", "pexels", "pixabay", "fixture"],
+  "freeStockMaxDownloadMb": 40,
+  "rights": {
+    "script": "original demo narration written for this workflow",
+    "externalMedia": "free commercial/public-domain sources only; fixture assets are demo-only validation material"
+  },
+  "narration": "我们现在给视频工作流加一个素材引擎。它会先从口播稿里提取场景意图，再按免费商用、可下载、可追溯这三个条件筛选素材。\n每一个素材进入视频前，都必须写入账本：来源链接、许可类型、是否需要署名、下载时间、本地文件和哈希值。\n最后，素材不是简单铺满画面，而是作为 B-roll 支撑层，字幕、标题、动效和信息结构仍然由本地工作流控制。",
+  "scenes": [
+    {
+      "id": "scene-material-intent",
+      "label": "场景意图",
+      "headline": ["从口播稿", "抽取素材意图"],
+      "subtitle": "先理解这一段需要真实城市、自然还是科技素材。",
+      "body": "素材引擎从标题、口播、场景说明里抽取查询词。",
+      "materialQuery": "city workflow video production desk",
+      "materialKeywords": ["workflow", "production", "city", "desk"]
+    },
+    {
+      "id": "scene-rights-ledger",
+      "label": "授权账本",
+      "headline": ["先入账", "再进时间线"],
+      "subtitle": "没有来源、许可和哈希，就不能进入最终视频。",
+      "body": "这一步防止把未知版权素材混进商用视频。",
+      "materialQuery": "document archive license verification",
+      "materialKeywords": ["license", "archive", "verification", "ledger"]
+    },
+    {
+      "id": "scene-broll-integration",
+      "label": "融入视频",
+      "headline": ["真实素材", "做支撑层"],
+      "subtitle": "B-roll 增强画面感，但不替代字幕、动效和信息结构。",
+      "body": "素材层和确定性 HTML 动效一起工作。",
+      "materialQuery": "motion background editing timeline",
+      "materialKeywords": ["motion", "editing", "timeline", "broll"]
+    }
+  ]
+}

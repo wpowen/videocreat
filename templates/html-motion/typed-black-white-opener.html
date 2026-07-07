@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typed Black White Opener</title>
+  <style>
+    :root {
+      --bg: #020202;
+      --fg: #f7f7f5;
+      --muted: #9a9a9a;
+      --p: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      color: var(--fg);
+      background:
+        radial-gradient(circle at 50% 104%, rgba(255,255,255,.07), transparent 34%),
+        linear-gradient(180deg, #000, #050505);
+    }
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: .11;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.5) 0 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(255,255,255,.24) 0 1px, transparent 1.2px);
+      background-size: 92px 92px, 137px 137px;
+      background-position: 12px 17px, 43px 29px;
+    }
+    .copy {
+      position: relative;
+      width: min(1420px, 84vw);
+      min-height: 320px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 34px;
+      text-align: center;
+    }
+    .line {
+      max-width: 100%;
+      min-height: 1.05em;
+      font-size: clamp(68px, 7.8vw, 148px);
+      line-height: 1.04;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-wrap: balance;
+      filter: blur(calc((1 - min(var(--p), .25) * 4) * 1.8px));
+      opacity: calc(.35 + var(--p) * .65);
+    }
+    .line.secondary {
+      font-size: clamp(42px, 4.4vw, 84px);
+      color: var(--muted);
+      opacity: calc(max(0, (var(--p) - .42) * 2.2));
+    }
+    .cursor {
+      display: inline-block;
+      width: .055em;
+      height: .86em;
+      margin-left: .08em;
+      vertical-align: -.09em;
+      background: var(--fg);
+      opacity: .86;
+    }
+    .transition-mark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: calc(max(0, var(--p) - .88) * 900vw);
+      height: 100%;
+      background: var(--fg);
+      transform: skewX(-15deg) translateX(-35vw);
+      opacity: calc(max(0, var(--p) - .88) * 5);
+    }
+    .caption-safe {
+      position: absolute;
+      left: 12vw;
+      right: 12vw;
+      bottom: 5vh;
+      min-height: 86px;
+      display: grid;
+      place-items: center;
+      color: rgba(247,247,245,.92);
+      font-size: clamp(24px, 2vw, 38px);
+      font-weight: 720;
+      text-align: center;
+      opacity: calc(max(0, var(--p) - .7) * 3);
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="grain"></div>
+    <div class="transition-mark" aria-hidden="true"></div>
+    <section class="copy" aria-label="typed opener">
+      <div class="line" data-field="title">把想法变成成片</div>
+      <div class="line secondary" data-field="final">脚本、分镜、质检、交付</div>
+    </section>
+    <div class="caption-safe" data-field="caption">片头只在明确需要时进入成片；默认正片直接开讲。</div>
+  </main>
+  <script>
+    const state = {
+      title: "把想法变成成片",
+      final: "脚本、分镜、质检、交付",
+      caption: "片头只在明确需要时进入成片；默认正片直接开讲。"
+    };
+    const fields = {
+      title: document.querySelector('[data-field="title"]'),
+      final: document.querySelector('[data-field="final"]'),
+      caption: document.querySelector('[data-field="caption"]')
+    };
+    function visibleText(text, progress, start, end) {
+      const p = Math.max(0, Math.min(1, (progress - start) / Math.max(.001, end - start)));
+      const count = Math.max(Math.min(3, text.length), Math.ceil(text.length * p));
+      return text.slice(0, count);
+    }
+    function render(progress) {
+      const p = Math.max(0, Math.min(1, progress));
+      document.documentElement.style.setProperty("--p", p.toFixed(4));
+      const title = visibleText(state.title, p, 0, .45);
+      const final = p > .42 ? visibleText(state.final, p, .42, .78) : "";
+      fields.title.innerHTML = `${title}<span class="cursor"></span>`;
+      fields.final.textContent = final;
+      fields.caption.textContent = state.caption;
+    }
+    window.motionTemplate = {
+      id: "typed-black-white-opener",
+      setContent(data = {}) {
+        for (const key of Object.keys(state)) {
+          if (typeof data[key] === "string" && data[key].trim()) state[key] = data[key].trim();
+        }
+        if (typeof data.headlineA === "string" && typeof data.headlineB === "string") {
+          state.title = `${data.headlineA}${data.headlineB}`;
+        }
+        if (Array.isArray(data.nodes)) state.final = data.nodes.slice(0, 4).join("、");
+        render(Number(getComputedStyle(document.documentElement).getPropertyValue("--p")) || 0);
+      },
+      setProgress(progress = 0) {
+        render(progress);
+      }
+    };
+    render(0);
+  </script>
+</body>
+</html>

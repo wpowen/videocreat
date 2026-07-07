@@ -1,0 +1,112 @@
+{
+  "title": "Codex 视频插件路由测试",
+  "language": "zh",
+  "audience": "验证视频插件组合是否被 codex-video-workflow 质量合约约束的开发者和内容策划",
+  "objective": "制作一个本地测试视频，覆盖 HyperFrames/GSAP 动效规则、数据可视化、产品界面流程、视觉方向和平台封面，并验证这些能力都被现有框架的合约、时间轴、素材权利和 QC 限定。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 54,
+  "videoType": "plugin-routing-quality-smoke",
+  "imageSource": "image2-dryrun",
+  "style": "data-product-editorial",
+  "voiceBackend": "auto",
+  "speechStyle": "explainer",
+  "coverTheme": "插件不是捷径，框架才是质量边界",
+  "productSurface": {
+    "name": "Codex Video Review Console",
+    "flow": ["brief intake", "plugin routing", "contract check", "render QC", "repair backlog"],
+    "purpose": "把插件能力变成可复查的视频生产流程，而不是一次性生成结果"
+  },
+  "rights": {
+    "text": "original validation script for this workflow",
+    "visuals": "original HTML/CSS/SVG generated locally, with image2-compatible prompts recorded for optional GPT Image 2 generation",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "label": "插件不是质量保证",
+      "kicker": "01 / ROUTE",
+      "headline": ["插件不是捷径", "它只是能力插槽", "质量由框架兜底"],
+      "stat": "RULE",
+      "body": "先说明测试目标：插件可以参与，但必须被质量合约约束。",
+      "subtitle": "我们要测的不是插件名字有没有出现，而是它们有没有被现有框架的规则真正限制住。",
+      "palette": "ink"
+    },
+    {
+      "id": "data-contract",
+      "label": "数据可视化必须服务结论",
+      "kicker": "02 / DATA",
+      "headline": ["数据图表", "先回答问题", "再做动效"],
+      "stat": "4 gates",
+      "body": "数据能力要落到图表目的、指标、来源、视觉编码四个门槛。",
+      "subtitle": "数据可视化不能只负责好看。它必须先写清楚问题、指标、来源和读者应该看到的结论。",
+      "palette": "blue",
+      "chartData": {
+        "type": "ranked-bars",
+        "title": "插件能力必须经过框架证据",
+        "metricLabel": "Required evidence gates by capability",
+        "unit": "gates",
+        "year": "test",
+        "takeaway": "图表展示每类能力都必须留下可验证证据，而不是只被口头调用。",
+        "sourceName": "Local codex-video-workflow validation contract",
+        "sourceUrl": "local://workflow/plugin-routing-contract.json",
+        "values": [
+          { "label": "HyperFrames", "value": 5, "highlight": true },
+          { "label": "数据图表", "value": 4, "highlight": true },
+          { "label": "产品界面", "value": 4 },
+          { "label": "视觉方向", "value": 4 },
+          { "label": "封面物料", "value": 3 }
+        ]
+      }
+    },
+    {
+      "id": "product-flow",
+      "label": "产品界面必须绑定流程",
+      "kicker": "03 / PRODUCT",
+      "headline": ["产品演示", "不是截图堆叠", "要绑定用户流程"],
+      "stat": "FLOW",
+      "body": "Product Design 只负责界面和流程表达，最终仍由视频时间轴和字幕安全区约束。",
+      "subtitle": "如果用了产品设计能力，它不能只生成漂亮界面，而要说明用户从 brief 到修复清单的每一步。",
+      "palette": "teal",
+      "productSurface": {
+        "screen": "Review Console",
+        "states": ["输入 brief", "选择插件路由", "查看 QC", "定位修复项"],
+        "primaryAction": "生成可复查样片"
+      }
+    },
+    {
+      "id": "motion-rule",
+      "label": "动效必须有语义任务",
+      "kicker": "04 / MOTION",
+      "headline": ["GSAP 动效", "必须服务语义", "不能随机炫技"],
+      "stat": "GSAP",
+      "body": "动效要服务 reveal、compare、trace、accumulate、resolve 等明确任务。",
+      "subtitle": "HyperFrames 和 GSAP 负责动效表达，但时间线、字幕、视觉身份和检查顺序必须由框架决定。",
+      "palette": "purple"
+    },
+    {
+      "id": "creative-cover",
+      "label": "视觉方向和封面必须有点击逻辑",
+      "kicker": "05 / CREATIVE",
+      "headline": ["封面不是标题卡", "要有点击理由", "还要跟视频兑现"],
+      "stat": "CLICK",
+      "body": "Creative Production 适合做视觉方向和封面逻辑，但必须输出可验证的 cover-design。",
+      "subtitle": "视觉探索和封面设计要表达承诺、好奇缺口、视觉主体和情绪信号，不能只是装饰。",
+      "palette": "gold"
+    },
+    {
+      "id": "qc-backlog",
+      "label": "用 QC 反推下一步修复",
+      "kicker": "06 / QC",
+      "headline": ["最后看证据", "不看口头承诺", "问题进入修复清单"],
+      "stat": "PASS?",
+      "body": "测试视频的价值在于暴露问题：哪些规则通过，哪些质量项还需要补。",
+      "subtitle": "最后我们用日志、截图、评分卡和插件路由单测，判断这支视频哪里合格，哪里还要继续修。",
+      "palette": "red"
+    }
+  ],
+  "narration": "这支视频不是正式发布样片，而是一次框架验证。我们要测的不是插件名字有没有出现，而是它们有没有被现有框架的规则真正限制住。第一，数据可视化不能只负责好看。它必须先写清楚问题、指标、来源和读者应该看到的结论。第二，如果用了产品设计能力，它不能只生成漂亮界面，而要说明用户从 brief 到修复清单的每一步。第三，HyperFrames 和 GSAP 负责动效表达，但时间线、字幕、视觉身份和检查顺序必须由框架决定。第四，视觉探索和封面设计要表达承诺、好奇缺口、视觉主体和情绪信号，不能只是装饰。最后我们用日志、截图、评分卡和插件路由单测，判断这支视频哪里合格，哪里还要继续修。"
+}

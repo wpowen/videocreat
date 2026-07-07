@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "gpt-image-2-visual-series-catalog",
+  "status": "candidate-library",
+  "designPhilosophy": {
+    "borrowedFrom": "personal-IP native-final route (ip-diagram-creator integration)",
+    "principles": [
+      "native-full-screen-page: each generated page is a full-screen native-aspect base frame for video, not a cropped or letterboxed insert",
+      "fixed-style-dna: every series locks one executable style specification (rendering medium, background, accent, icon/detail style, palette rule) plus a DNA description, injected verbatim into every page prompt of a run. A text-only mood description is not enough: the rendering medium and palette must be pinned to concrete values so pages do not drift between photography, illustration, watercolor, or 3D, or between different background and accent colors",
+      "series-continuity: one run shares one style lock; pages vary content, gesture, and structure, never the rendering medium or palette",
+      "multi-page-coverage: one page owns one contiguous narration beat; a single all-purpose page covering the whole script is rejected by default",
+      "provenance-and-qc: every generated page records source_generated_image provenance and passes series QC before it may enter a video"
+    ],
+    "personalIpBoundary": "The personal-IP route, its persona manifests, plan-vertical-personal-ip-image.mjs, and render-ip-diagram-native-pages.mjs are untouched. This catalog only generalizes the same design pattern to non-persona visual series. Personal-IP briefs keep routing through the existing ip-diagram-creator integration."
+  },
+  "methodSources": [
+    {
+      "name": "hskaildm/gpt-image-2-curated-prompts",
+      "url": "https://github.com/hskaildm/gpt-image-2-curated-prompts",
+      "license": "none declared; community-transcribed prompts",
+      "usage": "method-only distillation: four-part skeleton (positioning statement, module checklist, visual requirements, negative exclusion), variable topic slots, integrated Chinese typography direction, cross-frame consistency wording. No verbatim prompt copying into deliverables."
+    },
+    {
+      "name": "peterRooo/awesome-gpt-image-2-prompts",
+      "url": "https://github.com/peterRooo/awesome-gpt-image-2-prompts",
+      "license": "none declared; community-transcribed prompts",
+      "usage": "method-only distillation: category taxonomy, structured record schema (id/category/quality grade), capability evidence for grids, labeled diagrams, and dense Chinese info plates. Entries built on celebrity likeness, real brands, real game/anime IP, or real platform UI are excluded from this catalog."
+    },
+    {
+      "name": "YouMind-OpenLab/awesome-gpt-image-2",
+      "url": "https://github.com/YouMind-OpenLab/awesome-gpt-image-2/blob/main/README_zh.md",
+      "license": "CC BY 4.0",
+      "usage": "existing prompt-method reference; see references/gpt-image-2-prompt-library.md."
+    },
+    {
+      "name": "haloshin/ip-diagram-creator",
+      "url": "https://github.com/haloshin/ip-diagram-creator",
+      "license": "MIT",
+      "usage": "design-philosophy origin (fixed persona/style DNA, native full-screen pages). Vendored for the personal-IP route only; not modified by this catalog."
+    }
+  ],
+  "styleSpecContract": {
+    "purpose": "The executable style lock that keeps every page of one set visually identical. GPT Image 2 pages are generated independently with no cross-image memory, so a text-only mood description is not enough. Every field below is pinned to a concrete value and injected verbatim, as hard constraints at the top of each page prompt.",
+    "fields": {
+      "renderingMedium": "The single rendering medium for all subjects and modules, with the excluded mediums named explicitly (for example: illustration, never photography or watercolor or 3D).",
+      "background": "The concrete background treatment and color held identical on every page.",
+      "accent": "The single accent hue and how it is used; all other saturated colors are forbidden unless a field names a bounded exception.",
+      "iconAndDetailStyle": "The repeated icon, panel, frame, stroke, and corner treatment so detail work matches across pages.",
+      "paletteRule": "The total color budget and how the palette is bounded."
+    }
+  },
+  "textPolicies": {
+    "text-safe": {
+      "summary": "The generated image owns zero readable text in any language. Blank label plaques and abstract placeholder strokes mark where labels sit; deterministic HTML/SVG/CSS overlays own all exact Chinese text, numbers, and claims.",
+      "default": true,
+      "qcGate": "no readable or pseudo text visible in the bitmap"
+    },
+    "integrated-chinese": {
+      "summary": "The generated image renders an explicit per-page whitelist of short Chinese strings as part of the design, following the Image2 integrated-typography cover precedent and the personal-IP native-page precedent. No readable text outside the whitelist.",
+      "default": false,
+      "requirements": [
+        "only series with supportedTextPolicies including integrated-chinese may use it",
+        "every page prompt must carry its exact text whitelist and forbid all other readable text",
+        "every whitelisted string must pass a proofread gate (human review or OCR-assisted) before final use",
+        "wrong, unreadable, or extra text means regenerate the page or downgrade the page to text-safe with deterministic overlays"
+      ],
+      "qcGate": "integratedTextProofreadPassed"
+    }
+  },
+  "sharedContract": {
+    "subtitleSafeBand": "Keep the lower 18% of the canvas clean empty background with no text, cards, arrows, labels, frame lines, or decorative marks, unless the run's overlay plan explicitly reassigns the subtitle band.",
+    "nativeAspectRule": "Generate natively for the requested aspect ratio. Do not crop, stretch, or squeeze a composition designed for the other orientation.",
+    "motionReadiness": "The page must survive full-screen static hold plus optional module crop, push-in, and scan beats.",
+    "globalNegativeConstraints": [
+      "no watermark",
+      "no logos",
+      "no real platform UI reproduction",
+      "no copied creator or studio style names",
+      "no celebrity likeness",
+      "no random letters or numbers",
+      "no pseudo Chinese or Japanese glyphs",
+      "no generic decorative filler without a narrative job",
+      "no mixing of rendering mediums within a page or across pages of one set"
+    ]
+  },
+  "series": [
+    {
+      "seriesId": "knowledge-encyclopedia-card-v1",
+      "name": "科普百科卡",
+      "status": "candidate",
+      "axes": { "useCase": "infographic/education", "style": "modern encyclopedia plate", "subject": "diagram + concrete subject" },
+      "appliesTo": ["subject profiles and archives", "roundups and rankings", "attribute or trait breakdowns", "science and lifestyle knowledge summaries"],
+      "plannerGuidance": "Pick when a scene presents one subject with structured facts: profile, traits, mechanisms, ratings, or top-N takeaways. Strong replacement for bullet-list HTML slides in knowledge videos.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "integrated-chinese",
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
+      "styleDna": "Modular encyclopedia knowledge plate: field-guide texture, encyclopedia-page structure, information hierarchy, and collectible knowledge-card finish. High information density that still breathes. Never an advertising poster.",
+      "styleSpec": {
+        "renderingMedium": "Render every subject and module as one consistent soft editorial illustration. Never use photography, never a watercolor wash, never cartoon line-art, and never mix mediums between pages or inside a page.",
+        "background": "Warm off-white paper background near #F6F1E7 on every page.",
+        "accent": "One single muted sage-green accent for tags, ratings, dividers, and highlights. No second saturated color anywhere.",
+        "iconAndDetailStyle": "Thin two-tone line icons, rounded modular info panels with soft light shadows, and one consistent stroke weight and corner radius repeated on every page.",
+        "paletteRule": "Three to four muted neutrals total plus the single sage-green accent."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is not a commercial poster and not a plain illustration. It is a modular encyclopedia knowledge plate that combines field-guide texture, encyclopedia page structure, information hierarchy, and collectible knowledge-card finish.",
+        "moduleChecklist": [
+          "one clear hero visual of the subject",
+          "magnified local-detail callouts",
+          "several rounded modular info panels",
+          "clear title hierarchy with key tags",
+          "one visualized rating, score, or top-N strip"
+        ],
+        "visualRequirements": "Light clean background, soft palette, light shadows, refined small icons, rounded info panels, tidy layout, high information density without crowding, comfortable reading order.",
+        "negativeConstraints": ["no commercial advertising-poster look", "no glossy sales layout", "no dark cluttered stage"]
+      },
+      "dynamicSlots": ["主题", "栏目组合", "评分维度", "点睛色"],
+      "pageRoles": ["hero-overview", "detail-zoom", "mechanism-panel", "usage-or-habit-panel", "risk-notes", "rating-summary"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "integratedTextProofreadPassed when integrated-chinese"]
+    },
+    {
+      "seriesId": "strategy-guide-board-v1",
+      "name": "步骤攻略板",
+      "status": "candidate",
+      "axes": { "useCase": "infographic/tutorial", "style": "high-density guide board", "subject": "steps + priorities + checklist" },
+      "appliesTo": ["tutorials and how-to sequences", "step-by-step methods", "priority and resource planning", "pitfall warnings and checklists"],
+      "plannerGuidance": "Pick when narration walks through ordered steps, priorities, or do/don't lists. Each page owns one stage of the guide so the video can page through the method.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "integrated-chinese",
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
+      "styleDna": "High-density strategy guide board: numbered step markers, route lines, and priority badges as the visual language, organized like a premium strategy guide page, information-dense but strictly gridded.",
+      "styleSpec": {
+        "renderingMedium": "Render as one consistent flat vector infographic illustration. Never use photography, never watercolor, never 3D render, and never mix mediums across pages.",
+        "background": "Light neutral background near #F4F6F5 on every page.",
+        "accent": "One functional accent, electric blue, for progress, numbering, and priority badges. A single alert red is the only allowed second color, and only for warnings.",
+        "iconAndDetailStyle": "Uniform rounded step markers, badges, route lines, and card corners with one consistent stroke weight repeated on every page.",
+        "paletteRule": "Neutral base plus the electric-blue functional accent, plus alert red only inside warning modules."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a high-density strategy guide board, a content product rather than a poster: it must read as a publishable, collectible guide page.",
+        "moduleChecklist": [
+          "title strip stating the goal of this stage",
+          "ordered step or route modules with numbered markers",
+          "one priority or resource module",
+          "one checklist or pitfall-alert module",
+          "one short top-N tips strip"
+        ],
+        "visualRequirements": "Modular card layout, numbered visual anchors, clear reading path from top-left, restrained functional palette, generous panel spacing, readable at mobile size.",
+        "negativeConstraints": ["no game-UI clone of a real title", "no chaotic collage", "no neon cyber clutter"]
+      },
+      "dynamicSlots": ["主题", "阶段目标", "步骤数", "警示重点"],
+      "pageRoles": ["goal-overview", "step-sequence", "priority-matrix", "checklist", "pitfall-alerts", "top-tips-recap"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "integratedTextProofreadPassed when integrated-chinese"]
+    },
+    {
+      "seriesId": "relationship-map-poster-v1",
+      "name": "关系图谱页",
+      "status": "candidate",
+      "axes": { "useCase": "infographic/narrative", "style": "designed relationship map", "subject": "nodes + typed edges" },
+      "appliesTo": ["character or faction relationships", "organization structures", "concept networks", "cause-effect webs"],
+      "plannerGuidance": "Pick when the scene explains who relates to whom or how concepts interlock. Use multiple pages to zoom from full map to clusters to key pairs instead of one crowded chart.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "integrated-chinese",
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
+      "styleDna": "Designed relationship map poster: node portraits or concept badges, edges differentiated by color, line style, and arrowheads, grouped clusters with soft containment shapes, and a compact legend. Editorial, restrained, high design finish.",
+      "styleSpec": {
+        "renderingMedium": "Render as one consistent editorial vector illustration; nodes are illustrated portraits or concept badges. Never use photography, never mixed media, and never change medium between pages.",
+        "background": "Calm light background near #F5F4F0 on every page.",
+        "accent": "Node frames share one neutral accent; relationship edges use a fixed three-color semantic set (for example alliance, conflict, kinship) reused identically across pages.",
+        "iconAndDetailStyle": "One consistent node-frame shape, edge stroke weight, and arrowhead style on every page.",
+        "paletteRule": "One neutral base, one node-frame accent, and the fixed three-color edge set only."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a designed relationship map poster, combining information visualization, narrative structure, and poster-level finish. It is not a plain flowchart and not decorative art.",
+        "moduleChecklist": [
+          "clearly separated node portraits or concept badges",
+          "typed edges using distinct colors, line styles, and arrows",
+          "cluster grouping with soft containment shapes",
+          "a compact legend plaque",
+          "one focal relationship highlighted per page"
+        ],
+        "visualRequirements": "Balanced node spacing, no edge crossings through faces or labels, calm background, restrained palette with meaningful edge colors, clear visual hierarchy from focal relationship outward.",
+        "negativeConstraints": ["no tangled hairball layout", "no real-person portraits", "no franchise character likeness"]
+      },
+      "dynamicSlots": ["主题", "关键角色数", "关系类型", "焦点关系"],
+      "pageRoles": ["full-map-overview", "faction-cluster", "core-pair-zoom", "conflict-axis", "relation-timeline", "legend-recap"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "integratedTextProofreadPassed when integrated-chinese"]
+    },
+    {
+      "seriesId": "collection-atlas-card-v1",
+      "name": "图鉴收藏卡",
+      "status": "candidate",
+      "axes": { "useCase": "infographic/collection", "style": "collectible atlas card", "subject": "species, object, or item profile" },
+      "appliesTo": ["animal or plant profiles", "object and product field guides", "item-by-item roundups", "healing or lifestyle knowledge cards"],
+      "plannerGuidance": "Pick for series content that profiles one specimen per page: animals, plants, foods, tools, collectibles. Choose the museum tone for authority topics and the cute tone for healing/lifestyle topics.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "integrated-chinese",
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
+      "toneVariants": {
+        "museum": "Refined natural-history atlas plate: paper-textured light background, precise specimen rendering, elegant serif-feeling hierarchy, muted botanical palette.",
+        "cute": "Healing collectible card: cream and light-brown palette, rounded modules, soft adorable specimen rendering, gentle shadows, warm and calm."
+      },
+      "styleDna": "Collectible atlas card structure: one charming specimen hero, small local-feature vignettes, compact stat and tag modules, a fun-facts strip. Consistent card frame and palette across the whole set so pages read as one collection.",
+      "styleSpec": {
+        "renderingMedium": "Render as illustration only: a refined naturalist plate for the museum tone or a soft rounded illustration for the cute tone. Never use photography, and never change medium or tone between pages of one set.",
+        "background": "Determined by the selected tone variant (museum: paper-textured light ground; cute: cream and light-brown ground) and held identical on every page.",
+        "accent": "One accent consistent with the selected tone (museum: muted botanical; cute: warm brown-orange). No second saturated hue.",
+        "iconAndDetailStyle": "One uniform card frame, module corner radius, and tag-chip shape repeated on every page so the set reads as one collection.",
+        "paletteRule": "The selected tone's palette only; do not drift toward the other tone mid-set."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a collectible atlas card, like one plate from a beautifully produced field-guide series, not a mascot poster and not an advertisement.",
+        "moduleChecklist": [
+          "one specimen hero visual",
+          "two or three local-feature vignettes",
+          "compact stat or tag modules",
+          "one habitat or usage context module",
+          "one fun-facts or top-features strip"
+        ],
+        "visualRequirements": "Consistent card frame, soft palette per the selected tone variant, rounded modules, precise but warm rendering, series-uniform layout skeleton with per-page content variation.",
+        "negativeConstraints": ["no franchise creature likeness", "no sticker-sheet chaos", "no harsh saturated colors"]
+      },
+      "dynamicSlots": ["主题", "tone", "特征标签", "趣味冷知识"],
+      "pageRoles": ["cover-specimen", "anatomy-details", "habitat-context", "traits-tags", "fun-facts", "top-features"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "integratedTextProofreadPassed when integrated-chinese"]
+    },
+    {
+      "seriesId": "editorial-cover-hook-v1",
+      "name": "杂志封面式开场页",
+      "status": "candidate",
+      "axes": { "useCase": "hook/divider", "style": "editorial magazine cover", "subject": "dominant subject + masthead typography" },
+      "appliesTo": ["opening hooks", "chapter dividers", "topic reveals", "closing title pages"],
+      "plannerGuidance": "Pick when a beat needs a premium full-screen hook or chapter divider with one dominant subject and a short high-impact title. Works as the video-internal analogue of the integrated-typography cover.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "integrated-chinese",
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
+      "styleDna": "High-end editorial cover language: one dominant subject with strong presence, masthead-style title zone, one or two kicker lines, studio-grade lighting, generous margins, print-quality finish.",
+      "styleSpec": {
+        "renderingMedium": "Render with one high-end editorial photography finish across all hook and divider pages. If a run instead chooses illustration, it must stay illustration for every hook page. Never mix photography and illustration within one video's hook pages.",
+        "background": "One controlled seamless or minimal environment with a single dominant tonal background, held across pages.",
+        "accent": "A restrained two-to-three color palette total, including the masthead title color.",
+        "iconAndDetailStyle": "One masthead-style title-zone treatment and kicker style repeated identically on every hook page.",
+        "paletteRule": "Two to three colors total; no busy multi-hue backgrounds."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a fictional premium magazine-cover style opener for a video chapter: editorial, restrained, and instantly legible, never a cheap promo poster.",
+        "moduleChecklist": [
+          "one dominant visual subject",
+          "a masthead-style title zone with the whitelisted title only",
+          "one or two short kicker elements",
+          "clear margins and breathing space"
+        ],
+        "visualRequirements": "Editorial photography or premium illustration finish, controlled palette, strong subject lighting, title zone kept clear of the subject's face or focal detail, mobile-legible hierarchy.",
+        "negativeConstraints": ["no real magazine masthead or brand", "no barcode or issue clutter unless whitelisted", "no clickbait sticker style"]
+      },
+      "dynamicSlots": ["主标题", "副题", "主体形象", "情绪基调"],
+      "pageRoles": ["opening-hook", "chapter-divider", "subject-feature", "closing-issue"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "integratedTextProofreadPassed when integrated-chinese"]
+    },
+    {
+      "seriesId": "surreal-carrier-poster-v1",
+      "name": "超现实创意载体页",
+      "status": "candidate",
+      "axes": { "useCase": "hook/transition", "style": "surreal concept carrier", "subject": "a world inside an object" },
+      "appliesTo": ["opening hooks", "emotional transitions", "concept metaphors", "ending echoes"],
+      "plannerGuidance": "Pick when the beat needs wonder or a strong metaphor: an idea contained in an unexpected carrier object. Deterministic overlays own any title text, so this series stays text-safe.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "text-safe",
+      "supportedTextPolicies": ["text-safe"],
+      "styleDna": "Surreal carrier concept: a miniature world, scene, or process contained inside one unexpected object. Dreamlike daydream quality, cinematic light, minimal clean surroundings, high art-poster finish, soft depth of field around the carrier.",
+      "styleSpec": {
+        "renderingMedium": "Render with one consistent cinematic photorealistic surreal look. Never use flat illustration, never watercolor, and never change medium between pages.",
+        "background": "Minimal clean surroundings with one controlled tonal environment held across pages.",
+        "accent": "One key-light color drives the mood; the overall palette stays restrained.",
+        "iconAndDetailStyle": "Consistent depth-of-field, carrier-object framing, and lighting logic around the carrier on every page.",
+        "paletteRule": "Low-to-moderate saturation with one dominant mood color."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a surreal concept poster where the topic lives inside one carrier object, built for cinematic wonder rather than literal illustration.",
+        "moduleChecklist": [
+          "one clear carrier object as the focal point",
+          "a miniature world or process visible inside it",
+          "minimal clean environment around the carrier",
+          "one light source that sells the mood"
+        ],
+        "visualRequirements": "Cinematic lighting, dreamlike atmosphere, minimal background, strong single focal composition, negative space reserved for deterministic title overlays.",
+        "negativeConstraints": ["no readable text of any language", "no busy background props", "no horror or unsettling distortion"]
+      },
+      "dynamicSlots": ["载体物", "内部世界", "情绪", "光线时刻"],
+      "pageRoles": ["hook-reveal", "carrier-wide", "carrier-detail", "transition-mood", "ending-echo"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "noReadableTextInBitmap"]
+    },
+    {
+      "seriesId": "oriental-ink-atmosphere-v1",
+      "name": "新中式水墨氛围页",
+      "status": "candidate",
+      "axes": { "useCase": "transition/mood", "style": "new-Chinese ink wash + modern minimal", "subject": "landscape or subject in atmosphere" },
+      "appliesTo": ["emotional transitions", "culture and history topics", "season or time passage", "calm endings"],
+      "plannerGuidance": "Pick for culture-adjacent topics or when pacing needs a calm breath between dense boards. Large negative space doubles as a natural title/subtitle stage for deterministic overlays.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "text-safe",
+      "supportedTextPolicies": ["text-safe"],
+      "styleDna": "New-Chinese ink aesthetic fused with modern minimal design: large intentional negative space, wet layered ink gradients, atmospheric perspective, serene premium art-poster finish.",
+      "styleSpec": {
+        "renderingMedium": "Render as one consistent new-Chinese ink-wash painting fused with modern minimal layout. Never use photography, never flat vector, and never change medium between pages.",
+        "background": "Large intentional negative space on a pale rice-paper ground on every page.",
+        "accent": "One seasonal accent hue over a low-saturation mist-blue and pale-ink base.",
+        "iconAndDetailStyle": "Consistent brush texture, ink-gradient behavior, and negative-space discipline across pages.",
+        "paletteRule": "Low saturation; mist blue, pale ink, and one seasonal accent only."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a new-Chinese ink atmosphere plate: eastern minimal aesthetics with modern design restraint, made to carry mood and breathing room inside a knowledge video.",
+        "moduleChecklist": [
+          "one main landscape or subject rendered in layered ink washes",
+          "mist or atmosphere creating depth",
+          "one small accent element carrying the narrative",
+          "large intentional negative space"
+        ],
+        "visualRequirements": "Low saturation, soft tonal layering, clear near-far depth, tranquil composition, negative space positioned to host deterministic text overlays.",
+        "negativeConstraints": ["no readable text of any language", "no dense composition", "no saturated tourist-poster palette"]
+      },
+      "dynamicSlots": ["主景", "季节时刻", "点景元素", "留白位置"],
+      "pageRoles": ["opening-mood", "landscape-wide", "subject-focus", "seasonal-shift", "ending-blank-space"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "noReadableTextInBitmap"]
+    },
+    {
+      "seriesId": "interface-mockup-plate-v1",
+      "name": "界面示意板",
+      "status": "candidate",
+      "axes": { "useCase": "evidence/product", "style": "original fictional software interface", "subject": "dashboard, panels, flows" },
+      "appliesTo": ["tool and SaaS walkthroughs", "product feature explanations", "workflow state demonstrations", "before-after result panels"],
+      "plannerGuidance": "Pick when the scene needs software-interface evidence but no real screenshot exists or may be shown. The plate is an original fictional UI; all readable UI copy stays deterministic, so this series is text-safe only.",
+      "aspects": ["16:9", "9:16"],
+      "defaultTextPolicy": "text-safe",
+      "supportedTextPolicies": ["text-safe"],
+      "styleDna": "Original fictional professional software interface: clean light stage, left navigation rhythm, card-based data modules, one chart region, modern minimal SaaS finish. All label positions rendered as blank plaques and abstract strokes.",
+      "styleSpec": {
+        "renderingMedium": "Render as one consistent clean flat UI mockup of an original fictional product. Never photograph a real screen, never use cartoon illustration, and never change the UI style system between pages.",
+        "background": "Light neutral app stage near #F7F8FA on every page.",
+        "accent": "One product accent color used consistently for the primary UI system across pages.",
+        "iconAndDetailStyle": "Consistent card corner radius, grid spacing, shadow depth, and blank-plaque treatment on every page.",
+        "paletteRule": "Neutral UI base plus one product accent."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is an original fictional software-interface plate used as visual evidence in a video. It must feel like a credible premium product surface without reproducing any real product.",
+        "moduleChecklist": [
+          "overall interface frame with navigation rhythm",
+          "card-based data or content modules",
+          "one chart or progress region",
+          "blank label plaques where UI copy would sit",
+          "one highlighted focal module per page"
+        ],
+        "visualRequirements": "Clean grid alignment, realistic interface spacing, soft shadows, restrained accent color, focal module visually emphasized for the page's beat.",
+        "negativeConstraints": ["no readable UI copy in any language", "no real product or platform layout reproduction", "no browser chrome with real brand cues"]
+      },
+      "dynamicSlots": ["产品域", "焦点模块", "点缀色", "数据形态"],
+      "pageRoles": ["dashboard-overview", "feature-panel-zoom", "flow-state", "before-after-panel", "result-summary"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "noReadableTextInBitmap", "noRealPlatformReproduction"]
+    },
+    {
+      "seriesId": "photo-collage-grid-v1",
+      "name": "一致性拼贴网格页",
+      "status": "candidate",
+      "axes": { "useCase": "recap/montage", "style": "consistent grid collage", "subject": "one subject across states" },
+      "appliesTo": ["recaps and montages", "progression over time", "multi-state comparisons", "mood boards"],
+      "plannerGuidance": "Pick when one subject must be shown across several states, moments, or variations in a single frame: recaps, progressions, comparisons. Grid cells must keep strict subject and style consistency.",
+      "aspects": ["9:16", "16:9"],
+      "defaultTextPolicy": "text-safe",
+      "supportedTextPolicies": ["text-safe"],
+      "styleDna": "Grid collage of two-by-two up to four-by-four equal cells with thin consistent gutters. Contact-sheet elegance, not a chaotic collage. Only pose, angle, moment, or state varies per cell.",
+      "styleSpec": {
+        "renderingMedium": "Render every cell and every page in one consistent editorial photography medium (or one consistent illustration medium if the run chooses it), and never mix the two.",
+        "background": "Uniform cell backgrounds and one consistent color grade applied identically to every cell on every page.",
+        "accent": "A single color-grade signature reused across all cells; no per-cell palette drift.",
+        "iconAndDetailStyle": "Equal grid geometry, thin consistent gutters, and uniform cell framing on every page.",
+        "paletteRule": "One unified grade; the subject identity, palette, and lighting stay 100% consistent across all cells."
+      },
+      "promptSkeleton": {
+        "positioning": "This page is a consistency-controlled grid collage: one subject, many states, reading as a single professional contact sheet.",
+        "moduleChecklist": [
+          "equal grid cells with thin consistent gutters",
+          "the same subject in every cell with identity fully preserved",
+          "a deliberate progression or contrast across cells",
+          "uniform lighting and color grading across all cells"
+        ],
+        "visualRequirements": "Maintain 100% consistency of subject identity, palette, and lighting across all cells; vary only pose, angle, moment, or state; keep each cell compositionally distinct; uniform grid geometry.",
+        "negativeConstraints": ["no readable text of any language", "no mixed art styles across cells", "no real-person likeness"]
+      },
+      "dynamicSlots": ["主体", "网格规格", "状态序列", "色调"],
+      "pageRoles": ["recap-grid", "progression-grid", "comparison-grid", "mood-grid"],
+      "qcChecklist": ["nativeAspectGenerated", "styleSpecAndDnaLockApplied", "subtitleSafeBandClean", "noReadableTextInBitmap", "crossCellConsistency"]
+    }
+  ]
+}

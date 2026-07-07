@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dark SaaS Magic UI</title>
+  <style>
+    :root {
+      --bg: #020309;
+      --ink: #f8fbff;
+      --muted: #9ba5b7;
+      --cyan: #23d7ff;
+      --blue: #4a73ff;
+      --magenta: #ff3fc8;
+      --panel: rgba(19, 23, 34, .86);
+      --p: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 110%, rgba(118, 42, 255, .38), transparent 34%),
+        radial-gradient(circle at 78% 18%, rgba(35, 215, 255, .14), transparent 25%),
+        linear-gradient(180deg, #050610 0%, #020309 70%, #07020d 100%);
+    }
+    .stars {
+      position: absolute;
+      inset: 0;
+      opacity: .28;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.85) 0 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(255,255,255,.36) 0 1px, transparent 1.3px);
+      background-size: 86px 86px, 139px 139px;
+      transform: translateY(calc(var(--p) * -24px));
+    }
+    .hero {
+      position: absolute;
+      left: 6vw;
+      top: 10vh;
+      width: 48vw;
+      z-index: 3;
+    }
+    .kicker {
+      color: var(--cyan);
+      font-size: clamp(26px, 2vw, 42px);
+      font-weight: 850;
+      letter-spacing: 0;
+      opacity: .92;
+    }
+    .title {
+      margin: 18px 0 28px;
+      font-size: clamp(70px, 7.4vw, 142px);
+      line-height: .96;
+      font-weight: 950;
+      letter-spacing: 0;
+      transform: translateY(calc((.24 - min(var(--p), .24)) * 160px));
+      opacity: calc(.3 + var(--p) * .9);
+      text-wrap: balance;
+    }
+    .support {
+      max-width: 39vw;
+      color: var(--muted);
+      font-size: clamp(25px, 2.2vw, 42px);
+      line-height: 1.28;
+      font-weight: 760;
+    }
+    .prompt-card {
+      position: absolute;
+      right: 8vw;
+      top: 15vh;
+      width: 42vw;
+      min-height: 36vh;
+      padding: 34px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 68px rgba(74,115,255,.22);
+      transform:
+        perspective(1200px)
+        rotateY(calc(-13deg + var(--p) * 7deg))
+        rotateX(4deg)
+        translate3d(calc((1 - var(--p)) * 120px), calc((1 - var(--p)) * 34px), 0)
+        scale(calc(.86 + var(--p) * .16));
+    }
+    .prompt-title {
+      color: var(--muted);
+      font-size: 28px;
+      font-weight: 800;
+    }
+    .prompt-body {
+      margin-top: 22px;
+      font-size: clamp(30px, 3vw, 58px);
+      line-height: 1.15;
+      font-weight: 900;
+    }
+    .cta {
+      position: absolute;
+      right: 34px;
+      bottom: 30px;
+      padding: 22px 34px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--cyan), var(--blue), var(--magenta));
+      color: white;
+      font-size: 28px;
+      font-weight: 900;
+      box-shadow: 0 0 calc(24px + var(--p) * 32px) rgba(255,63,200,.45);
+    }
+    .orbit {
+      position: absolute;
+      right: 12vw;
+      bottom: 14vh;
+      width: 42vw;
+      height: 26vh;
+      z-index: 2;
+    }
+    .pill {
+      position: absolute;
+      padding: 15px 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.18);
+      color: var(--ink);
+      font-size: clamp(20px, 1.45vw, 30px);
+      font-weight: 830;
+      backdrop-filter: blur(12px);
+      transform: translate3d(0, calc((1 - var(--p)) * 80px), 0) scale(calc(.78 + var(--p) * .22));
+      opacity: calc(.1 + var(--p) * .9);
+    }
+    .pill:nth-child(1) { left: 4%; top: 24%; }
+    .pill:nth-child(2) { left: 32%; top: 2%; }
+    .pill:nth-child(3) { left: 60%; top: 32%; }
+    .pill:nth-child(4) { left: 18%; top: 62%; }
+    .pill:nth-child(5) { left: 70%; top: 72%; }
+    .beam {
+      position: absolute;
+      left: 34vw;
+      right: 19vw;
+      top: 54vh;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+      transform: scaleX(var(--p));
+      transform-origin: left;
+      opacity: .82;
+      filter: blur(.2px);
+    }
+    .caption {
+      position: absolute;
+      left: 10vw;
+      right: 10vw;
+      bottom: 5vh;
+      min-height: 94px;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      background: rgba(0,0,0,.82);
+      border: 1px solid rgba(255,255,255,.14);
+      color: var(--ink);
+      font-size: clamp(25px, 2.1vw, 40px);
+      font-weight: 760;
+      text-align: center;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="stars"></div>
+    <section class="hero">
+      <div class="kicker" data-field="kicker">MAGIC UI</div>
+      <h1 class="title" data-field="title">把工作流召唤出来</h1>
+      <div class="support" data-field="support">大字承诺、提示词卡片、渐变 CTA、漂浮结果一起承担产品叙事。</div>
+    </section>
+    <div class="beam" aria-hidden="true"></div>
+    <section class="prompt-card" aria-label="prompt invocation">
+      <div class="prompt-title" data-field="panelTitle">Prompt</div>
+      <div class="prompt-body" data-field="panelBody">生成一个可交付的视频项目，并保留证据链。</div>
+      <div class="cta" data-field="cardA">Generate</div>
+    </section>
+    <div class="orbit" data-field="nodes">
+      <div class="pill">脚本</div>
+      <div class="pill">分镜</div>
+      <div class="pill">配音</div>
+      <div class="pill">字幕</div>
+      <div class="pill">质检</div>
+    </div>
+    <div class="caption" data-field="caption">暗色 SaaS 风格只用于产品/工具/AI 工作流短片，不作为所有视频默认视觉。</div>
+  </main>
+  <script>
+    window.motionTemplate = {
+      id: "dark-saas-magic-ui",
+      setContent(data = {}) {
+        if (Array.isArray(data.nodes)) {
+          document.querySelector('[data-field="nodes"]').innerHTML = data.nodes.slice(0, 5).map((node) => `<div class="pill">${node}</div>`).join("");
+        }
+        for (const [key, value] of Object.entries(data)) {
+          if (key === "nodes") continue;
+          const el = document.querySelector(`[data-field="${key}"]`);
+          if (el && typeof value === "string") el.textContent = value;
+        }
+      },
+      setProgress(progress = 0) {
+        const p = Math.max(0, Math.min(1, progress));
+        document.documentElement.style.setProperty("--p", p.toFixed(4));
+      }
+    };
+  </script>
+</body>
+</html>

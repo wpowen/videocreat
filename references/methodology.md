@@ -10,6 +10,11 @@ Record these fields before writing or rendering:
 - Rights: what text, images, audio, fonts, and source material may be used.
 - Stop condition: final MP4 plus reproducible evidence package.
 
+Also write `workflow/retention-structure-contract.json` from
+`references/retention-structure.md`. This contract must carry the viewing
+promise from topic selection into script, storyboard, visual rhythm, evidence
+cadence, ending payoff, and QC.
+
 ## Short-Form Structure
 
 Use platform guidance only as abstract criteria:
@@ -31,6 +36,8 @@ For novel-writing technique videos, use original examples and avoid copying spec
 ## Storyboard Rules
 
 - Keep each scene to one visual idea.
+- Give each scene a viewer reason to continue: hook, proof, contrast, method,
+  progress, or payoff.
 - Use large readable text, not paragraph overlays.
 - Keep captions in a bottom safe area with high contrast.
 - Maintain one timing source of truth: scene start, duration, narration, subtitle.

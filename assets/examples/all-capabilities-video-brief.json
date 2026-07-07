@@ -1,0 +1,251 @@
+{
+  "title": "把 AI 视频工作流做成可审计生产线",
+  "language": "zh",
+  "audience": "想看见当前视频 skill 和插件能力真实联动方式的创作者、开发者和产品负责人",
+  "objective": "设计并生成一支全能力压力测试视频：同一支片子同时触发审美预检、产品界面演示、网站转视频路由、数据动效、数学/3D/手绘/Lottie/Anime motion 路由、原始素材剪辑合约、参考视频对齐、模板参数化、封面设计、TTS、字幕、截图、FFmpeg QC 和插件路由质量门。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 96,
+  "videoType": "ai-product-demo-data-editorial",
+  "contentMode": "series template batch variants product workflow demo",
+  "imageSource": "image2-dryrun",
+  "style": "dark saas magic ui data editorial kinetic typography product demo",
+  "voiceBackend": "auto",
+  "speechStyle": "product",
+  "coverTheme": "插件不是魔法，证据链才是生产力",
+  "designPlatforms": ["all"],
+  "websiteUrl": "local://codex-video-review-console",
+  "landingPageUrl": "local://codex-video-review-console/launch",
+  "registryComponents": true,
+  "canvaDeliverables": {
+    "cover": true,
+    "socialCutdown": true,
+    "deck": true
+  },
+  "templateProps": {
+    "seriesName": "VideoOps Lab",
+    "episode": "Capability Stress Test",
+    "headline": "AI 视频生产线全能力压力测试",
+    "supportCopy": "所有插件只能作为能力插槽，必须留下 workflow artifact 和 QC 证据。",
+    "palette": "dark-saas-data-editorial",
+    "assetSlot": "authorized-local-media",
+    "metric": "13 capability gates"
+  },
+  "batchVariants": [
+    {
+      "id": "developer-proof",
+      "label": "开发者验证版",
+      "overrides": {
+        "hook": "看 artifact 和 QC，不看口头承诺"
+      }
+    },
+    {
+      "id": "creator-demo",
+      "label": "创作者演示版",
+      "overrides": {
+        "hook": "把审美、动效、口播和封面放进同一条生产线"
+      }
+    }
+  ],
+  "productSurface": {
+    "name": "Codex Video Review Console",
+    "flow": ["导入 brief", "审美预检", "插件路由", "素材证据", "时间轴绑定", "渲染 QC", "修复清单"],
+    "purpose": "让每个外部能力都变成可复查的本地证据，而不是不可解释的一次性生成结果"
+  },
+  "rawFootage": "research/codex-video-workflow-poc/all-capabilities-inputs/authorized-raw-footage.mp4",
+  "sourceVideos": [
+    {
+      "path": "research/codex-video-workflow-poc/all-capabilities-inputs/authorized-raw-footage.mp4",
+      "role": "synthetic authorized source footage for raw-footage contract"
+    }
+  ],
+  "referenceVideoPath": "research/codex-video-workflow-poc/all-capabilities-inputs/reference-style-target.mp4",
+  "referenceVideos": [
+    {
+      "path": "research/codex-video-workflow-poc/all-capabilities-inputs/reference-style-target.mp4",
+      "role": "synthetic style target for reference-alignment QC route"
+    }
+  ],
+  "rights": {
+    "text": "original script written for local capability testing",
+    "visuals": "original HTML/CSS/SVG generated locally; Image 2 compatible prompts are recorded for optional generation",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "all referenced media is synthetic local ffmpeg test footage generated inside this workspace for this demo",
+    "data": "local workflow capability counts and declared artifact gates, no third-party data dependency"
+  },
+  "scenes": [
+    {
+      "id": "hook-governor",
+      "label": "主框架先行",
+      "kicker": "01 / GOVERNOR",
+      "headline": ["插件不是魔法", "先进入框架", "再生成视频"],
+      "stat": "13 gates",
+      "body": "开场用黑色产品舞台和大字动效说明规则：插件只能提供能力，质量边界由 codex-video-workflow 接管。",
+      "subtitle": "这支片子故意把所有能力放进同一条链路，目标不是炫技，而是看每个能力有没有留下证据。",
+      "palette": "ink",
+      "motionLibrary": "animejs",
+      "templateProps": {
+        "sceneRole": "opening promise"
+      }
+    },
+    {
+      "id": "ui-ux-preflight",
+      "label": "审美预检",
+      "kicker": "02 / TASTE",
+      "headline": ["先做审美预检", "再定版式", "避免 PPT 感"],
+      "stat": "UI/UX",
+      "body": "UI/UX Pro Max 和设计平台规划负责给出产品风格、字体、色彩、移动字幕安全区和动效克制规则。",
+      "subtitle": "审美不是最后加滤镜，而是在渲染前写进 aesthetic brief、content presentation 和 quality contract。",
+      "palette": "purple",
+      "productSurface": {
+        "screen": "Design Intelligence Panel",
+        "states": ["style search", "typography search", "UX risk scan", "video rules mapping"],
+        "primaryAction": "写入设计证据"
+      }
+    },
+    {
+      "id": "product-console",
+      "label": "产品界面流程",
+      "kicker": "03 / PRODUCT",
+      "headline": ["产品演示", "不是截图堆叠", "而是状态流"],
+      "stat": "FLOW",
+      "body": "Product Design 路由必须把 brief、插件选择、QC 结果和修复项变成一个连续的用户流程。",
+      "subtitle": "界面演示要绑定用户任务：导入 brief，查看路由，定位风险，再决定下一轮修复。",
+      "palette": "teal",
+      "productSurface": {
+        "screen": "Review Console",
+        "states": ["Brief Intake", "Capability Map", "QC Scorecard", "Repair Backlog"],
+        "primaryAction": "Generate audited package"
+      }
+    },
+    {
+      "id": "website-to-video",
+      "label": "网站转视频路由",
+      "kicker": "04 / WEB",
+      "headline": ["网页不是照搬", "要抽象成镜头", "再进动效"],
+      "stat": "SITE",
+      "body": "Website-to-HyperFrames 只提供网页捕捉和结构线索，最终仍要变成原创视频构图。",
+      "subtitle": "如果 brief 带了网站来源，框架会把它当成信息结构参考，而不是复制网页截图。",
+      "palette": "blue",
+      "websiteUrl": "local://codex-video-review-console/route-map"
+    },
+    {
+      "id": "data-proof",
+      "label": "数据动效",
+      "kicker": "05 / DATA",
+      "headline": ["数据必须回答问题", "指标必须有来源", "动效必须服务结论"],
+      "stat": "87%",
+      "body": "数据场景触发 build-web-data-visualization、D3/数据曲线和 data-motion-plan。",
+      "subtitle": "这里的柱状图不是装饰，它要告诉你：框架证据覆盖率比单纯插件调用更重要。",
+      "palette": "green",
+      "chartData": {
+        "type": "ranked-bars",
+        "title": "视频生产证据门覆盖率",
+        "metricLabel": "Capability gates with local artifacts",
+        "unit": "%",
+        "year": "demo",
+        "takeaway": "可审计生产线必须让每个关键能力都有 artifact 和 QC 证据。",
+        "sourceName": "Local codex-video-workflow demo brief",
+        "sourceUrl": "local://workflow/plugin-routing-contract.json",
+        "values": [
+          { "label": "主框架", "value": 100, "highlight": true },
+          { "label": "数据动效", "value": 92 },
+          { "label": "产品界面", "value": 88 },
+          { "label": "原始素材", "value": 84 },
+          { "label": "参考对齐", "value": 78 },
+          { "label": "分发物料", "value": 72 }
+        ]
+      },
+      "motionLibrary": "d3"
+    },
+    {
+      "id": "raw-footage-contract",
+      "label": "原始素材剪辑合约",
+      "kicker": "06 / FOOTAGE",
+      "headline": ["素材可以进来", "但要先建清单", "不能乱切"],
+      "stat": "EDL",
+      "body": "Video-Use-style 路由负责素材清单、转写索引、字边界、EDL、cut-boundary QC 和媒体归一化计划。",
+      "subtitle": "这段本地测试素材会触发 raw footage inventory 和 edit decision list，但不会绕过本地口播、字幕和时间轴。",
+      "palette": "gold",
+      "rawFootage": "research/codex-video-workflow-poc/all-capabilities-inputs/authorized-raw-footage.mp4",
+      "sourceVideo": "research/codex-video-workflow-poc/all-capabilities-inputs/authorized-raw-footage.mp4"
+    },
+    {
+      "id": "reference-alignment",
+      "label": "参考视频对齐",
+      "kicker": "07 / REFERENCE",
+      "headline": ["参考不是抄袭", "只比对节奏", "再列修复项"],
+      "stat": "ALIGN",
+      "body": "Reference alignment 只做风格、节奏、构图密度和候选帧对比，不做像素级模仿。",
+      "subtitle": "参考视频会进入 alignment report，帮助判断候选成片的节奏和视觉密度是否达标。",
+      "palette": "red",
+      "motionLibrary": "roughjs"
+    },
+    {
+      "id": "math-motion",
+      "label": "数学/逻辑动效",
+      "kicker": "08 / MATH",
+      "headline": ["公式要能动", "推导要分层", "结论再落下"],
+      "stat": "f(x)",
+      "body": "Manim-style 插入只用于公式、几何、轨迹或证明关系，中文字幕和主时间轴仍归框架管理。",
+      "subtitle": "公式 f(x)=x^2+3x 会触发数学动效计划：先展示变量，再画轨迹，最后落到业务结论。",
+      "palette": "purple",
+      "formula": "f(x)=x^2+3x; Δquality≈evidence×timing",
+      "motionLibrary": "manim"
+    },
+    {
+      "id": "spatial-three",
+      "label": "三维空间路由",
+      "kicker": "09 / 3D",
+      "headline": ["复杂关系", "可以变成空间", "但要验证非空画面"],
+      "stat": "3D",
+      "body": "Three.js-style 路由只在空间层级、镜头环绕、深度关系真的帮助理解时使用。",
+      "subtitle": "这里把 brief、插件、artifact、QC 四层证据堆成空间结构，避免变成平铺卡片。",
+      "palette": "blue",
+      "motionLibrary": "threejs"
+    },
+    {
+      "id": "authored-loop",
+      "label": "授权循环动效",
+      "kicker": "10 / LOOP",
+      "headline": ["Lottie 可以用", "前提是授权", "还要有边界"],
+      "stat": "LOOP",
+      "body": "Lottie 路由只接受 authored/licensed asset，用作局部状态循环，不接管视频主体。",
+      "subtitle": "这一幕声明一个授权循环资产，测试 motion-library 路由能不能把它作为局部插槽记录下来。",
+      "palette": "teal",
+      "motionLibrary": "lottie",
+      "authorizedLottieAsset": {
+        "path": "local://authorized-demo-loop",
+        "license": "synthetic local placeholder declared by brief"
+      }
+    },
+    {
+      "id": "template-variants",
+      "label": "模板参数化",
+      "kicker": "11 / TEMPLATE",
+      "headline": ["同一套结构", "能出多个版本", "但时间轴不让位"],
+      "stat": "PROPS",
+      "body": "Remotion-style template props 只负责参数化，不拥有旁白、权利、封面逻辑或 QC。",
+      "subtitle": "模板参数可以换标题、数据、色彩和素材槽，但不能绕开 narration timing 和 quality gates。",
+      "palette": "ink",
+      "templateProps": {
+        "headline": "模板版式可复用",
+        "metric": "2 variants",
+        "assetSlot": "capability-proof"
+      }
+    },
+    {
+      "id": "distribution-qc",
+      "label": "封面与分发物料",
+      "kicker": "12 / DELIVERY",
+      "headline": ["最后看证据", "封面要兑现", "QC 决定能不能交付"],
+      "stat": "PASS?",
+      "body": "Creative Production、Canva 分发物料、cover-design、截图、FFmpeg probe 和 QC scorecard 共同收尾。",
+      "subtitle": "最终交付不看插件名堆了多少，只看 brief、artifact、截图、音画同步、封面和 QC 是否闭环。",
+      "palette": "gold",
+      "motionLibrary": "gsap"
+    }
+  ],
+  "narration": "这支视频是一支全能力压力测试片。我们故意把插件、审美、动效、素材、口播、字幕、封面和质量门放进同一条链路。第一条规则，插件不是魔法。它只能提供能力插槽，真正的质量边界由 codex-video-workflow 接管。第二，审美要在渲染前完成。UI/UX Pro Max、设计平台规划和内容呈现设计，要先给出风格、字体、色彩、字幕安全区和动效克制规则。第三，产品界面不是截图堆叠。它必须绑定用户任务：导入 brief，查看路由，定位风险，再进入修复清单。第四，网站来源不能照搬，它只能帮助抽象信息结构，再被转成原创镜头。第五，数据图表必须回答问题，有指标、有来源、有结论，动效才有意义。第六，原始素材可以进入视频，但必须先写素材清单、转写索引、字边界、EDL 和 cut boundary QC。第七，参考视频只做节奏和密度对齐，不做抄袭式复刻。第八，公式、三维、手绘、Lottie 和 Anime motion 都只能按场景需要局部启用。第九，模板参数可以复用结构，但不能绕过旁白时间轴、素材权利、封面逻辑和最终 QC。最后，这支片子的交付标准不是插件名字有没有出现，而是每个能力有没有留下 workflow artifact、截图、日志和可修复的问题清单。"
+}

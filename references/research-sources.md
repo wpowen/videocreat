@@ -21,6 +21,8 @@ Primary sources used for the June 2026 workflow decision:
 - `https://lottiefiles.com/tools/web-player` - LottieFiles web player can embed `.lottie`/JSON assets by snippet when assets are authorized.
 - `https://threejs.org/` - Three.js is the web 3D route for meaningful WebGL/depth-driven scenes.
 - `https://threejs.org/examples/` - Three.js examples include animation, keyframes, skinning, render targets, and WebGL/WebGPU experiments.
+- `https://github.com/galacean/effects-runtime` - Galacean Effects can load and render animation effects through `@galacean/effects`; use as a bounded visual-effects layer for particles, fireworks, 2D/3D accents, scans, and transitions, not as a replacement for the video workflow. Its README also notes Spine plugin license obligations.
+- `https://www.galacean.com/effects/` - Galacean Effects editor/source route for effect JSON resources; production use still requires local asset provenance, rights record, and QC.
 - `https://ffmpeg.org/ffmpeg-filters.html` - ffmpeg filtergraph, audio/video filters, and blackdetect-style local QC primitives.
 - `https://zulko.github.io/moviepy/` - MoviePy as an open-source Python fallback for scripted editing.
 - `https://github.com/openai/whisper` - MIT-licensed Whisper code/weights as a possible local ASR/subtitle candidate.
@@ -31,10 +33,15 @@ Primary sources used for the June 2026 workflow decision:
 - `https://developers.openai.com/api/docs/models/gpt-image-2` - GPT Image 2 model page; supports text input and image input/output for image generation/editing through documented endpoints.
 - `https://developers.openai.com/api/docs/guides/image-generation` - OpenAI image generation guide; GPT Image models, including `gpt-image-2`, can generate and edit images from text prompts.
 - `https://developers.openai.com/api/reference/resources/images/methods/generate/` - Images API create endpoint and output format parameters for GPT image models.
+- `https://github.com/YouMind-OpenLab/awesome-gpt-image-2/blob/main/README_zh.md` - community GPT Image 2 prompt collection used as a prompt-method reference for taxonomy, structured fields, dynamic slots, composition/material language, and negative constraints; do not copy community examples or protected styles.
+- `https://collectui.com/` - current CollectUI page researched on 2026-06-30; presents daily UI inspiration, latest designs, designers, categories, trending, favorites, submission, compact card grids, and a curated design-audience positioning. Use as interface-pattern curation logic only.
+- `https://www.pinterest.com/hmq1285/ui%E6%A0%B7%E5%BC%8F/` - current Pinterest board metadata researched on 2026-06-30; board title is `UI样式`, with 150 ideas around UI design, icon design, app/web/mobile UI, cards, dashboards, finance, and e-learning references. Use as motif/moodboard taxonomy only.
 - `https://business.x.com/en/help/campaign-setup/creative-ad-specifications` - X video specs and short-form recommendations.
 - `https://business.x.com/en/advertising/creative-best-practices` - X creative guidance including early movement and concise videos.
 - `https://help.x.com/en/using-x/media-studio-faqs` - X Media Studio thumbnail selection/upload behavior and aspect-ratio warning.
 - `https://ads.tiktok.com/help/article/creative-best-practices` - TikTok guidance on captions, text overlay density, transitions, and CTA.
+- `https://support.google.com/youtube/answer/9314415` - YouTube audience-retention report guidance; use the first-30-second intro/key-moments framing as a diagnostic quality constraint for opening promise and expectation match.
+- `https://www.nngroup.com/topic/animation/` - Nielsen Norman Group animation and motion UX guidance; use as a constraint that motion must guide attention, communicate state/relationship, or support comprehension rather than become decorative distraction.
 - `https://support.tiktok.com/en/using-tiktok/creating-videos/editing-posting-and-deleting` - TikTok video cover definition and pre-post cover selection behavior.
 - `https://support.google.com/google-ads/answer/16041697?hl=en` - YouTube Shorts ad guidance on vertical assets, brevity, and sound.
 - `https://support.google.com/google-ads/answer/13547298?hl=en` - YouTube video ad specs including 1080p horizontal/vertical/square recommendations.

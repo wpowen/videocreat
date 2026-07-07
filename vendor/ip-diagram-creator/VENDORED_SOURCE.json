@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "ip-diagram-creator",
+  "sourceRepo": "https://github.com/haloshin/ip-diagram-creator",
+  "sourceCommit": "dd64ab5d972893f7ca271d9c560362d7788eb2d6",
+  "sourceRelease": "v0.2.0",
+  "license": "MIT",
+  "vendoredFor": "codex-video-workflow-local",
+  "usageBoundary": "Read and reuse the original Skill instructions, references, prompt templates, visual-language rules, QA rules, and example assets as the native personal-IP diagram generation logic. The video workflow still owns voice, subtitles, timing, export, delivery, and QC.",
+  "entrypoint": "SKILL.md",
+  "requiredReferences": [
+    "references/identity-and-character.md",
+    "references/visual-language.md",
+    "references/content-workflow.md",
+    "references/modes-and-sizes.md",
+    "references/ppt-presentation-mode.md",
+    "references/prompt-templates.md",
+    "references/qa-repair.md",
+    "references/safety-and-assets.md"
+  ],
+  "requiredArtifactsWhenActive": [
+    "workflow/ip-diagram-creator-vendor-usage.json",
+    "workflow/ip-diagram-creator-native-jobs.json",
+    "workflow/ip-diagram-creator-plan.json"
+  ]
+}

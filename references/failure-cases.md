@@ -52,6 +52,22 @@ Repair:
 4. Log audio/video stream duration delta in `logs/qc.json`.
 5. Review screenshots or frame samples at opening/middle/end against the current spoken section.
 
+## Subtitle Wrapping Failure
+
+Failure pattern:
+
+1. Split TTS by visual subtitle line length instead of sentence or semantic-beat boundaries.
+2. A word, quote, or sentence is cut into separate audio files, so playback sounds clipped even if the text is present.
+3. Burned-in subtitles render all wrapped lines at once, creating stacked text in the safe area.
+
+Repair:
+
+1. Keep `script/subtitle-cue-narration-segments.json` as the audio cue source, with each cue preserving a complete sentence or complete semantic beat.
+2. Put visual wrapping into `captionText` only; do not insert visual newlines into spoken TTS text.
+3. Expand wrapped `captionText` into sequential one-line visual subtitle cues for SRT and burned-in captions.
+4. Require `visualSubtitleSingleLine` in both `logs/qc.json` and `workflow/quality-consistency-contract.json`.
+5. Run `scripts/validate-subtitle-cover-contract.mjs --out <output-dir> --brief <brief.json>` before delivery.
+
 ## Image2 Failure
 
 Default `image2-dryrun` does not call the API. It records GPT Image 2 compatible prompts and inserts local SVG assets.
@@ -68,6 +84,7 @@ When `--image-source image2` is requested:
 
 - Missing MP4, missing audio, duration outside requested range, or blackdetect hits are hard failures.
 - Missing `workflow/sync-timecode-plan.json`, semantic timing drift, or fixed-duration main scenes over uneven long narration are hard failures.
+- Failing subtitle/cover contract validation is a hard failure for final-quality packages with narration, subtitles, and covers.
 - Missing `workflow/cover-design.json` or final cover images for final-quality delivery is a hard failure.
 - Missing design plan, missing image2 prompts, missing visual asset manifest, or scenes without inserted visuals are hard failures.
 - Platform readiness remains a warning until a human reviews licensing, AI labeling, upload policy, and editorial suitability.

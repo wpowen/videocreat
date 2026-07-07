@@ -1,0 +1,269 @@
+# ip-diagram-creator
+
+**个人 IP 图解创作器：用你的 IP 形象，生成专属内容图解。**
+
+把授权照片、主页截图、简介或已有角色档案，转成一套可长期复用的极简手绘图解角色；再把文章、课程、观点或脚本拆成适合传播的长文配图、知识卡、方法拆解图、手机海报或整页 PPT 演讲页面。
+
+它不是单纯的头像生成器，而是 **IP 主角 + 执行 Agent 的知识图解系统**：用户 IP 负责主讲、拆解、批注和调度，执行 Agent 负责搬卡片、递交结果、标记风险、反馈和试错。
+
+底层原则：**先定角色，再拆内容，最后生成图解。**
+
+![ip-diagram-creator banner](assets/banner.webp)
+
+---
+
+## 快速开始
+
+### 1. 安装
+
+当前项目安装：
+
+```bash
+npx skills add https://github.com/haloshin/ip-diagram-creator
+```
+
+全局安装：
+
+```bash
+npx skills add https://github.com/haloshin/ip-diagram-creator -g
+```
+
+不使用安装器也可以：下载本仓库，把整个目录放进你的 Agent Skills 目录，然后让 Agent 读取 `SKILL.md`。
+
+### 2. 第一次出 IP 图
+
+上传你的照片、主页截图或简介，然后说一句就够：
+
+```text
+帮我出一组 IP 图。
+```
+
+如果你希望更可控，可以先不出图，让 Agent 对齐方向：
+
+```text
+先不要出图。请根据我的照片、主页截图和简介，先帮我对齐角色方向、三张角色资产思路和后续出图方式，确认后再继续。
+```
+
+### 3. 继续做内容图解
+
+确认三张角色资产后，可以直接发内容让 Agent 推荐出图方式：
+
+```text
+这篇内容想配图，请先推荐适合做几张，分别是什么类型。
+```
+
+也可以明确指定模式和尺寸。
+
+| 方式 | 适合内容 | 可以这样说 |
+| --- | --- | --- |
+| Agent 推荐 | 还不确定该画几张 | 这篇内容想配图，请先推荐适合做几张，分别是什么类型。 |
+| 知识卡 | 方法、步骤、流程、对比、案例 | 用这个形象做一张 16:9 知识卡。 |
+| 手绘插图 | 单个观点、故事场景、隐喻表达 | 用这个形象做一张手绘插图。 |
+| 长文 shot list | 文章、课程、脚本 | 这篇文章想配图，请先判断适合几张图，给 shot list，不要直接全生成。 |
+| PPT 演讲模式 | 直播分享、课程课件、主题演讲 | 我有一个分享大纲，请先做整套 PPT 导演规划卡，不要直接出图。 |
+
+---
+
+## 推荐环境
+
+推荐在支持图片读取、较高推理强度和图像生成工具的 Agent 环境中使用。这样可以直接完成照片 / 截图理解、角色建档、三张角色资产、内容图解生成和返修。
+
+如果当前环境不能直接生成图片，本 Skill 仍然可以输出可复制到 GPT Image 2、`image_gen` 或其他图像生成工具的完整 prompt，并附返修 prompt。它不会在没有生图能力时假装已经出图。
+
+---
+
+## 你会得到什么
+
+### 角色资产：三张固定资产
+
+![ip-diagram-creator character assets](assets/what-you-get-character-assets.webp)
+
+角色资产不是只生成一张头像，而是先固化“像谁”，再固化“不能跑偏”，最后固化“小比例场景里还能认出来”。
+
+### 图解产出：从低信息量插图到知识卡
+
+![ip-diagram-creator diagram modes](assets/what-you-get-diagram-modes.webp)
+
+这张图展示同一个内容主题在不同信息密度下的产出差异：低信息量手绘插图、中信息量插图、高信息量标注图，以及更适合收藏和复盘的知识卡。
+
+核心产出分成 7 类：
+
+| 产出 | 作用 |
+| --- | --- |
+| 角色三件套 | 角色主锚图、角色规范说明图、动作 / 表情 / 小比例场景扩展图。 |
+| 内容图解 | 先读长文、课程、截图或一句话主题，再判断适合画哪几张图。 |
+| Agent 协作图解 | 方法、步骤、流程、对比、案例和风险类知识卡，默认安排 2-6 个执行 Agent 参与动作。 |
+| 模式判断 | 手绘插图看信息量，知识卡看内容结构和执行分工，PPT 模式看页面节奏。 |
+| 出图前确认卡 | 先确认图类型、尺寸、图内文字、主画面隐喻、角色动作和辅助 Agent 分工。 |
+| PPT 导演规划 | 先规划整套页面类型、信息密度、人物出现频率和样张页，再分批生成。 |
+| Prompt 和返修建议 | 可复制到图像生成工具，也方便持续迭代角色稳定性。 |
+
+### PPT 模式：从单张图解到整套演讲页面
+
+![PPT 模式样例图](assets/examples/ppt-mode/ppt-mode-gallery-8up.webp)
+
+PPT 演讲模式用于个人 IP 直播分享、课程课件、主题演讲和案例复盘。它不是把每一页都做成知识卡，而是先控制整套页面节奏，再生成整页 PPT 页面图。
+
+基本流程：
+
+1. 提供主题、大纲、逐字稿或旧 PPT。
+2. 确认个人 IP 角色资产。
+3. 输出导演规划卡：每页类型、视觉权重、图文比例、人物职责和 QA 风险。
+4. 先做 1-2 页样张，确认字体、角色和信息密度。
+5. 分批生成整套页面，并用 contact sheet 做整套 QA。
+
+常见页面类型包括：封面页、大判断页、模块页、标准页、场景页、时间线页、方法页和收束页。
+
+## 适合谁
+
+- 个人 IP、知识型创作者、课程作者、咨询顾问、内容团队。
+
+- 想把自己的形象变成长期稳定内容视觉的人。
+
+- 想让 AI 先理解内容结构，再推荐图解形式，而不是直接套模板出图的人。
+
+## 不能做什么
+
+- 不保证复刻真人长相，也不适合生成身份证照、商业肖像照或高拟真写真。
+
+- 不直接使用未授权照片、他人主页截图、私信截图、客户资料或不可分发参考图。
+
+- 不替代商标、肖像权、平台规则、课程销售和广告投放前的人工审核。
+
+- 不把用户确认后的私有角色资产放进公共 Skill 包作为默认资产。
+
+## 输入和输出
+
+| 类型 | 内容 |
+| --- | --- |
+| 角色材料 | 本人照片、头像、主页截图、简介、账号资料、已有角色图、角色档案。 |
+| 内容材料 | 长文、Markdown、链接摘要、截图、课程大纲、视频脚本、直播主题、案例复盘、一句话观点。 |
+| 参考材料 | 你有权使用的风格参考、知识卡参考、版式参考。 |
+
+输出通常包括：
+
+| 阶段 | 输出 |
+| --- | --- |
+| 角色建档 | 角色信息提取卡、三张角色固定资产 prompt、角色档案摘要。 |
+| 内容拆解 | 长文 shot list、出图方案推荐、内容确认卡、辅助 Agent 分工建议。 |
+| PPT 演讲模式 | 整套导演规划卡、page card、样张页建议、整套 QA 检查。 |
+| 生成与返修 | 可复制的图像生成 prompt、QA 检查、返修 prompt。 |
+
+---
+
+## 示例图库
+
+示例图只展示最终成品，不包含原始照片、主页截图或私有参考图。
+
+<details>
+<summary>展开查看 5 类示例图</summary>
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="assets/examples/gallery/workflow-overview-16x9.webp" alt="workflow overview" />
+      <br />
+      <strong>工作流总览</strong><br />
+      从个人材料到内容图解的完整链路。
+    </td>
+    <td width="50%">
+      <img src="assets/examples/gallery/character-assets-sample.webp" alt="character assets sample" />
+      <br />
+      <strong>角色资产</strong><br />
+      角色主锚、动作场景、道具和使用建议如何固化。
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="assets/examples/gallery/article-illustration-low-density.webp" alt="article illustration low density" />
+      <br />
+      <strong>手绘插图模式</strong><br />
+      画面更空，用一个大场景隐喻解释一个核心观点。
+    </td>
+    <td width="50%">
+      <img src="assets/examples/gallery/knowledge-card-high-density.webp" alt="knowledge card high density" />
+      <br />
+      <strong>知识卡模式</strong><br />
+      内容更完整，把观点、路径、风险和行动放进一张可读卡片。
+    </td>
+  </tr>
+</table>
+
+<br />
+
+<table>
+  <tr>
+    <td width="100%">
+      <img src="assets/examples/ppt-mode/ppt-mode-gallery-8up.webp" alt="ppt mode gallery" />
+      <br />
+      <strong>PPT 演讲模式</strong><br />
+      从封面、大判断、模块、标准、场景、时间线、方法到收束页，展示整套页面节奏。
+    </td>
+  </tr>
+</table>
+
+</details>
+
+PNG 源图和 WebP 展示图都保留在 `assets/examples/gallery/` 和 `assets/examples/ppt-mode/`，便于后续替换、裁切或重新压缩。
+
+---
+
+## 文件结构
+
+```text
+ip-diagram-creator/
+├── README.md
+├── SKILL.md
+├── LICENSE
+├── CHANGELOG.md
+├── .gitignore
+├── assets/
+├── references/
+├── examples/
+└── evals/
+```
+
+- `README.md`：给人看的项目首页。
+- `SKILL.md`：给 Agent 看的核心工作流。
+- `references/`：角色建档、内容拆解、视觉模式、prompt 和 QA 规则。
+- `examples/`：真实使用方式示例。
+- `evals/`：关键验收用例。
+- `assets/`：README 图片和可公开示例图。
+
+---
+
+## 自定义
+
+你可以按自己的项目改这些文件：
+
+- `references/visual-language.md`：调整手绘风格、颜色、禁区和角色规则。
+- `references/modes-and-sizes.md`：增加平台尺寸、内容类型和知识卡形态。
+- `references/ppt-presentation-mode.md`：调整 PPT 页面类型、导演规划、样张和 QA 规则。
+- `references/prompt-templates.md`：替换 prompt 语言或适配你的图像生成模型。
+- `assets/README.md`：规划你自己的通用参考图和版式示例。
+- `evals/evals.json`：增加你的真实使用场景测试。
+
+## 隐私和素材边界
+
+- 只使用你本人、你的品牌账号，或你已经获得明确授权的照片和截图。
+- 如果截图里有他人头像、昵称、联系方式或私信内容，先打码或裁掉。
+- 不要把用户确认后的私有角色资产发布进公共 Skill 包。
+- 不要上传身份证件、住址、联系方式、后台截图、私密聊天记录或无关人员照片。
+- 从平台、课程、社媒或设计网站看到的图，不要直接放进仓库。
+- 如果输出图片要用于商业宣传、课程销售或广告投放，先确认肖像权、商标和平台规则。
+
+## 致谢
+
+本项目的白底手绘正文配图流程、先理解内容再生成 shot list 的思路，受到 Ian Xiaohei Illustrations 启发：
+
+- [helloianneo/ian-xiaohei-illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)
+
+本项目在此基础上做了面向个人 IP 角色资产的改造：增加角色三件套、照片 / 主页截图授权边界、个人角色资产与公共参考图分离、知识卡模式判断和素材安全边界。
+
+该致谢仅表示设计灵感来源，不代表原项目作者参与、维护或背书本项目。请同时尊重原项目的 License、说明和视觉资产边界。
+
+## 贡献
+
+欢迎贡献更清晰的说明、新的内容模式、更稳的 prompt 模板、更多 eval 用例，或不含私有素材的公开示例图。
+
+提交前请确认没有个人隐私、真实客户资料、内部路径、不可公开参考图、截图或品牌资产。

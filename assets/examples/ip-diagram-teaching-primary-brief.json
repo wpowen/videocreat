@@ -1,0 +1,56 @@
+{
+  "title": "教学图解视频：三步讲清一个复杂概念",
+  "language": "zh",
+  "audience": "需要把课程、方法论、直播分享做成视频课件的创作者",
+  "objective": "验证 Planner 可以直接选择 haloshin/ip-diagram-creator 作为教学主视觉规划路线，并把导演计划、页面卡、图解模式、Agent协作和提示词规则写回设计页、动效选择与QC。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 24,
+  "videoType": "tutorial-explainer",
+  "visualSystem": "ip-diagram-creator",
+  "primaryVisualSystem": "ip-diagram-creator",
+  "plannerDriver": "ip-diagram-creator",
+  "ipDiagramCreator": true,
+  "ipDiagramCreatorPrimary": true,
+  "ipDiagramCreatorExecutionMode": "compatible-portfolio",
+  "teachingMode": true,
+  "pptPresentationMode": true,
+  "imageSource": "image2-dryrun",
+  "speechStyle": "tutorial",
+  "coverTheme": "先写导演卡，再生成图解视频",
+  "rights": {
+    "text": "original local smoke brief",
+    "visuals": "original deterministic HTML/SVG plus image2-compatible prompts; no copied repo assets",
+    "voice": "local test voice only",
+    "music": "none",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "lesson-promise",
+      "label": "教学开场承诺",
+      "headline": ["先写导演卡", "再画图解"],
+      "body": "复杂概念不要直接塞进一张图，先把这页要解决的问题、中心模型、证据和行动写清楚。",
+      "subtitle": "教学视频的第一步不是画漂亮图，而是明确这一页到底要帮观众理解什么。",
+      "diagramMode": "ppt-director-page-card"
+    },
+    {
+      "id": "agent-split",
+      "label": "执行Agent拆解",
+      "headline": ["三个Agent", "分工讲清楚"],
+      "body": "内容Agent负责拆概念，视觉Agent负责找隐喻，可读性Agent负责检查字幕、标签和画面是否能被一眼读懂。",
+      "subtitle": "把抽象方法拆给几个执行Agent，观众就能看到工作流，而不是听一串名词。",
+      "agentCount": 3,
+      "diagramMode": "agent-collaboration-diagram"
+    },
+    {
+      "id": "method-card",
+      "label": "知识卡收束",
+      "headline": ["最后收成", "一张方法卡"],
+      "body": "用一个核心模型、两条证据和一个行动提示收束，把整段教学转成观众能复用的卡片。",
+      "subtitle": "最后不要回到普通PPT。把页面收成可复用的方法卡，才像一支完成的视频课。",
+      "diagramMode": "knowledge-card-diagram"
+    }
+  ],
+  "narration": "做教学图解视频，第一步不是直接画图，而是先写导演卡。导演卡要回答这一页解决什么问题，中心模型是什么，证据放在哪里，最后让观众采取什么行动。第二步，把抽象方法拆给三个执行Agent：内容Agent拆概念，视觉Agent找隐喻，可读性Agent检查字幕、标签和画面是否能被一眼读懂。最后，把整段内容收成一张方法卡：一个核心模型，两条证据，一个行动提示。这样它不是普通PPT，而是一支能被看懂、能被复用的视频课。"
+}

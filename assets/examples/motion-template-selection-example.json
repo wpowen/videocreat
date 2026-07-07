@@ -11,6 +11,28 @@
     "exit": "connected proof resolves into a short takeaway"
   },
   "semanticBinding": "The first card appears when narration says action, the connector draws through relationship/information gap, and the focus lens lands when state change is mentioned.",
+  "remotionMotionPrimitives": {
+    "schemaVersion": 1,
+    "status": "active-remotion-inspired-motion-contract",
+    "sourcePlugin": "remotion",
+    "sourceReference": "references/remotion-motion-primitives.md",
+    "adoptionBoundary": "Borrow frame-driven motion grammar while keeping html-video as the current renderer.",
+    "frameDrivenTimeline": {
+      "owner": "workflow/sync-timecode-plan.json",
+      "fpsAssumption": 30,
+      "rule": "Every visual state change is reproducible from scene start/end time and render frame."
+    },
+    "scenes": [
+      {
+        "sceneId": "scene-01",
+        "motionVerb": "inspect",
+        "frameClock": "derive progress from render frame or scene-local currentTime",
+        "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "textMotion": "animate text as grouped semantic blocks so exact Chinese copy stays crisp",
+        "transitionDiscipline": "record overlapped transition frames in sync-timecode-plan before render"
+      }
+    ]
+  },
   "interactionFeeling": "Pointer/parallax behavior and focus-lens movement make the rendered frame feel inspected rather than static.",
   "implementationPath": "templates/html-motion/interactive-proof-board.html",
   "fallbackPolicy": "If rendering falls back to FFmpeg/PIL, preserve evidence cards, connector progression, focus highlight, caption safe area, and timing order.",

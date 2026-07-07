@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "status": "active-open-typography-style-catalog",
+  "purpose": "Route video text into licensed font stacks, designed type treatments, and semantic text motion before render.",
+  "licensePolicy": {
+    "default": "Use local system fonts or project-bundled open fonts only. Do not fetch fonts from the network during render.",
+    "bundleRule": "If a font file is bundled under assets/fonts, include its license text and record the source in the run artifact.",
+    "reject": [
+      "unlicensed commercial fonts",
+      "platform-restricted app fonts without redistribution rights",
+      "remote CSS/font loading during deterministic local render",
+      "selling standalone OFL font files"
+    ]
+  },
+  "fontFamilies": [
+    {
+      "id": "noto-source-han-cjk",
+      "label": "Noto / Source Han CJK Sans",
+      "scriptSupport": ["zh-Hans", "zh-Hant", "ja", "ko"],
+      "license": "OFL-1.1",
+      "sourceUrls": [
+        "https://github.com/notofonts/noto-cjk",
+        "https://github.com/adobe-fonts/source-han-sans"
+      ],
+      "bestFor": ["default CJK UI", "body text", "captions", "labels"],
+      "fontStack": "\"Noto Sans CJK SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif"
+    },
+    {
+      "id": "noto-source-han-serif",
+      "label": "Noto / Source Han CJK Serif",
+      "scriptSupport": ["zh-Hans", "zh-Hant", "ja", "ko"],
+      "license": "OFL-1.1",
+      "sourceUrls": [
+        "https://github.com/notofonts/noto-cjk",
+        "https://github.com/adobe-fonts/source-han-serif"
+      ],
+      "bestFor": ["editorial scenes", "documentary tone", "quote cards", "literary topics"],
+      "fontStack": "\"Noto Serif CJK SC\", \"Source Han Serif SC\", \"Songti SC\", \"STSong\", serif"
+    },
+    {
+      "id": "lxgw-wenkai",
+      "label": "LXGW WenKai",
+      "scriptSupport": ["zh-Hans", "zh-Hant"],
+      "license": "OFL-1.1",
+      "sourceUrls": ["https://github.com/lxgw/LxgwWenKai"],
+      "bestFor": ["warm annotations", "handwritten notes", "story craft", "poetic callouts"],
+      "fontStack": "\"LXGW WenKai\", \"LXGW WenKai Screen\", \"Klee One\", \"STKaiti\", \"KaiTi\", serif"
+    },
+    {
+      "id": "inter",
+      "label": "Inter",
+      "scriptSupport": ["latin", "numbers"],
+      "license": "OFL-1.1",
+      "sourceUrls": ["https://github.com/rsms/inter"],
+      "bestFor": ["modern UI", "mixed-language product videos", "captions", "body text"],
+      "fontStack": "\"Inter\", \"Inter var\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    },
+    {
+      "id": "ibm-plex",
+      "label": "IBM Plex",
+      "scriptSupport": ["latin", "numbers", "multi-script packages"],
+      "license": "OFL-1.1",
+      "sourceUrls": ["https://github.com/IBM/plex"],
+      "bestFor": ["technical explainers", "data scenes", "enterprise UI", "research tone"],
+      "fontStack": "\"IBM Plex Sans\", \"IBM Plex Sans SC\", \"Noto Sans CJK SC\", \"Inter\", sans-serif"
+    },
+    {
+      "id": "jetbrains-mono",
+      "label": "JetBrains Mono",
+      "scriptSupport": ["latin", "numbers", "symbols"],
+      "license": "OFL-1.1",
+      "sourceUrls": ["https://github.com/JetBrains/JetBrainsMono"],
+      "bestFor": ["code", "technical metrics", "terminal UI", "diagnostic labels"],
+      "fontStack": "\"JetBrains Mono\", \"SFMono-Regular\", \"Menlo\", \"Consolas\", monospace"
+    },
+    {
+      "id": "libre-baskerville",
+      "label": "Libre Baskerville",
+      "scriptSupport": ["latin"],
+      "license": "OFL-1.1",
+      "sourceUrls": ["https://github.com/impallari/Libre-Baskerville"],
+      "bestFor": ["editorial Latin quotes", "serif contrast", "premium essays"],
+      "fontStack": "\"Libre Baskerville\", Georgia, \"Times New Roman\", serif"
+    }
+  ],
+  "roleStacks": {
+    "cjk-display": "\"Noto Sans CJK SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+    "cjk-editorial": "\"Noto Serif CJK SC\", \"Source Han Serif SC\", \"Songti SC\", \"STSong\", serif",
+    "cjk-warm-note": "\"LXGW WenKai\", \"LXGW WenKai Screen\", \"Klee One\", \"STKaiti\", \"KaiTi\", serif",
+    "latin-ui": "\"Inter\", \"Inter var\", \"IBM Plex Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "latin-editorial": "\"Libre Baskerville\", Georgia, \"Times New Roman\", serif",
+    "mono-data": "\"JetBrains Mono\", \"IBM Plex Mono\", \"SFMono-Regular\", \"Menlo\", \"Consolas\", monospace"
+  },
+  "typeTreatments": [
+    {
+      "id": "editorial-display",
+      "label": "Editorial Display",
+      "sceneJobs": ["documentary", "quote", "imageFirst"],
+      "roles": {
+        "headline": {"stack": "cjk-editorial", "weight": 880, "tracking": 0, "lineHeight": 0.98},
+        "body": {"stack": "cjk-display", "weight": 620, "tracking": 0, "lineHeight": 1.28},
+        "caption": {"stack": "cjk-display", "weight": 820, "tracking": 0, "lineHeight": 1.14},
+        "numeric": {"stack": "mono-data", "weight": 850, "tracking": 0, "lineHeight": 1}
+      },
+      "visualDevices": ["thin editorial rule", "paper underline", "quote seal", "large negative space"],
+      "motionId": "line-rise-rule-draw"
+    },
+    {
+      "id": "kinetic-poster",
+      "label": "Kinetic Poster",
+      "sceneJobs": ["hook", "verticalShort"],
+      "roles": {
+        "headline": {"stack": "cjk-display", "weight": 960, "tracking": 0, "lineHeight": 0.88},
+        "body": {"stack": "cjk-display", "weight": 720, "tracking": 0, "lineHeight": 1.18},
+        "caption": {"stack": "cjk-display", "weight": 900, "tracking": 0, "lineHeight": 1.1},
+        "numeric": {"stack": "mono-data", "weight": 920, "tracking": 0, "lineHeight": 1}
+      },
+      "visualDevices": ["oversized keyword", "accent slab", "mask reveal", "impact underline"],
+      "motionId": "word-pop-mask-sweep"
+    },
+    {
+      "id": "product-ui",
+      "label": "Product UI",
+      "sceneJobs": ["productDemo", "bilingual", "voiceOrInterview"],
+      "roles": {
+        "headline": {"stack": "latin-ui", "weight": 880, "tracking": 0, "lineHeight": 0.96},
+        "body": {"stack": "latin-ui", "weight": 620, "tracking": 0, "lineHeight": 1.24},
+        "caption": {"stack": "latin-ui", "weight": 820, "tracking": 0, "lineHeight": 1.12},
+        "numeric": {"stack": "mono-data", "weight": 820, "tracking": 0, "lineHeight": 1}
+      },
+      "visualDevices": ["soft UI dock", "state chip", "focus ring", "status rail"],
+      "motionId": "state-shift-focus-ring"
+    },
+    {
+      "id": "data-mono",
+      "label": "Data Mono",
+      "sceneJobs": ["dataProof"],
+      "roles": {
+        "headline": {"stack": "cjk-display", "weight": 900, "tracking": 0, "lineHeight": 0.96},
+        "body": {"stack": "cjk-display", "weight": 650, "tracking": 0, "lineHeight": 1.24},
+        "caption": {"stack": "cjk-display", "weight": 820, "tracking": 0, "lineHeight": 1.12},
+        "numeric": {"stack": "mono-data", "weight": 950, "tracking": 0, "lineHeight": 0.96}
+      },
+      "visualDevices": ["tabular number lockup", "unit tag", "metric rail", "trend marker"],
+      "motionId": "numeric-count-rail-grow"
+    },
+    {
+      "id": "warm-annotation",
+      "label": "Warm Annotation",
+      "sceneJobs": ["writingMethod", "story", "annotation"],
+      "roles": {
+        "headline": {"stack": "cjk-warm-note", "weight": 850, "tracking": 0, "lineHeight": 1.02},
+        "body": {"stack": "cjk-display", "weight": 620, "tracking": 0, "lineHeight": 1.28},
+        "caption": {"stack": "cjk-display", "weight": 820, "tracking": 0, "lineHeight": 1.14},
+        "numeric": {"stack": "mono-data", "weight": 860, "tracking": 0, "lineHeight": 1}
+      },
+      "visualDevices": ["margin note", "ink circle", "paper highlight", "handwritten label"],
+      "motionId": "annotation-ink-swipe"
+    }
+  ],
+  "motionFamilies": [
+    {
+      "id": "line-rise-rule-draw",
+      "motionVerb": "reveal",
+      "bestFor": ["editorial scenes", "quotes", "documentary beats"],
+      "cssPattern": "line staggered translateY, opacity rise, editorial rule scaleX",
+      "reject": "large bounce or unreadable blur"
+    },
+    {
+      "id": "word-pop-mask-sweep",
+      "motionVerb": "pressure",
+      "bestFor": ["hooks", "contrasts", "retention lines"],
+      "cssPattern": "short mask reveal, keyword scale, accent sweep",
+      "reject": "continuous shaking or timing unrelated to narration"
+    },
+    {
+      "id": "state-shift-focus-ring",
+      "motionVerb": "transform",
+      "bestFor": ["product UI", "workflow states", "bilingual explanation"],
+      "cssPattern": "focus ring, chip activation, panel state shift",
+      "reject": "decorative widget motion without state meaning"
+    },
+    {
+      "id": "numeric-count-rail-grow",
+      "motionVerb": "accumulate",
+      "bestFor": ["data proof", "rankings", "metrics"],
+      "cssPattern": "tabular numeric emphasis, rail grow, metric highlight",
+      "reject": "counting values not present in the script/data plan"
+    },
+    {
+      "id": "annotation-ink-swipe",
+      "motionVerb": "inspect",
+      "bestFor": ["story craft", "notes", "literary explanations"],
+      "cssPattern": "ink underline, circle mark, note slide",
+      "reject": "fake handwriting that hurts readability"
+    }
+  ]
+}

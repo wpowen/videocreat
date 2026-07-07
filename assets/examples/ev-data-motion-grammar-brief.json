@@ -1,0 +1,212 @@
+{
+  "title": "电动车数据动效测试",
+  "language": "zh",
+  "audience": "验证本地视频工作流的数据可视化与 MG 组件的开发者、内容策划",
+  "objective": "用真实公开数据验证系统能自动识别排名、比例、趋势、对比、因果、时间线、三段论，并把数据作为主视觉生成柱状图、环形图、折线图、对比卡、因果链、时间线和逻辑栈。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 72,
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "style": "data-editorial",
+  "voiceBackend": "auto",
+  "speechStyle": "news",
+  "coverTheme": "电动车数据会动起来",
+  "rights": {
+    "text": "original analysis script based on public datasets",
+    "visuals": "original HTML/CSS/SVG charts generated locally",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none",
+    "data": [
+      "Our World in Data / IEA Global EV Outlook 2026: Share of new cars sold that are electric",
+      "IEA Global EV Outlook 2025 and 2026 executive summaries for market drivers and milestones"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "ev-ranking-bars",
+      "label": "真实排名柱状图",
+      "kicker": "01 / RANKING",
+      "headline": ["挪威几乎完成", "97% 新车已电动化", "中国进前八"],
+      "stat": "TOP8",
+      "body": "排名场景必须把条形图作为主视觉，条形从零增长，并高亮第一名和中国。",
+      "subtitle": "先看排名。二零二五年，挪威新车电动化率达到百分之九十七，中国达到百分之五十三，已经进入全球前八。",
+      "palette": "blue",
+      "chartData": {
+        "type": "ranked-bars",
+        "title": "2025 年新车电动化率 TOP8",
+        "metricLabel": "Share of new cars that are electric",
+        "unit": "%",
+        "year": "2025",
+        "takeaway": "条形图要先建立排名，再把第一名和中国打亮。",
+        "sourceName": "Our World in Data, IEA Global EV Outlook 2026",
+        "sourceUrl": "https://ourworldindata.org/grapher/electric-car-sales-share",
+        "values": [
+          { "label": "挪威", "value": 97, "highlight": true },
+          { "label": "丹麦", "value": 71 },
+          { "label": "尼泊尔", "value": 68 },
+          { "label": "冰岛", "value": 62 },
+          { "label": "瑞典", "value": 61 },
+          { "label": "荷兰", "value": 58 },
+          { "label": "芬兰", "value": 57 },
+          { "label": "中国", "value": 53, "highlight": true }
+        ]
+      }
+    },
+    {
+      "id": "ev-share-donut",
+      "label": "真实比例环形图",
+      "kicker": "02 / SHARE",
+      "headline": ["全球每 4 辆", "约 1 辆是电动车", "占比 25%"],
+      "stat": "25%",
+      "body": "比例场景必须先画出整体，再填充占比，最后落出大数字。",
+      "subtitle": "再看比例。二零二五年，全球新车中电动车占比达到百分之二十五，也就是大约每四辆新车里有一辆是电动车。",
+      "palette": "green",
+      "chartData": {
+        "type": "donut-share",
+        "title": "全球新车电动化率",
+        "metricLabel": "Global electric car sales share",
+        "unit": "%",
+        "year": "2025",
+        "takeaway": "环形图不要只转一圈，要让 25% 这个结论先被看见。",
+        "sourceName": "Our World in Data, IEA Global EV Outlook 2026",
+        "sourceUrl": "https://ourworldindata.org/grapher/electric-car-sales-share",
+        "annotation": "IEA 2026 也表述为 one-quarter of all new cars sold were electric.",
+        "values": [
+          { "label": "电动车", "value": 25, "highlight": true },
+          { "label": "其他动力", "value": 75 }
+        ]
+      }
+    },
+    {
+      "id": "ev-trend-line",
+      "label": "真实趋势折线图",
+      "kicker": "03 / TREND",
+      "headline": ["十年爬升", "0.7% 到 25%", "折线必须画出来"],
+      "stat": "+24.3",
+      "body": "趋势场景必须逐点绘制折线，并把终点数值作为最大视觉锚点。",
+      "subtitle": "趋势更明显。从二零一五年的百分之零点七，到二零二五年的百分之二十五，全球新车电动化率完成了十年级别的爬升。",
+      "palette": "purple",
+      "chartData": {
+        "type": "trend-line",
+        "title": "全球新车电动化率十年趋势",
+        "metricLabel": "World, share of new cars that are electric",
+        "unit": "%",
+        "year": "2015-2025",
+        "takeaway": "折线动画应按时间从左到右绘制，终点再弹出 25%。",
+        "sourceName": "Our World in Data, IEA Global EV Outlook 2026",
+        "sourceUrl": "https://ourworldindata.org/grapher/electric-car-sales-share",
+        "values": [
+          { "label": "2015", "value": 0.7 },
+          { "label": "2020", "value": 4.4 },
+          { "label": "2021", "value": 9.3 },
+          { "label": "2022", "value": 15 },
+          { "label": "2023", "value": 18 },
+          { "label": "2024", "value": 21 },
+          { "label": "2025", "value": 25, "highlight": true }
+        ]
+      }
+    },
+    {
+      "id": "ev-compare-swap",
+      "label": "真实对比卡",
+      "kicker": "04 / COMPARE",
+      "headline": ["不是一起增长", "中国是美国 5.3 倍", "对比要直接"],
+      "stat": "5.3x",
+      "body": "对比场景必须把两个对象放到同一视觉权重里，再用倍数或差值下结论。",
+      "subtitle": "对比中国和美国。二零二五年，中国新车电动化率是百分之五十三，美国是百分之十，差距不是轻微领先，而是五点三倍。",
+      "palette": "red",
+      "chartData": {
+        "type": "contrast-swap",
+        "title": "中国 vs 美国：新车电动化率",
+        "metricLabel": "Same metric, same year",
+        "unit": "%",
+        "year": "2025",
+        "takeaway": "对比动画要先并排，再突出倍数，而不是只念两个数字。",
+        "sourceName": "Our World in Data, IEA Global EV Outlook 2026",
+        "sourceUrl": "https://ourworldindata.org/grapher/electric-car-sales-share",
+        "values": [
+          { "label": "中国", "value": 53, "note": "2025", "highlight": true },
+          { "label": "美国", "value": 10, "note": "2025" }
+        ]
+      }
+    },
+    {
+      "id": "ev-causal-chain",
+      "label": "真实因果链",
+      "kicker": "05 / CAUSAL",
+      "headline": ["为什么中国快", "价格 + 车型 + 政策", "因果链要串起来"],
+      "stat": "因果",
+      "body": "因果场景必须分成原因、机制、结果，并用箭头逐段触发。",
+      "subtitle": "为什么差距会被拉开。IEA 提到，中国市场的价格竞争力、更多车型和政策延续，共同推动电动车占比继续提高。",
+      "palette": "gold",
+      "chartData": {
+        "type": "causal-chain",
+        "title": "增长不是一个数字，而是一条链",
+        "metricLabel": "Drivers behind adoption",
+        "year": "2024-2025",
+        "takeaway": "因果动画要按原因、机制、结果递进，不能把三句话平铺。",
+        "sourceName": "IEA Global EV Outlook 2025/2026",
+        "sourceUrl": "https://www.iea.org/reports/global-ev-outlook-2025/executive-summary",
+        "nodes": [
+          { "label": "价格竞争力增强", "value": "原因", "note": "更多车型接近或低于燃油车成本" },
+          { "label": "车型供给增加", "value": "机制", "note": "选择变多，购买门槛下降" },
+          { "label": "销售占比继续提高", "value": "结果", "note": "中国 2025 达到 53%" }
+        ]
+      }
+    },
+    {
+      "id": "ev-timeline-ribbon",
+      "label": "真实时间线",
+      "kicker": "06 / TIMELINE",
+      "headline": ["关键节点", "从小众到四分之一", "时间线要推进"],
+      "stat": "10Y",
+      "body": "时间线场景必须按年份依次激活节点，并在关键转折点停顿。",
+      "subtitle": "把时间线拉开看，二零一五年还不到百分之一，二零二零年超过百分之四，二零二二年到百分之十五，二零二五年到百分之二十五。",
+      "palette": "ink",
+      "chartData": {
+        "type": "timeline-ribbon",
+        "title": "全球电动车份额关键节点",
+        "metricLabel": "Milestones in global EV sales share",
+        "unit": "%",
+        "year": "2015-2025",
+        "takeaway": "时间线动画要让节点一个个点亮，显示速度变化。",
+        "sourceName": "Our World in Data, IEA Global EV Outlook 2026",
+        "sourceUrl": "https://ourworldindata.org/grapher/electric-car-sales-share",
+        "nodes": [
+          { "label": "2015", "value": "0.7%", "note": "仍是小众" },
+          { "label": "2020", "value": "4.4%", "note": "开始加速" },
+          { "label": "2022", "value": "15%", "note": "进入双位数" },
+          { "label": "2024", "value": "21%", "note": "超过五分之一" },
+          { "label": "2025", "value": "25%", "note": "四分之一", "highlight": true }
+        ]
+      }
+    },
+    {
+      "id": "ev-syllogism-stack",
+      "label": "真实三段论逻辑栈",
+      "kicker": "07 / LOGIC",
+      "headline": ["数据不是装饰", "它必须推出结论", "三段论收束"],
+      "stat": "逻辑",
+      "body": "三段论场景必须把大前提、小前提、结论分层入场，最后用结论卡收束。",
+      "subtitle": "最后用三段论收束。大前提，价格和供给会改变采用率。小前提，中国同时具备价格竞争力和高供给。结论，中国电动化率领先不是偶然。",
+      "palette": "blue",
+      "chartData": {
+        "type": "syllogism-stack",
+        "title": "从数据推出解释",
+        "metricLabel": "Premise to conclusion",
+        "year": "2025",
+        "takeaway": "逻辑栈动画要先展示前提，最后把结论压成一张强卡片。",
+        "sourceName": "Our World in Data + IEA Global EV Outlook",
+        "sourceUrl": "https://www.iea.org/reports/global-ev-outlook-2026/executive-summary",
+        "nodes": [
+          { "label": "大前提", "value": "价格、车型和政策会改变采用率" },
+          { "label": "小前提", "value": "中国 2025 新车电动化率达到 53%" },
+          { "label": "结论", "value": "领先来自结构性驱动，不只是单点销量" }
+        ]
+      }
+    }
+  ],
+  "narration": "我们用真实电动车数据测试 MG 语义识别和数据动效。先看排名。二零二五年，挪威新车电动化率达到百分之九十七，中国达到百分之五十三，已经进入全球前八。再看比例。二零二五年，全球新车中电动车占比达到百分之二十五，也就是大约每四辆新车里有一辆是电动车。趋势更明显。从二零一五年的百分之零点七，到二零二五年的百分之二十五，全球新车电动化率完成了十年级别的爬升。对比中国和美国。二零二五年，中国新车电动化率是百分之五十三，美国是百分之十，差距不是轻微领先，而是五点三倍。为什么差距会被拉开。IEA 提到，中国市场的价格竞争力、更多车型和政策延续，共同推动电动车占比继续提高。把时间线拉开看，二零一五年还不到百分之一，二零二零年超过百分之四，二零二二年到百分之十五，二零二五年到百分之二十五。最后用三段论收束。大前提，价格和供给会改变采用率。小前提，中国同时具备价格竞争力和高供给。结论，中国电动化率领先不是偶然。"
+}

@@ -1,0 +1,47 @@
+{
+  "title": "真实免费素材下载演示",
+  "objective": "验证素材引擎从无 key 免费来源检索、下载、入账、归一化，并把真实下载素材作为 B-roll 融入口播视频。",
+  "language": "zh",
+  "platform": "local-review",
+  "aspectRatio": "16:9",
+  "speechStyle": "explainer",
+  "imageSource": "local",
+  "freeStockEngine": true,
+  "freeStockSceneLimit": 3,
+  "freeStockProviderOrder": ["nasa"],
+  "freeStockMaxDownloadMb": 160,
+  "rights": {
+    "script": "original demo narration written for this workflow",
+    "externalMedia": "NASA media source; public-domain style usage with endorsement, logo, people, and mission-mark review before publication"
+  },
+  "narration": "这一次不是用占位素材，而是真实从免费来源下载视频素材。第一段用地球影像做开场，让观众马上看到真实画面。\n第二段用火箭发射或任务素材说明，素材进入时间线前，必须先记录来源、许可、下载文件和哈希值。\n第三段用卫星或空间站相关画面做 B-roll，证明外部素材可以增强画面感，同时字幕、标题和信息结构仍然由本地工作流控制。",
+  "scenes": [
+    {
+      "id": "scene-earth-footage",
+      "label": "真实下载",
+      "headline": ["真实素材", "先下载再入账"],
+      "subtitle": "这一段使用真实下载的地球影像，不再用本地 fixture。",
+      "body": "素材来源、下载文件和哈希值会写入账本。",
+      "materialQuery": "earth from space",
+      "materialKeywords": ["earth", "space", "NASA", "public domain"]
+    },
+    {
+      "id": "scene-launch-rights",
+      "label": "授权复核",
+      "headline": ["来源许可", "进入账本"],
+      "subtitle": "每个素材进入视频前，都要留下来源链接和复核提示。",
+      "body": "NASA 素材仍需避免暗示官方背书，并复核标识和人物使用。",
+      "materialQuery": "rocket launch",
+      "materialKeywords": ["rocket", "launch", "NASA", "rights review"]
+    },
+    {
+      "id": "scene-satellite-broll",
+      "label": "融入画面",
+      "headline": ["B-roll 支撑", "不替代结构"],
+      "subtitle": "真实素材作为画面支撑层，字幕和动效仍由本地模板控制。",
+      "body": "这让口播视频不再只是卡片和动效。",
+      "materialQuery": "satellite orbit earth",
+      "materialKeywords": ["satellite", "orbit", "earth", "B-roll"]
+    }
+  ]
+}

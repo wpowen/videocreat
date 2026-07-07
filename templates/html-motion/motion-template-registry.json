@@ -28,14 +28,45 @@
       "motionVerbs": ["connect", "inspect", "pressure", "reframe"],
       "signature": "evidence cards, animated red thread, focus lens, stateful highlight",
       "verification": ["connectors animate", "focus target changes", "caption safe area remains clear"]
+    },
+    {
+      "id": "typed-black-white-opener",
+      "file": "templates/html-motion/typed-black-white-opener.html",
+      "engine": "CSS variables + JavaScript character reveal",
+      "bestFor": ["explicit opener", "course intro", "opinion hook", "product pre-roll", "black white typed title"],
+      "motionVerbs": ["reveal", "hold", "transition"],
+      "signature": "near-black stage, large white character-by-character title, optional final phrase, caption-safe lead-in",
+      "verification": ["first-frame blackness when rendered in production", "typed states at beat timestamps", "no default silent pre-roll"]
+    },
+    {
+      "id": "dark-saas-magic-ui",
+      "file": "templates/html-motion/dark-saas-magic-ui.html",
+      "engine": "CSS transforms + deterministic progress driver",
+      "bestFor": ["SaaS promo", "AI product short", "tool launch", "workflow demo", "magic UI product video"],
+      "motionVerbs": ["summon", "transform", "connect", "export", "resolve"],
+      "signature": "black spatial stage, subtle purple horizon glow, kinetic promise, gradient CTA, floating UI pills",
+      "verification": ["hero subject is large", "CTA triggers a visible transformation", "no persistent neon-line background"]
+    },
+    {
+      "id": "data-curve-trace",
+      "file": "templates/html-motion/data-curve-trace.html",
+      "engine": "SVG path trace + deterministic progress driver",
+      "bestFor": ["time-series data", "numeric trend", "growth curve", "market data", "policy metric", "scientific measurement"],
+      "motionVerbs": ["trace", "compare", "highlight", "resolve"],
+      "signature": "sourced line chart, axis grid, traced curve, focus dot, endpoint/value callout, source footnote",
+      "verification": ["line visibly traces", "source footnote present", "endpoint callout follows data", "caption safe area remains clear"]
     }
   ],
   "externalPlatformRouting": {
     "gsap": "Use for advanced timeline, SVG path, scroll-like scrub, or MotionPath choreography when local CSS/WAAPI becomes too complex.",
     "motion": "Use for React app-like transitions, shared layout, gesture, and state-driven interaction.",
+    "remotion": "Borrow frame-driven timing, interpolate/easing vocabulary, transition accounting, and deterministic text animation rules; do not switch renderers without a migration plan.",
     "animejs": "Use for compact imperative timeline/stagger/SVG animation.",
+    "d3": "Use only when generated scales, joins, bins, grouped bars, scatter plots, or other data transforms would make hand-authored SVG brittle.",
+    "manim": "Use as a scene-level insert only for formula-driven curves, physics paths, geometric proofs, or parametric relationships; keep exact Chinese text/subtitles in the main workflow.",
     "rive": "Use only with authorized .riv assets and clear state-machine value.",
     "lottie": "Use only with authored or licensed .json/.lottie assets for compact icon/illustration loops.",
+    "galacean": "Use as an optional visual-effects layer for project-authored or licensed particles, fireworks, 2D/3D effects, energy beams, scans, and transition bursts; keep subtitles and exact text in deterministic HTML/SVG/CSS layers and write workflow/galacean-effects-plan.json.",
     "threejs": "Use for meaningful 3D scenes; verify nonblank canvas and framing."
   }
 }

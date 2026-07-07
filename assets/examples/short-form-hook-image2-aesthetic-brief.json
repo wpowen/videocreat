@@ -1,0 +1,54 @@
+{
+  "title": "前三秒不留人，后面再好也没人看",
+  "language": "zh",
+  "audience": "想提升短视频开场留存的中文内容创作者",
+  "objective": "制作一个约10秒的竖屏短视频，验证前3秒Hook、Image2风格底图、字幕安全区、动效节奏和审美质量门禁。",
+  "platform": "douyin short-form vertical",
+  "platformProfile": "short-form-vertical",
+  "aspectRatio": "9:16",
+  "durationSeconds": 10,
+  "durationMode": "fixed",
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "sceneImageGenerationPolicy": "auto",
+  "style": "editorial-light",
+  "speechStyle": "conversational",
+  "voiceBackend": "auto",
+  "rights": {
+    "text": "original for this workflow",
+    "visuals": "original HTML/CSS/SVG plus image2-compatible prompts recorded for optional GPT Image 2 generation",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "hook-dropoff",
+      "label": "前三秒流失",
+      "headline": ["你以为观众", "在听内容？", "其实在判定要不要划走"],
+      "body": "0秒先给反差：不是内容差，是开场没有视觉承诺。",
+      "subtitle": "别先自我介绍。前三秒，观众只判断一件事：值不值得继续看。",
+      "narration": "别先自我介绍。前三秒，观众只判断一件事：值不值得继续看。",
+      "palette": "red"
+    },
+    {
+      "id": "mechanism",
+      "label": "机制拆解",
+      "headline": ["先异常", "再承诺", "最后给证据入口"],
+      "body": "把开场拆成三拍：视觉异常、明确收益、证据开始出现。",
+      "subtitle": "正确顺序是：先给异常，再给承诺，最后让证据在第三秒前出现。",
+      "narration": "正确顺序是：先给异常，再给承诺，最后让证据在第三秒前出现。",
+      "palette": "blue"
+    },
+    {
+      "id": "payoff",
+      "label": "回扣",
+      "headline": ["好开场", "不是更吵", "是更快兑现"],
+      "body": "结尾回到第一秒承诺，让观众觉得这10秒没有浪费。",
+      "subtitle": "所以好开场不是更吵，而是更快兑现：第一秒提问，最后一秒回扣。",
+      "narration": "所以好开场不是更吵，而是更快兑现：第一秒提问，最后一秒回扣。",
+      "palette": "green"
+    }
+  ],
+  "narration": "别先自我介绍。前三秒，观众只判断一件事：值不值得继续看。正确顺序是：先给异常，再给承诺，最后让证据在第三秒前出现。所以好开场不是更吵，而是更快兑现：第一秒提问，最后一秒回扣。"
+}

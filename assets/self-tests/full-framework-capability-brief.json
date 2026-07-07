@@ -1,0 +1,316 @@
+{
+  "title": "AI 发展的三条路径：资本、采用率与注意力机制",
+  "language": "zh",
+  "audience": "关注 AI 产业、产品采用和底层技术演进的知识视频观众",
+  "objective": "用一支真实 AI 发展路径视频，把国家投资、组织采用率、消费者采用、Transformer 数学公式、代码演示、Google AI 网页来源、本地授权视频素材、产品流程、动效库路由、封面与最终 QC 串成一条完整生产链路，检查审美、展示、空槽位、音画同步和证据完整性。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationMode": "auto",
+  "videoType": "data-rich-ai-explainer",
+  "qualityProfile": "real-case-full-framework-review",
+  "imageSource": "image2-dryrun",
+  "style": "screen-demo",
+  "voiceBackend": "melotts_local",
+  "speechStyle": "explainer",
+  "coverTheme": "AI 发展的真实路径：钱、用户与公式",
+  "websiteUrl": "https://ai.google/",
+  "rawFootageDir": "__SELF_TEST_RAW_FOOTAGE_DIR__",
+  "referenceVideoPath": "__SELF_TEST_REFERENCE_VIDEO__",
+  "registryComponents": true,
+  "canvaDeliverables": true,
+  "templateProps": {
+    "seriesName": "ai-development-real-case",
+    "variantSafePalette": true,
+    "requiredSlots": ["headline", "metric", "source", "caption", "visualEvidence"],
+    "allowedOverrides": ["headline", "palette", "chartData", "assetSlot", "platform", "sourceLabel"],
+    "emptySlotPolicy": "fail-if-any-visible-template-slot-is-empty"
+  },
+  "batchVariants": [
+    {
+      "id": "horizontal-review",
+      "label": "横版审查版",
+      "overrides": {
+        "platform": "local-review-horizontal"
+      }
+    },
+    {
+      "id": "vertical-preview",
+      "label": "竖版预览版",
+      "overrides": {
+        "platform": "douyin",
+        "aspectRatio": "9:16"
+      }
+    }
+  ],
+  "productSurface": {
+    "name": "AI Evidence Console",
+    "flow": ["真实数据入库", "来源核验", "公式解释", "代码演示", "网页引用", "素材剪辑", "渲染", "QC 复盘"],
+    "purpose": "把一支知识视频拆成可验证的证据链：每个数字、公式、素材、网页和动效路线都有来源和检查点。"
+  },
+  "rights": {
+    "text": "original local manuscript",
+    "visuals": "original deterministic HTML/CSS/SVG plus image2-compatible prompts; no copied platform screenshots",
+    "voice": "local CosyVoice or MeloTTS only; no cloning or reference voice",
+    "music": "local generated sine pad",
+    "externalMedia": "authorized local ffmpeg-generated AI b-roll fixture and local reference fixture only",
+    "data": "brief-fixed public report figures from Stanford AI Index 2026, McKinsey State of AI 2025, and arXiv metadata for Attention Is All You Need"
+  },
+  "qualityReviewExpectations": {
+    "aesthetic": [
+      "不是 PPT 卡片堆叠；每页都必须有明确视觉主语、层级和动效目的。",
+      "数据页要能一眼读出比较关系，公式页要像推导而不是普通标题页。",
+      "封面必须像真实知识视频封面，不像流程标签或流程报告封面。"
+    ],
+    "display": [
+      "不得出现空模板槽、undefined、null、TODO、[object Object] 或只有占位标签的页面。",
+      "标题、数字、来源、图表、公式、代码和字幕不得互相覆盖。",
+      "所有真实数据必须显示来源标签，并在 workflow/data-source-plan.json 与 workflow/data-series.json 留证据。"
+    ],
+    "sync": [
+      "旁白从 0 秒开始，默认不把封面静默塞进视频开头。",
+      "场景时长必须绑定实际 TTS cue，不允许平均分配。",
+      "字幕单行顺序显示，不允许多行同时铺满画面。"
+    ],
+    "analysis": [
+      "质量报告要说明哪些能力被实际触发，哪些能力只是候选。",
+      "人工复查重点包括审美、展示正确性、音画同步、模板空槽和文字遮挡。"
+    ]
+  },
+  "sourceMaterials": [
+    {
+      "title": "Stanford HAI 2026 AI Index Report",
+      "type": "public-report",
+      "url": "https://hai.stanford.edu/ai-index/2026-ai-index-report",
+      "rights": "Public report citation; figures are paraphrased and fixed into the brief for local review use.",
+      "content": "The 2026 AI Index top takeaways state that U.S. private AI investment reached 285.9 billion dollars in 2025, more than 23 times China's 12.4 billion dollars; organizational adoption reached 88%; generative AI reached 53% population adoption within three years; U.S. consumer value reached 172 billion dollars annually by early 2026."
+    },
+    {
+      "title": "McKinsey State of AI 2025",
+      "type": "survey",
+      "url": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+      "rights": "Public article citation; survey figures are paraphrased for analysis.",
+      "content": "McKinsey reports 88% regular AI use in at least one business function, up from 78% one year earlier; 62% of respondents say their organizations are at least experimenting with AI agents; 23% are scaling an agentic AI system somewhere in the enterprise."
+    },
+    {
+      "title": "Attention Is All You Need",
+      "type": "research-paper",
+      "url": "https://arxiv.org/abs/1706.03762",
+      "rights": "Research citation; formula and model explanation are used as factual educational content.",
+      "content": "The video uses the scaled dot-product attention relationship Attention(Q,K,V)=softmax(QK^T/sqrt(d_k))V and a compact softmax code sketch to validate formula, math-motion, and code-display paths."
+    },
+    {
+      "title": "Google AI official site",
+      "type": "website-source",
+      "url": "https://ai.google/",
+      "rights": "Website is used as a structure/source reference only; no screenshot or copied media is embedded.",
+      "content": "The page groups AI products, build tools, research, responsibility, and organizational use, which is used to test website-source routing and abstract layout interpretation."
+    },
+    {
+      "title": "Authorized local AI b-roll fixture",
+      "type": "local-video-fixture",
+      "url": "__SELF_TEST_SCENE_CLIP__",
+      "rights": "Generated locally by the review fixture script with ffmpeg; safe to embed in the local package.",
+      "content": "A short mp4 fixture is inserted as a few seconds of authorized video material so raw-footage inventory, EDL, cut-boundary QC, and audio/video packaging can be reviewed."
+    }
+  ],
+  "scenes": [
+    {
+      "id": "ai-path-hook-contract",
+      "label": "AI 发展路径开场",
+      "kicker": "00 / AI PATH",
+      "headline": ["AI 不是一条线", "它同时沿三条路径扩张", "资本、使用、算法"],
+      "stat": "2025-2026",
+      "body": "AI 的扩张不是一条线，而是资本、采用率和算法同时推进。本片用公开数据、公式、代码、网页和授权视频素材，把这三条路径放在同一条时间线上。",
+      "subtitle": "AI 的发展不是单点突破，而是资本、使用率和算法结构共同推进。",
+      "palette": "ink"
+    },
+    {
+      "id": "country-ai-investment",
+      "label": "国家资本路径",
+      "kicker": "01 / CAPITAL",
+      "headline": ["资本先决定训练速度", "美国 2025 年私人 AI 投资", "达到 2859 亿美元"],
+      "stat": "$285.9B",
+      "body": "Stanford AI Index 2026 记录，美国 2025 年私人 AI 投资为 2859 亿美元，中国为 124 亿美元。这个差距说明 AI 竞争不只是模型榜单，也是资本和基础设施竞赛。",
+      "subtitle": "先看资本路径。美国私人 AI 投资达到 2859 亿美元，中国为 124 亿美元，投资规模直接影响算力、团队和产品迭代速度。",
+      "palette": "blue",
+      "chartData": {
+        "type": "ranked-bars",
+        "title": "2025 年私人 AI 投资对比",
+        "metricLabel": "Private AI investment",
+        "unit": "USD billions",
+        "year": "2025",
+        "takeaway": "美国私人 AI 投资约为中国 23 倍以上，但中国总投入可能被私人投资口径低估。",
+        "sourceName": "Stanford HAI AI Index 2026",
+        "sourceUrl": "https://hai.stanford.edu/ai-index/2026-ai-index-report",
+        "values": [
+          { "label": "美国", "value": 285.9, "highlight": true },
+          { "label": "中国", "value": 12.4 }
+        ]
+      }
+    },
+    {
+      "id": "enterprise-ai-adoption",
+      "label": "组织采用路径",
+      "kicker": "02 / ADOPTION",
+      "headline": ["AI 已经进入企业", "但多数还在试点", "88% 报告常规使用"],
+      "stat": "88%",
+      "body": "McKinsey 2025 调研显示，88% 受访者报告组织在至少一个业务职能中常规使用 AI，高于前一年的 78%。但多数组织还没有完成规模化改造。",
+      "subtitle": "第二条路径是组织采用率。88% 的组织已经在至少一个职能里常规使用 AI，但很多仍停留在试点阶段。",
+      "palette": "teal",
+      "chartData": {
+        "type": "trend-line",
+        "title": "组织在至少一个业务职能中使用 AI",
+        "metricLabel": "regular AI use",
+        "unit": "%",
+        "year": "2024-2025",
+        "takeaway": "采用率从 78% 上升到 88%，但规模化仍是难点。",
+        "sourceName": "McKinsey State of AI 2025",
+        "sourceUrl": "https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",
+        "values": [
+          { "label": "2024", "value": 78 },
+          { "label": "2025", "value": 88, "highlight": true }
+        ]
+      }
+    },
+    {
+      "id": "consumer-ai-adoption",
+      "label": "用户采用路径",
+      "kicker": "03 / USERS",
+      "headline": ["用户端扩散更快", "生成式 AI 三年内", "达到 53% 人口采用"],
+      "stat": "53%",
+      "body": "Stanford AI Index 2026 称，生成式 AI 在三年内达到 53% 的人口采用率，美国消费者从生成式 AI 工具获得的年化价值到 2026 年初估计为 1720 亿美元。",
+      "subtitle": "用户侧的扩散速度更快。生成式 AI 三年内达到 53% 人口采用率，美国消费者年化价值估计达到 1720 亿美元。",
+      "palette": "cyan",
+      "chartData": {
+        "type": "metric-callout",
+        "title": "生成式 AI 用户采用与消费者价值",
+        "metricLabel": "population adoption / consumer value",
+        "unit": "%",
+        "year": "early 2026",
+        "takeaway": "消费者价值和采用速度让 AI 从企业工具变成日常基础设施。",
+        "sourceName": "Stanford HAI AI Index 2026",
+        "sourceUrl": "https://hai.stanford.edu/ai-index/2026-ai-index-report",
+        "values": [
+          { "label": "人口采用率", "value": 53, "highlight": true },
+          { "label": "美国消费者年化价值(十亿美元)", "value": 172 }
+        ]
+      }
+    },
+    {
+      "id": "attention-formula-manim",
+      "label": "注意力公式",
+      "kicker": "04 / MATH",
+      "headline": ["Transformer 的核心", "不是魔法", "是可解释的加权检索"],
+      "stat": "QK^T",
+      "body": "Scaled dot-product attention 先用 Q 和 K 的点积计算相关性，再除以 sqrt(d_k) 稳定尺度，softmax 后作为权重乘以 V。",
+      "subtitle": "公式路径必须像推导：Q 和 K 做相似度，除以根号 d_k 稳定尺度，softmax 后再加权 V。",
+      "palette": "teal",
+      "formula": "Attention(Q,K,V)=softmax(QK^T/sqrt(d_k))V",
+      "motionLibrary": "manim"
+    },
+    {
+      "id": "attention-code-demo",
+      "label": "代码公式演示",
+      "kicker": "05 / CODE",
+      "headline": ["把公式落到代码", "三步就够", "score、softmax、加权求和"],
+      "stat": "softmax",
+      "body": "代码演示要显示 attention 的最小实现：scores = QK^T / sqrt(d_k)，weights = softmax(scores)，output = weights V。",
+      "subtitle": "同一个公式还要能变成代码：先算 scores，再做 softmax，最后对 V 做加权求和。",
+      "palette": "green",
+      "formula": "scores = matmul(Q, transpose(K)) / sqrt(d_k); weights = softmax(scores); output = matmul(weights, V)",
+      "codeSnippet": "const scores = matmul(Q, transpose(K)).scale(1 / Math.sqrt(dk));\nconst weights = softmax(scores);\nconst output = matmul(weights, V);"
+    },
+    {
+      "id": "website-source-google-ai",
+      "label": "网页来源与产品结构",
+      "kicker": "06 / WEBSITE",
+      "headline": ["网页来源只借结构", "Google AI 页面", "拆成产品、构建、研究、责任"],
+      "stat": "WEB",
+      "body": "Google AI 官方页面把 AI 分成产品体验、开发构建、研究方向和责任治理。视频只抽象这个信息结构，不复制截图。",
+      "subtitle": "网页来源要变成结构理解。这里借 Google AI 的产品、构建、研究、责任四个分区，不复制网页截图。",
+      "palette": "cyan",
+      "websiteUrl": "https://ai.google/"
+    },
+    {
+      "id": "authorized-broll-edl",
+      "label": "本地授权视频素材",
+      "kicker": "07 / FOOTAGE",
+      "headline": ["真实视频素材", "必须先过权利和 EDL", "再进入画面"],
+      "stat": "4s clip",
+      "body": "这个场景插入几秒钟本地生成的授权 AI b-roll mp4：素材先进入 inventory，再写 edit decision list，最后检查切点边界。",
+      "subtitle": "视频素材不是随便塞。它要先进入素材清单，再写剪辑决策，最后检查切点边界。",
+      "palette": "gold",
+      "sourceVideo": "__SELF_TEST_SCENE_CLIP__"
+    },
+    {
+      "id": "ai-evidence-console-product-flow",
+      "label": "证据控制台",
+      "kicker": "08 / PRODUCT",
+      "headline": ["产品流不是装饰", "每个画面都要回到证据", "数据、公式、素材、QC"],
+      "stat": "FLOW",
+      "body": "产品界面场景展示 AI Evidence Console：真实数据入库、来源核验、公式解释、代码演示、网页引用、素材剪辑、渲染和 QC 复盘。",
+      "subtitle": "产品界面要服务流程：数据、公式、网页、视频素材、渲染和 QC 都要在同一条证据链里。",
+      "palette": "purple",
+      "productSurface": {
+        "screen": "AI Evidence Console",
+        "states": ["真实数据入库", "来源核验", "公式解释", "代码演示", "网页引用", "素材剪辑", "渲染", "QC 复盘"]
+      }
+    },
+    {
+      "id": "agent-adoption-rough-board",
+      "label": "Agent 采用白板",
+      "kicker": "09 / ROUGH",
+      "headline": ["Agent 不是替换按钮", "62% 已至少实验", "23% 已在企业某处规模化"],
+      "stat": "62%",
+      "body": "McKinsey 2025 调研显示，62% 受访者所在组织至少在实验 AI agents，23% 已在企业某处规模化 agentic AI 系统。这个场景用 Rough.js 做推理白板。",
+      "subtitle": "Agent 的路径还在早期。62% 组织至少在实验，23% 已经在企业某处规模化。",
+      "palette": "magenta",
+      "visualStyle": "whiteboard-lesson"
+    },
+    {
+      "id": "three-depth-ai-stack",
+      "label": "AI 技术栈三维层级",
+      "kicker": "10 / THREE",
+      "headline": ["把 AI 看成层级", "数据、算力、模型、产品", "需要空间关系"],
+      "stat": "3D",
+      "body": "这个场景用 Three.js 路由表达 AI 技术栈：底层数据和算力，中层模型，顶层产品与用户反馈。",
+      "subtitle": "AI 的发展不是单点突破，而是数据、算力、模型和产品反馈的层级结构。",
+      "palette": "cyan"
+    },
+    {
+      "id": "lottie-ai-loop",
+      "label": "授权循环动效",
+      "kicker": "11 / LOTTIE",
+      "headline": ["循环图标可以用", "但必须是本地授权", "不能远程乱拉"],
+      "stat": "LOOP",
+      "body": "这个场景使用本地 authored Lottie JSON，展示循环动效如何在授权边界内补充节奏。",
+      "subtitle": "Lottie 能补充节奏，但只能使用本地创作或明确授权资产。",
+      "palette": "blue",
+      "lottieAsset": "__SELF_TEST_LOTTIE_ASSET__"
+    },
+    {
+      "id": "gsap-exception-check",
+      "label": "GSAP 例外规则",
+      "kicker": "12 / GSAP",
+      "headline": ["高级动效也要守边界", "GSAP 是例外", "不是默认依赖"],
+      "stat": "EXCEPTION",
+      "body": "高级动效库可以被记录为例外路线，但在授权和移植性接受之前，不应该成为默认依赖。",
+      "subtitle": "GSAP 可以记录为例外路线，但没有授权和移植性接受之前，不能成为默认动效依赖。",
+      "palette": "amber",
+      "motionLibrary": "gsap"
+    },
+    {
+      "id": "cover-delivery-qc",
+      "label": "封面与交付复盘",
+      "kicker": "13 / DELIVERY",
+      "headline": ["最后不是导出 MP4 就结束", "封面、交付页、QC", "都要能复查"],
+      "stat": "QC",
+      "body": "最后检查 image2 prompts、cover-image2 prompts、多规格 PNG/JPG、delivery.html、字幕、音频、黑场、响度、同步和模板空槽位。",
+      "subtitle": "最终产物要能复查：封面、交付页、字幕、音频、同步、黑场、响度和模板空槽位都要进入 QC。",
+      "palette": "blue",
+      "generatedImage": true,
+      "imageRole": "cinematic evidence wall showing AI data charts, transformer formula, code console, and video QC timeline, no readable text"
+    }
+  ],
+  "narration": "AI 的发展不是单点突破，而是资本、使用率和算法结构共同推进。资本路径先看美国私人 AI 投资达到 2859 亿美元，中国为 124 亿美元，投资规模直接影响算力、团队和产品迭代速度。组织采用路径显示 88% 的组织已经在至少一个职能里常规使用 AI，但很多仍停留在试点阶段。用户侧扩散更快，生成式 AI 三年内达到 53% 人口采用率，美国消费者年化价值估计达到 1720 亿美元。公式路径必须像推导，Q 和 K 做相似度，除以根号 d_k 稳定尺度，softmax 后再加权 V。同一个公式还要能变成代码，先算 scores，再做 softmax，最后对 V 做加权求和。网页来源要变成结构理解，这里借 Google AI 的产品、构建、研究、责任四个分区，不复制网页截图。视频素材不是随便塞，它要先进入素材清单，再写剪辑决策，最后检查切点边界。产品界面要服务流程，数据、公式、网页、视频素材、渲染和 QC 都要在同一条证据链里。Agent 的路径还在早期，62% 组织至少在实验，23% 已经在企业某处规模化。AI 的发展也可以被看成数据、算力、模型和产品反馈的层级结构，所以需要空间关系。Lottie 能补充循环节奏，但只能使用本地创作或明确授权资产。GSAP 可以记录为例外路线，但没有授权和移植性接受之前，不能成为默认动效依赖。最终产物要能复查，封面、交付页、字幕、音频、同步、黑场、响度和模板空槽位都要进入 QC。"
+}

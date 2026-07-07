@@ -1,0 +1,58 @@
+{
+  "title": "IP图解原生成片：先写导演卡",
+  "language": "zh",
+  "audience": "需要把课程、方法论和直播分享直接做成图解教学视频的创作者",
+  "objective": "验证 Planner 可以把 haloshin/ip-diagram-creator 作为视频级视觉主引擎：它负责设计和最终可见画面，我们只做音频、字幕、MP4封装、交付包和QC。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 24,
+  "videoType": "tutorial-explainer",
+  "visualSystem": "ip-diagram-creator",
+  "primaryVisualSystem": "ip-diagram-creator",
+  "visualEngine": "ip-diagram-creator-native-final",
+  "plannerDriver": "ip-diagram-creator",
+  "ipDiagramCreator": true,
+  "ipDiagramCreatorPrimary": true,
+  "ipDiagramCreatorNativeFinal": true,
+  "ipDiagramCreatorExecutionMode": "native-final-video",
+  "teachingMode": true,
+  "pptPresentationMode": true,
+  "imageSource": "image2-dryrun",
+  "speechStyle": "tutorial",
+  "coverTheme": "用一张图解页讲清复杂方法",
+  "rights": {
+    "text": "original native-final smoke brief",
+    "visuals": "ip-diagram-creator visual DNA rendered as original deterministic HTML/SVG; no copied repo example assets",
+    "voice": "local test voice only",
+    "music": "none",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "director-card",
+      "label": "导演卡开场",
+      "headline": ["先写导演卡", "再生成图解"],
+      "body": "先确定这一页解决什么问题、中心模型是什么、证据在哪里、最后让观众做什么。",
+      "subtitle": "做教学视频，不要先画漂亮图。先写导演卡，明确这一页要解决的问题。",
+      "diagramMode": "ppt-director-page-card"
+    },
+    {
+      "id": "agent-workflow",
+      "label": "执行Agent协作",
+      "headline": ["三个Agent", "把方法拆开"],
+      "body": "内容Agent拆概念，视觉Agent找隐喻，可读性Agent检查观众是否能一眼看懂。",
+      "subtitle": "然后把工作拆给三个执行Agent：拆内容、找隐喻、查可读。",
+      "agentCount": 3,
+      "diagramMode": "agent-collaboration-diagram"
+    },
+    {
+      "id": "method-card",
+      "label": "方法卡收束",
+      "headline": ["最后收成", "一张方法卡"],
+      "body": "用一个核心模型、两条证据和一个行动提示，把复杂内容收束成可复用的方法卡。",
+      "subtitle": "最后收成一张方法卡，让观众带走一个可复用的结构。",
+      "diagramMode": "knowledge-card-diagram"
+    }
+  ],
+  "narration": "做教学视频，不要先画漂亮图。先写导演卡，明确这一页要解决的问题，中心模型是什么，证据放在哪里，最后让观众做什么。然后把工作拆给三个执行Agent：内容Agent拆概念，视觉Agent找隐喻，可读性Agent检查观众能不能一眼看懂。最后收成一张方法卡，用一个核心模型，两条证据，一个行动提示，让观众带走一个可复用的结构。"
+}

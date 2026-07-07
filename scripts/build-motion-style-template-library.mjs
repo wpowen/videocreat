@@ -1,0 +1,1302 @@
+#!/usr/bin/env node
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const SKILL_ROOT = resolve(SCRIPT_DIR, "..");
+const DEFAULT_CATALOG = join(SKILL_ROOT, "assets", "motion-style-catalog.json");
+const DEFAULT_OUT = join(SKILL_ROOT, "assets", "motion-style-template-library.json");
+
+function parseArgs(argv) {
+  const args = {
+    catalog: DEFAULT_CATALOG,
+    out: DEFAULT_OUT,
+    dryRun: false,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const item = argv[i];
+    if (item === "--catalog") args.catalog = resolve(argv[++i]);
+    else if (item === "--out") args.out = resolve(argv[++i]);
+    else if (item === "--dry-run") args.dryRun = true;
+    else if (item === "--help" || item === "-h") args.help = true;
+    else throw new Error(`Unknown argument: ${item}`);
+  }
+  return args;
+}
+
+function usage() {
+  return [
+    "Usage:",
+    "  node .agents/skills/codex-video-workflow/scripts/build-motion-style-template-library.mjs",
+    "  node .agents/skills/codex-video-workflow/scripts/build-motion-style-template-library.mjs --out <path>",
+    "",
+    "Builds assets/motion-style-template-library.json from assets/motion-style-catalog.json.",
+  ].join("\n");
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function writeJson(path, value) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function arrayify(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null) return [];
+  return [value];
+}
+
+const contentProfiles = {
+  "claim-split-reveal": {
+    contentKind: "claim-split",
+    categoryZh: "观点反差",
+    topicTypes: ["professional-explainer", "writing-method", "tutorial"],
+    pageJobs: ["hook", "compare", "reframe", "resolve"],
+    layoutContract: "左侧误区区 / 中央反转动作 / 右侧证据结论区；主标题必须先读清楚，再出现证据章。",
+    typographyMode: "kinetic-poster",
+    dataAccuracy: "claim-evidence; cite source or keep as conceptual reasoning when no measured data is shown",
+    assetNeeds: ["evidence-card", "contrast-chip", "proof-seal"],
+    sceneSignals: ["反常识", "误区", "观点", "不是", "而是", "why", "claim"],
+  },
+  "checkpoint-timeline": {
+    contentKind: "process-timeline",
+    categoryZh: "流程路线",
+    topicTypes: ["tutorial", "course", "workflow", "methodology"],
+    pageJobs: ["define", "step", "sequence", "checkpoint"],
+    layoutContract: "顶部或中轴时间线；当前节点展开，非当前节点降噪；节点不超过五个。",
+    typographyMode: "product-ui",
+    dataAccuracy: "process-order; step names must match script order and timing",
+    assetNeeds: ["timeline-node", "current-step-card", "progress-rail"],
+    sceneSignals: ["流程", "步骤", "阶段", "路线", "workflow", "process", "step"],
+  },
+  "proof-thread-board": {
+    contentKind: "evidence-board",
+    categoryZh: "证据推理",
+    topicTypes: ["news-analysis", "professional-explainer", "story-method"],
+    pageJobs: ["prove", "connect", "diagnose", "infer"],
+    layoutContract: "证据卡分区，连线只服务因果；焦点镜头不穿过字幕和主标题。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "evidence-bound; distinguish fact, inference, and open uncertainty",
+    assetNeeds: ["evidence-card", "connector-line", "focus-lens"],
+    sceneSignals: ["证据", "因果", "证明", "诊断", "线索", "because", "proof"],
+  },
+  "product-state-cascade": {
+    contentKind: "code-walkthrough",
+    categoryZh: "代码/产品演示",
+    topicTypes: ["product-demo", "screen-demo", "technical-tutorial"],
+    pageJobs: ["operate", "execute", "inspect", "output"],
+    layoutContract: "代码/输入、运行状态、输出结果三层必须同时可读；禁止泄漏非题材要求的框架名。",
+    typographyMode: "product-ui",
+    dataAccuracy: "runtime-state; commands, APIs, and outputs must be real, illustrative, or clearly marked",
+    assetNeeds: ["code-panel", "run-state", "output-card", "cursor-or-focus"],
+    sceneSignals: ["代码", "函数", "命令", "API", "SDK", "调试", "运行", "output", "code"],
+  },
+  "data-curve-proof": {
+    contentKind: "data-chart",
+    categoryZh: "数据图表",
+    topicTypes: ["data-newsroom", "market-analysis", "policy-analysis", "scientific-explainer"],
+    pageJobs: ["source", "trace", "compare", "highlight-inflection"],
+    layoutContract: "上方语境卡，中部坐标/曲线，右侧拐点解释，底部来源脚注；单位和口径必须可见。",
+    typographyMode: "data-mono",
+    dataAccuracy: "measured-data-required; requires data-source-plan, data-series, and data-motion-plan for real values",
+    assetNeeds: ["axis", "series-path", "endpoint-callout", "source-footnote"],
+    sceneSignals: ["数据", "指标", "趋势", "曲线", "排名", "GDP", "增长", "下降", "chart", "metric"],
+  },
+  "typed-opener-promise": {
+    contentKind: "typed-thesis",
+    categoryZh: "片头命题",
+    topicTypes: ["opening-hook", "course-intro", "opinion"],
+    pageJobs: ["promise", "hook", "transition"],
+    layoutContract: "全屏短句，最多两行；停顿后必须快速进入第一内容页，不制造无声空白。",
+    typographyMode: "kinetic-poster",
+    dataAccuracy: "copy-exact; title text must come from script/title promise",
+    assetNeeds: ["typed-line", "cursor", "transition-phrase"],
+    sceneSignals: ["片头", "第一句", "命题", "开场", "hook", "title"],
+  },
+  "whiteboard-overlay-step": {
+    contentKind: "whiteboard-method",
+    categoryZh: "白板绘制",
+    topicTypes: ["lesson", "tutorial", "formula", "method"],
+    pageJobs: ["draw", "underline", "circle", "explain"],
+    layoutContract: "底图稳定，白板只做前景语义描线；描线层在主体之上、字幕之下。",
+    typographyMode: "warm-annotation",
+    dataAccuracy: "semantic-overlay; final text stays deterministic and whiteboard strokes cannot own exact copy",
+    assetNeeds: ["stroke-path", "circle-mark", "arrow-mark", "colored-fill"],
+    sceneSignals: ["白板", "手绘", "描线", "圈画", "下划线", "draw", "sketch"],
+  },
+  "cover-continuity-bridge": {
+    contentKind: "cover-bridge",
+    categoryZh: "封面衔接",
+    topicTypes: ["cover-opening", "short-form", "knowledge-cover"],
+    pageJobs: ["echo-cover", "open", "payoff-promise"],
+    layoutContract: "首帧复用封面承诺、视觉主体或核心钩子；禁止静默封面停留。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "cover-promise; copy must match cover-design and script-derived hook",
+    assetNeeds: ["cover-subject-echo", "promise-chip", "first-proof"],
+    sceneSignals: ["封面", "首帧", "点击", "承诺", "thumbnail", "cover"],
+  },
+  "ip-presenter-board": {
+    contentKind: "ip-knowledge-card",
+    categoryZh: "个人 IP 知识卡",
+    topicTypes: ["creator-led-course", "personal-ip", "teaching", "knowledge-card"],
+    pageJobs: ["present", "point", "explain", "handoff"],
+    layoutContract: "固定人物、知识板、协作角色/图解行动分区；人物动作必须指向当前结论。",
+    typographyMode: "warm-annotation",
+    dataAccuracy: "persona-consistency; reuse saved authorized persona asset before creating a new one",
+    assetNeeds: ["persona-main", "persona-action", "knowledge-card", "agent-helper"],
+    sceneSignals: ["个人IP", "主讲", "人设", "知识卡", "Agent", "口播", "persona", "creator"],
+  },
+  "before-after-craft": {
+    contentKind: "before-after",
+    categoryZh: "前后对照",
+    topicTypes: ["tutorial", "writing-method", "repair", "optimization"],
+    pageJobs: ["compare", "transform", "prove-improvement"],
+    layoutContract: "旧状态、新状态、变化路径必须同时可见；变化点不能只靠文案说明。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "difference-visible; before and after states must be semantically comparable",
+    assetNeeds: ["before-card", "after-card", "transition-arrow", "delta-label"],
+    sceneSignals: ["前后", "优化", "修复", "改写", "变化", "before", "after"],
+  },
+  "matrix-choice-map": {
+    contentKind: "choice-matrix",
+    categoryZh: "策略矩阵",
+    topicTypes: ["decision", "strategy", "selection", "tradeoff"],
+    pageJobs: ["choose", "prioritize", "compare-options"],
+    layoutContract: "二维坐标、方案点、目标象限和选择理由必须清楚；轴标签短而具体。",
+    typographyMode: "data-mono",
+    dataAccuracy: "axis-definition; axes must be meaningful and not arbitrary decoration",
+    assetNeeds: ["xy-axis", "option-point", "target-quadrant", "risk-note"],
+    sceneSignals: ["选择", "矩阵", "象限", "权衡", "优先级", "decision", "matrix"],
+  },
+  "dashboard-inspection": {
+    contentKind: "dashboard-inspection",
+    categoryZh: "仪表盘巡检",
+    topicTypes: ["product-demo", "operations", "data-dashboard"],
+    pageJobs: ["inspect", "zoom", "diagnose", "action"],
+    layoutContract: "全局看板、指标聚焦、行动条三段式；不得显示真实敏感数据。",
+    typographyMode: "data-mono",
+    dataAccuracy: "metric-contract; metric labels, units, and synthetic/real status must be explicit in workflow",
+    assetNeeds: ["metric-card", "focus-window", "action-badge"],
+    sceneSignals: ["看板", "指标", "后台", "运营", "巡检", "dashboard", "KPI"],
+  },
+  "formula-step-proof": {
+    contentKind: "formula-derivation",
+    categoryZh: "公式推导",
+    topicTypes: ["math", "education", "science", "rules"],
+    pageJobs: ["derive", "step", "resolve"],
+    layoutContract: "条件、变形、结果三段式；每一步只改变一个关系，箭头标出变化。",
+    typographyMode: "data-mono",
+    dataAccuracy: "math-exact; if proof cannot be verified, render conceptual relationship instead of fake derivation",
+    assetNeeds: ["condition-block", "derivation-step", "result-lockup", "proof-arrow"],
+    sceneSignals: ["公式", "推导", "数学", "证明", "变形", "equation", "formula"],
+  },
+  "story-pressure-line": {
+    contentKind: "storyboard-pressure",
+    categoryZh: "故事压力线",
+    topicTypes: ["story", "writing-method", "narrative-analysis"],
+    pageJobs: ["raise-pressure", "show-choice", "show-cost"],
+    layoutContract: "目标、压力、选择、代价必须分层；不把剧情摘要堆成正文墙。",
+    typographyMode: "warm-annotation",
+    dataAccuracy: "story-structure; conflict and payoff must match script beats",
+    assetNeeds: ["character-goal", "pressure-line", "cost-marker"],
+    sceneSignals: ["故事", "冲突", "压力", "角色", "代价", "story", "conflict"],
+  },
+  "concept-orbit-system": {
+    contentKind: "concept-orbit",
+    categoryZh: "概念系统",
+    topicTypes: ["framework", "system", "abstract-explainer"],
+    pageJobs: ["model", "relate", "summarize"],
+    layoutContract: "核心概念居中，外围模块轨道进入；节点数量少，关系线不干扰字幕。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "concept-map; relation labels must come from script logic",
+    assetNeeds: ["core-node", "orbit-node", "relation-line"],
+    sceneSignals: ["概念", "系统", "框架", "模块", "关系", "orbit", "system"],
+  },
+  "material-collage-focus": {
+    contentKind: "material-collage",
+    categoryZh: "素材拼贴聚焦",
+    topicTypes: ["documentary", "case-study", "footage-editing"],
+    pageJobs: ["collect", "select", "focus", "prove"],
+    layoutContract: "素材池、筛选动作、主素材放大三层；授权状态和用途写入 workflow。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "rights-bound; only authorized or recorded-source material can be selected",
+    assetNeeds: ["candidate-material", "selected-material", "focus-frame"],
+    sceneSignals: ["素材", "案例", "视频", "片段", "B-roll", "footage", "material"],
+  },
+  "quote-emphasis-lockup": {
+    contentKind: "quote-lockup",
+    categoryZh: "金句强调",
+    topicTypes: ["quote", "recap", "opinion"],
+    pageJobs: ["emphasize", "memorize", "resolve"],
+    layoutContract: "一句话拆成节奏片段，关键词不超过三个；最后合成完整结论。",
+    typographyMode: "kinetic-poster",
+    dataAccuracy: "quote-exact; do not change original meaning or source attribution when applicable",
+    assetNeeds: ["phrase-segment", "keyword-accent", "quote-lockup"],
+    sceneSignals: ["金句", "引用", "结论", "记忆点", "quote", "takeaway"],
+  },
+  "checklist-gate": {
+    contentKind: "checklist-gate",
+    categoryZh: "质量门禁",
+    topicTypes: ["audit", "launch", "quality", "review"],
+    pageJobs: ["validate", "pass-fail", "block", "release"],
+    layoutContract: "条件清单、通过/失败状态、阻断原因分区；失败状态必须可见。",
+    typographyMode: "product-ui",
+    dataAccuracy: "gate-status; do not present illustrative checks as real system results",
+    assetNeeds: ["gate-item", "status-indicator", "blocker-note"],
+    sceneSignals: ["检查", "审核", "门禁", "通过", "阻断", "QC", "gate", "audit"],
+  },
+  "journey-map-scan": {
+    contentKind: "journey-map",
+    categoryZh: "路径地图",
+    topicTypes: ["learning-path", "user-journey", "roadmap"],
+    pageJobs: ["scan", "arrive", "next-action"],
+    layoutContract: "路径曲线、当前站点卡、终点行动标记；每站只展开一句说明。",
+    typographyMode: "product-ui",
+    dataAccuracy: "route-order; journey steps must match the script or source plan",
+    assetNeeds: ["path-line", "current-stop", "destination-marker"],
+    sceneSignals: ["路径", "旅程", "路线图", "学习路径", "journey", "roadmap"],
+  },
+  "recap-payoff-loop": {
+    contentKind: "recap-loop",
+    categoryZh: "复盘闭环",
+    topicTypes: ["recap", "summary", "payoff"],
+    pageJobs: ["recap", "close-loop", "action"],
+    layoutContract: "只回收已出现的证据，三证据合一到行动结论；结尾不新增复杂概念。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "recap-only; summary can only use prior beats or clearly named final action",
+    assetNeeds: ["prior-beat-card", "loop-arrow", "action-card"],
+    sceneSignals: ["复盘", "总结", "闭环", "行动", "recap", "payoff"],
+  },
+  "ranking-table-system": {
+    contentKind: "table-ranking",
+    categoryZh: "排行表格",
+    topicTypes: ["data-newsroom", "product-comparison", "model-evaluation", "selection"],
+    pageJobs: ["rank", "compare", "select", "explain-score"],
+    layoutContract: "表头、行级排名、数值条、选中理由四层；最多四列，必须说明排名依据。",
+    typographyMode: "data-mono",
+    dataAccuracy: "ranking-basis-required; ranking metric, denominator, and tie policy must be recorded",
+    assetNeeds: ["rank-badge", "value-bar", "selected-row", "basis-note"],
+    sceneSignals: ["排名", "榜单", "Top", "评分", "表格", "排行", "rank", "table"],
+  },
+  "geo-data-map": {
+    contentKind: "geo-map",
+    categoryZh: "地理空间",
+    topicTypes: ["geo-analysis", "market-map", "policy-analysis", "regional-comparison"],
+    pageJobs: ["locate", "compare-regions", "zoom-region", "explain-spatial-pattern"],
+    layoutContract: "地图轮廓、区域点亮、指标旁注、来源脚注分层；地理边界必须真实或明确示意。",
+    typographyMode: "map-label",
+    dataAccuracy: "geo-source-required; real geography requires source or illustrative mode must be explicit",
+    assetNeeds: ["map-outline", "region-marker", "metric-callout", "source-footnote"],
+    sceneSignals: ["地图", "国家", "城市", "地区", "区域", "空间", "geo", "map"],
+  },
+  "hierarchy-tree-map": {
+    contentKind: "hierarchy-tree",
+    categoryZh: "层级结构",
+    topicTypes: ["knowledge-structure", "organization", "decision-tree", "course-outline"],
+    pageJobs: ["branch", "group", "explain-hierarchy", "select-path"],
+    layoutContract: "根节点、分支节点、当前路径、结论卡四层；单屏层级不超过三层。",
+    typographyMode: "product-ui",
+    dataAccuracy: "hierarchy-bound; parent-child relationships must come from script or source plan",
+    assetNeeds: ["root-node", "branch-node", "active-path", "conclusion-card"],
+    sceneSignals: ["层级", "树", "目录", "架构", "分支", "tree", "hierarchy"],
+  },
+  "network-relationship-map": {
+    contentKind: "network-relationship",
+    categoryZh: "关系网络",
+    topicTypes: ["relationship-analysis", "system-dependency", "ecosystem", "causal-network"],
+    pageJobs: ["cluster", "link", "isolate-path", "explain-relation"],
+    layoutContract: "节点簇、关系线、主链路、解释旁注分层；只点亮当前口播提到的关系。",
+    typographyMode: "system-label",
+    dataAccuracy: "relation-direction-required; relation direction and confidence must be explicit",
+    assetNeeds: ["node-cluster", "active-edge", "main-path", "relation-note"],
+    sceneSignals: ["关系", "网络", "节点", "连接", "依赖", "生态", "network", "graph"],
+  },
+  "conversion-funnel-flow": {
+    contentKind: "funnel-conversion",
+    categoryZh: "转化漏斗",
+    topicTypes: ["growth", "sales", "product-analytics", "retention"],
+    pageJobs: ["measure-dropoff", "diagnose", "compare-stage", "recommend-action"],
+    layoutContract: "漏斗阶段、转化率、流失标记、行动建议同屏；必须说明口径和分母。",
+    typographyMode: "data-mono",
+    dataAccuracy: "funnel-denominator-required; stage counts and conversion rates need denominator/source",
+    assetNeeds: ["funnel-stage", "dropoff-marker", "rate-label", "action-note"],
+    sceneSignals: ["转化", "漏斗", "留存", "流失", "conversion", "funnel"],
+  },
+  "agent-simulation-lane": {
+    contentKind: "agent-simulation",
+    categoryZh: "协作流程",
+    topicTypes: ["automation", "agent-workflow", "multi-agent", "workflow"],
+    pageJobs: ["parallelize", "handoff", "merge", "assign-roles"],
+    layoutContract: "泳道、任务卡、并行路径、合并输出分层；执行角色职责必须互斥且可验证。",
+    typographyMode: "product-ui",
+    dataAccuracy: "agent-role-contract; role ownership and handoff output must be recorded",
+    assetNeeds: ["agent-lane", "task-token", "handoff-arrow", "merge-output"],
+    sceneSignals: ["Agent", "多代理", "协作", "并行", "handoff", "agent"],
+  },
+  "screenflow-demo-path": {
+    contentKind: "screenflow-demo",
+    categoryZh: "界面路径",
+    topicTypes: ["product-demo", "mobile-demo", "settings-flow", "saas-demo"],
+    pageJobs: ["operate", "tap", "switch-state", "complete"],
+    layoutContract: "起始界面、焦点光标、下一状态、完成徽章连续展示；状态不能断裂。",
+    typographyMode: "product-ui",
+    dataAccuracy: "screen-state-truth; demo state must be real, illustrative, or explicitly synthetic",
+    assetNeeds: ["screen-state", "focus-cursor", "state-arrow", "completion-badge"],
+    sceneSignals: ["界面", "点击", "设置", "产品", "SaaS", "屏幕", "screen", "demo"],
+  },
+  "risk-alert-diagnosis": {
+    contentKind: "risk-alert",
+    categoryZh: "风险告警",
+    topicTypes: ["debugging", "risk", "incident-review", "quality-warning"],
+    pageJobs: ["warn", "triage", "contain", "explain-impact"],
+    layoutContract: "告警等级、影响面、诊断线索、处理动作四区；风险程度不得夸大。",
+    typographyMode: "alert-editorial",
+    dataAccuracy: "risk-severity-bound; severity must be source-backed or clearly illustrative",
+    assetNeeds: ["risk-badge", "impact-map", "diagnosis-thread", "containment-action"],
+    sceneSignals: ["风险", "告警", "错误", "事故", "注意", "warning", "risk"],
+  },
+  "source-citation-stack": {
+    contentKind: "source-citation",
+    categoryZh: "资料引用",
+    topicTypes: ["research", "fact-check", "market-research", "source-analysis"],
+    pageJobs: ["cite", "quote", "verify", "separate-inference"],
+    layoutContract: "资料卡、短引用、解释、结论章分层；事实、推论和观点必须分开。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "source-citation-required; source, quote boundary, and inference boundary must be recorded",
+    assetNeeds: ["source-card", "quote-fragment", "verification-stamp", "inference-note"],
+    sceneSignals: ["引用", "资料", "来源", "研究", "文献", "source", "citation"],
+  },
+  "voice-waveform-sync": {
+    contentKind: "voice-sync",
+    categoryZh: "语音同步",
+    topicTypes: ["voiceover", "subtitle", "bilingual", "dialect", "audio-sync"],
+    pageJobs: ["sync-caption", "highlight-keyword", "show-cue", "match-voice"],
+    layoutContract: "波形、时间点块、关键词、声音选择状态对齐；不暴露内部配音引擎或框架名。",
+    typographyMode: "audio-caption",
+    dataAccuracy: "voice-manifest-required; voice, language, dialect, gender, and cue timing must be recorded",
+    assetNeeds: ["waveform", "caption-cue", "keyword-highlight", "voice-profile-chip"],
+    sceneSignals: ["语音", "字幕", "方言", "男声", "女声", "waveform", "voice"],
+  },
+  "comparison-gallery-wall": {
+    contentKind: "comparison-gallery",
+    categoryZh: "样张对比",
+    topicTypes: ["design-review", "cover-review", "asset-selection", "style-selection"],
+    pageJobs: ["compare-candidates", "select-best", "magnify", "explain-choice"],
+    layoutContract: "候选网格、选中样张、理由条、淘汰原因分层；候选必须有真实差异。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "candidate-difference-required; selection reason must not be color-only",
+    assetNeeds: ["candidate-tile", "selected-preview", "rationale-strip", "reject-note"],
+    sceneSignals: ["样张", "候选", "封面", "模板", "对比", "gallery", "candidate"],
+  },
+  "calendar-timeline-board": {
+    contentKind: "timeline-calendar",
+    categoryZh: "日历时间轴",
+    topicTypes: ["project-plan", "history", "course-schedule", "roadmap"],
+    pageJobs: ["schedule", "sequence-events", "highlight-deadline", "show-calendar"],
+    layoutContract: "日历格、事件线、当前日期、截止点旁注分层；日期必须真实或明确示例。",
+    typographyMode: "map-label",
+    dataAccuracy: "date-exact; relative dates must resolve to absolute dates in workflow",
+    assetNeeds: ["calendar-grid", "event-rail", "current-date-marker", "deadline-callout"],
+    sceneSignals: ["日历", "日期", "时间", "排期", "历史", "deadline", "calendar"],
+  },
+};
+
+const variantProfiles = {
+  "calm-premium": {
+    finishZh: "高级克制",
+    colorMode: "neutral-material",
+    pacing: "slow",
+    bestFor: ["复杂信息", "方法讲解", "低干扰阅读"],
+  },
+  "editorial-contrast": {
+    finishZh: "编辑对比",
+    colorMode: "editorial-contrast",
+    pacing: "snap",
+    bestFor: ["强观点", "反差", "封面承诺衔接"],
+  },
+  "glass-product": {
+    finishZh: "玻璃产品",
+    colorMode: "glass-product",
+    pacing: "spring",
+    bestFor: ["产品界面", "代码运行", "仪表盘"],
+  },
+  "warm-paper": {
+    finishZh: "暖纸知识",
+    colorMode: "warm-paper",
+    pacing: "draw",
+    bestFor: ["白板", "个人 IP", "课程知识卡"],
+  },
+  "bright-clean": {
+    finishZh: "明亮清透",
+    colorMode: "bright-clean",
+    pacing: "quick",
+    bestFor: ["短节奏", "清单", "流程"],
+  },
+};
+
+const scenarioProfiles = {
+  "claim-split": {
+    businessScenario: "半自动视频生成配置页：用户以为需要手动挑完所有视觉细节，系统用自动规划器选择证明更稳定。",
+    useCase: "开场反直觉页，用于解释为什么默认自动规划色系、字幕、动效，而不是把审美压力交给用户。",
+    pageTitle: "别把审美压力丢给用户",
+    usageScene: "产品方法论口播的第一屏，先拆掉错误直觉，再交付可验证的自动规划结果。",
+    videoSubtitle: "该自动的是判断，不是低质量地替用户省一步。",
+    primaryEvidence: "用户题材、内容类型、页面任务、素材状态共同驱动模板选择。",
+    visualObjects: ["错误直觉卡", "自动规划证据卡", "结论章"],
+    dataSource: { mode: "qualitative", label: "Skill 规划合同", licenseOrRights: "project-owned workflow contract" },
+  },
+  "process-timeline": {
+    businessScenario: "企业课程视频从题材输入到最终合成的端到端流程。",
+    useCase: "流程讲解页，展示题材、口播稿、素材解析、页面生成、QC、合成的顺序。",
+    pageTitle: "六步生成一条可审片视频",
+    usageScene: "教程类视频的流程段落，用节点状态替代内部页码。",
+    videoSubtitle: "先规划，再生成，再按页面验收。",
+    primaryEvidence: "题材输入 -> 脚本拆页 -> 模板选择 -> 素材生成 -> QC -> 合成。",
+    visualObjects: ["流程轨道", "当前节点卡", "完成徽章"],
+    dataSource: { mode: "workflow", label: "codex-video-workflow semi-auto flow", licenseOrRights: "project-owned workflow contract" },
+  },
+  "evidence-board": {
+    businessScenario: "排查风格模板粗糙、重叠和信息缺失的根因。",
+    useCase: "诊断页，把用户反馈、模板合同、渲染截图和验证结果分层摆出。",
+    pageTitle: "问题不是配色，是页面合同缺失",
+    usageScene: "问题复盘或产品优化视频，用证据板解释为什么要重构模板库。",
+    videoSubtitle: "证据先上桌，结论才成立。",
+    primaryEvidence: "用户截图 + 模板合同缺字段 + overlap validator 漏检。",
+    visualObjects: ["反馈卡", "代码入口卡", "QC 缺口卡", "结论章"],
+    dataSource: { mode: "project-evidence", label: "用户截图与本地验证报告", licenseOrRights: "conversation/project-owned evidence" },
+  },
+  "code-walkthrough": {
+    businessScenario: "视频页面生成脚本根据内容类型选模板、渲染页面并写入审片 HTML。",
+    useCase: "代码演示页，展示自动规划结果如何进入页面渲染函数。",
+    pageTitle: "把规划结果跑成页面",
+    usageScene: "技术教程或产品能力说明，强调真实执行流而不是展示框架名。",
+    videoSubtitle: "当前执行行决定这一页出现什么内容。",
+    primaryEvidence: "selectTemplate -> renderFrame -> validateLayout -> writeReviewPage。",
+    visualObjects: ["代码面板", "运行状态", "输出结果卡"],
+    dataSource: { mode: "illustrative-code", label: "project workflow pseudocode", licenseOrRights: "project-owned illustrative logic" },
+  },
+  "data-chart": {
+    businessScenario: "用 World Bank 2019-2025 年 GDP 数据讲解主要经济体体量变化。",
+    useCase: "数据趋势页，曲线描边展示美国、中国、印度、德国 GDP 变化并标注 2025 年值。",
+    pageTitle: "GDP 曲线先看量级，再看趋势",
+    usageScene: "财经、政策、市场分析视频中的趋势证明页。",
+    videoSubtitle: "数据页先交代口径，再让曲线说话。",
+    primaryEvidence: "2025 current US$：美国 30.77T、中国 19.50T、德国 5.05T、印度 3.96T。",
+    visualObjects: ["坐标轴", "国家曲线", "终点标签", "来源脚注"],
+    dataSource: {
+      mode: "measured",
+      label: "World Bank GDP current US$ 2019-2025",
+      url: "https://api.worldbank.org/v2/country/USA;CHN;IND;DEU/indicator/NY.GDP.MKTP.CD?format=json&date=2019:2025&per_page=1000",
+      licenseOrRights: "World Bank Data Catalog / CC BY 4.0",
+      sampleValues: ["USA 2025 30.77T", "CHN 2025 19.50T", "DEU 2025 5.05T", "IND 2025 3.96T"],
+    },
+  },
+  "typed-thesis": {
+    businessScenario: "解释风格模板不是审核缩略图，而是未来视频页会引用的页面模式。",
+    useCase: "片头命题页，用一句话建立观众预期。",
+    pageTitle: "模板就是未来的一帧画面",
+    usageScene: "方法论开头或章节切换，短句入场后快速进入证据页。",
+    videoSubtitle: "先给承诺，再给页面证据。",
+    primaryEvidence: "模板合同会被规划层、模板设计层、渲染验收层共同读取。",
+    visualObjects: ["命题文字", "节奏光标", "转场承诺"],
+    dataSource: { mode: "workflow", label: "motion-style-template-selection contract", licenseOrRights: "project-owned workflow contract" },
+  },
+  "whiteboard-method": {
+    businessScenario: "白板绘制用于把复杂页面关系用手绘路径逐步讲清。",
+    useCase: "方法讲解页，底层页面稳定，手绘路径只做前景语义强调。",
+    pageTitle: "白板只画关系，不替代页面",
+    usageScene: "课程、公式、流程解释中的手绘演示段。",
+    videoSubtitle: "先描主线，再圈重点，精确文字仍由页面层负责。",
+    primaryEvidence: "前景描线、圈画、箭头、彩色回填分层控制。",
+    visualObjects: ["描线路径", "圈画重点", "彩色回填卡"],
+    dataSource: { mode: "project-capability", label: "codex-whiteboard-video-skill integration", licenseOrRights: "project-owned capability contract" },
+  },
+  "cover-bridge": {
+    businessScenario: "平台封面点击承诺在视频首帧被兑现，避免封面和正文断裂。",
+    useCase: "封面衔接页，把主标题、视觉隐喻和首个证明对象连接起来。",
+    pageTitle: "封面承诺要接住第一秒",
+    usageScene: "视频开场，尤其是知识科普、方法论、产品说明视频。",
+    videoSubtitle: "封面不是片头停留，而是第一屏的承诺兑现。",
+    primaryEvidence: "标题/口播稿驱动主标题、副标题、视觉证据和情绪钩子。",
+    visualObjects: ["封面钩子", "首帧证明板", "转场箭头"],
+    dataSource: { mode: "project-methodology", label: "cover-design.md high-click cover logic", licenseOrRights: "project-owned methodology" },
+  },
+  "ip-knowledge-card": {
+    businessScenario: "固定个人 IP 主讲人根据口播单元生成一一匹配的知识卡和动作图。",
+    useCase: "个人 IP 讲解页，复用已保存人设，按句子切换姿态、知识卡和手绘标注。",
+    pageTitle: "同一主讲人讲完整套知识卡",
+    usageScene: "个人 IP 课程、知识解释、方法论视频。",
+    videoSubtitle: "人设先固定，图片任务再按口播单元扩展。",
+    primaryEvidence: "每个口播单元至少 1 张主图，并补充动作、局部和替代构图。",
+    visualObjects: ["固定主讲人", "知识卡", "动作指向", "协作辅助卡"],
+    dataSource: { mode: "project-capability", label: "haloshin/ip-diagram-creator methodology", licenseOrRights: "open-source-inspired bounded integration" },
+  },
+  "before-after": {
+    businessScenario: "把低质模板页改成可读、可验证、可合成的视频页面。",
+    useCase: "优化证明页，旧状态弱化，新状态逐步构建，差异点独立高亮。",
+    pageTitle: "设计升级要看得见差异",
+    usageScene: "产品改版、写作改稿、流程修复等前后对照内容。",
+    videoSubtitle: "不是换颜色，而是让差异变成证据。",
+    primaryEvidence: "重叠消失、信息补齐、动效和页面任务绑定。",
+    visualObjects: ["旧状态卡", "新状态卡", "差异高亮"],
+    dataSource: { mode: "comparative", label: "before/after visual audit", licenseOrRights: "project-owned review evidence" },
+  },
+  "choice-matrix": {
+    businessScenario: "自动规划器在多套模板、素材、动效之间选择当前页面最合适的方案。",
+    useCase: "策略矩阵页，把表达收益和实现成本作为坐标。",
+    pageTitle: "让选择有坐标，而不是凭感觉",
+    usageScene: "选型、决策、路线比较视频。",
+    videoSubtitle: "高收益、可实现，才进入目标象限。",
+    primaryEvidence: "内容匹配度、信息密度、动效语义、素材可得性共同打分。",
+    visualObjects: ["XY 坐标轴", "候选点", "目标象限", "选中路径"],
+    dataSource: { mode: "scoring-model", label: "template-director ranking rubric", licenseOrRights: "project-owned scoring contract" },
+  },
+  "dashboard-inspection": {
+    businessScenario: "视频生成前检查字幕、色系、素材、动效、封面和页面重叠。",
+    useCase: "巡检看板页，指标卡先总览，再聚焦需要动作的指标。",
+    pageTitle: "合成前先看 QC 看板",
+    usageScene: "产品演示、运营巡检、质量复盘视频。",
+    videoSubtitle: "能合成不等于能交付，先过可读性门禁。",
+    primaryEvidence: "无重叠、字幕安全、素材匹配、模板合同完整。",
+    visualObjects: ["指标卡", "焦点面板", "行动条"],
+    dataSource: { mode: "quality-gate", label: "logs/qc.json + layout validation", licenseOrRights: "project-owned validation output" },
+  },
+  "formula-derivation": {
+    businessScenario: "用二次函数顶点推导演示公式动画的分步变形能力。",
+    useCase: "数学推导页，每一步只改变一个关系并保持对象连续。",
+    pageTitle: "公式每一步都要有轨迹",
+    usageScene: "数学、科学、工程课程视频。",
+    videoSubtitle: "条件、变形、结果不能挤在一起。",
+    primaryEvidence: "y = ax^2 + bx + c；y' = 2ax + b；令 y' = 0 得 x = -b / 2a。",
+    visualObjects: ["条件块", "变形箭头", "抛物线", "顶点标签"],
+    dataSource: { mode: "verified-formula", label: "quadratic vertex derivation", licenseOrRights: "public mathematical identity" },
+  },
+  "storyboard-pressure": {
+    businessScenario: "创作者从粗糙模板到高质量页面之间的冲突、选择和代价。",
+    useCase: "故事结构页，用压力线展示角色目标、阻力和选择时刻。",
+    pageTitle: "张力来自选择成本",
+    usageScene: "故事写作、案例复盘、人物经历类视频。",
+    videoSubtitle: "不复述剧情，只把结构变化画出来。",
+    primaryEvidence: "目标：稳定输出；阻力：模板粗糙；代价：重新设计模板合同。",
+    visualObjects: ["目标卡", "冲突卡", "代价卡", "压力线"],
+    dataSource: { mode: "narrative-structure", label: "story pressure line", licenseOrRights: "project-owned illustrative scenario" },
+  },
+  "concept-orbit": {
+    businessScenario: "页面内容、设计、交互、动画围绕页面任务共同决策。",
+    useCase: "抽象系统页，把中心任务和外围模块关系讲清。",
+    pageTitle: "页面任务是中心，不是装饰",
+    usageScene: "系统方法论、框架介绍、抽象概念解释。",
+    videoSubtitle: "内容、设计、交互、动画必须围绕同一个任务。",
+    primaryEvidence: "页面任务决定内容密度、布局骨架、效果层和字幕安全区。",
+    visualObjects: ["中心任务", "四个轨道节点", "关系线"],
+    dataSource: { mode: "framework", label: "page-decision contract", licenseOrRights: "project-owned methodology" },
+  },
+  "material-collage": {
+    businessScenario: "本地视频、Image2 生成图和免费授权素材被按口播句子选择为主证据或补证。",
+    useCase: "素材证据页，先铺候选，再放大最能证明当前句子的主素材。",
+    pageTitle: "素材要证明这一句话",
+    usageScene: "案例、纪录、产品演示、资料型视频。",
+    videoSubtitle: "素材不是填空，是证据。",
+    primaryEvidence: "每个素材记录来源、授权、用途和对应口播单元。",
+    visualObjects: ["候选素材池", "主素材框", "授权标签"],
+    dataSource: { mode: "rights-ledger", label: "visual-asset-manifest/free-stock-asset-ledger", licenseOrRights: "source-specific rights required" },
+  },
+  "quote-lockup": {
+    businessScenario: "自动字幕关键字高亮需要让观众记住核心结论，而不是改变口播含义。",
+    useCase: "金句强调页，短语分段入场，最多三个关键词形成视觉重音。",
+    pageTitle: "自动不是省选择，是省低质选择",
+    usageScene: "结论句、章节收束、观点强化。",
+    videoSubtitle: "关键词高亮跟随语义，不替换原句。",
+    primaryEvidence: "颜色差异、加粗、扫光、停顿与字幕时间点同步。",
+    visualObjects: ["短语片段", "关键词色块", "完整金句"],
+    dataSource: { mode: "copy-exact", label: "voice-subtitle manifest timing text", licenseOrRights: "project-owned script text" },
+  },
+  "checklist-gate": {
+    businessScenario: "最终合成前必须逐项确认页面、素材、字幕和动效状态。",
+    useCase: "质量门禁页，显示通过、警告、阻断状态和下一步动作。",
+    pageTitle: "没过门禁，不进入合成",
+    usageScene: "合成前确认、质量复盘、交付说明。",
+    videoSubtitle: "发现遮挡和素材缺失时，直接阻断。",
+    primaryEvidence: "无重叠、字幕安全、真实来源、模板 ID、效果层安全。",
+    visualObjects: ["检查项", "状态灯", "阻断说明"],
+    dataSource: { mode: "quality-gate", label: "frame layout + subtitle + source QC", licenseOrRights: "project-owned validation output" },
+  },
+  "journey-map": {
+    businessScenario: "用户从填写题材、查看配置、页面级编辑到最终合成的半自动路径。",
+    useCase: "用户旅程页，展示当前位置和下一步行动。",
+    pageTitle: "从配置到合成，路径要可见",
+    usageScene: "产品教程、流程说明、SaaS onboarding。",
+    videoSubtitle: "用户知道现在在哪，下一步做什么。",
+    primaryEvidence: "题材输入 -> 参数确认 -> 页面编辑 -> 合成输出。",
+    visualObjects: ["路径曲线", "当前站点卡", "终点标记"],
+    dataSource: { mode: "workflow", label: "semi-auto generation user journey", licenseOrRights: "project-owned workflow contract" },
+  },
+  "recap-loop": {
+    businessScenario: "视频结尾把内容、设计、动效三类证据收束成行动建议。",
+    useCase: "复盘收束页，只回收前面出现过的信息。",
+    pageTitle: "把证据收成下一步动作",
+    usageScene: "课程结尾、产品汇报、问题复盘结尾。",
+    videoSubtitle: "结尾不新增概念，只收束证据。",
+    primaryEvidence: "内容场景、布局合同、效果层计划三项合并输出。",
+    visualObjects: ["证据卡", "闭环箭头", "行动卡"],
+    dataSource: { mode: "recap", label: "prior scene beats", licenseOrRights: "project-owned script structure" },
+  },
+  "table-ranking": {
+    businessScenario: "用 2025 年 GDP current US$ 对五个主要经济体做表格排名。",
+    useCase: "排行决策页，行扫描后锁定排名和依据。",
+    pageTitle: "GDP 排名要同时看到数值和口径",
+    usageScene: "财经、宏观、市场分析视频。",
+    videoSubtitle: "没有口径的排名，只是装饰表格。",
+    primaryEvidence: "2025 current US$：美国 30.77T、中国 19.50T、德国 5.05T、日本 4.44T、印度 3.96T。",
+    visualObjects: ["排名行", "数值条", "口径说明", "选中行"],
+    dataSource: {
+      mode: "measured",
+      label: "World Bank GDP current US$ 2025",
+      url: "https://api.worldbank.org/v2/country/USA;CHN;IND;DEU;JPN/indicator/NY.GDP.MKTP.CD?format=json&date=2025&per_page=1000",
+      licenseOrRights: "World Bank Data Catalog / CC BY 4.0",
+      sampleValues: ["USA 30.77T", "CHN 19.50T", "DEU 5.05T", "JPN 4.44T", "IND 3.96T"],
+    },
+  },
+  "geo-map": {
+    businessScenario: "用 2025 年 World Bank 人口数据比较印度、中国、美国、日本、德国。",
+    useCase: "空间判断页，地图示意展示人口规模和区域旁注。",
+    pageTitle: "人口规模先定位，再比较",
+    usageScene: "地理、人口、政策、市场入门视频。",
+    videoSubtitle: "示意地图必须标明口径，不能伪装成精确边界。",
+    primaryEvidence: "2025 人口：印度 14.64 亿、中国 14.07 亿、美国 3.42 亿、日本 1.23 亿、德国 0.83 亿。",
+    visualObjects: ["地图示意轮廓", "国家标记", "人口旁注", "来源脚注"],
+    dataSource: {
+      mode: "measured",
+      label: "World Bank Population total 2025",
+      url: "https://api.worldbank.org/v2/country/IND;CHN;USA;JPN;DEU/indicator/SP.POP.TOTL?format=json&date=2025&per_page=1000",
+      licenseOrRights: "World Bank Data Catalog / CC BY 4.0",
+      sampleValues: ["IND 1.464B", "CHN 1.407B", "USA 0.342B", "JPN 0.123B", "DEU 0.083B"],
+    },
+  },
+  "hierarchy-tree": {
+    businessScenario: "视频生成系统的规划层、模板设计层、渲染验收层职责层级。",
+    useCase: "结构解释页，主干、分支、当前路径逐层展开。",
+    pageTitle: "先看职责树，再看当前路径",
+    usageScene: "系统架构、流程分工、课程目录。",
+    videoSubtitle: "层级不超过三层，观众才跟得上。",
+    primaryEvidence: "规划层定页面任务，模板设计层定表现方式，渲染验收层验证输出。",
+    visualObjects: ["根节点", "分支节点", "当前路径", "结论卡"],
+    dataSource: { mode: "architecture", label: "agent handoff contract", licenseOrRights: "project-owned workflow contract" },
+  },
+  "network-relationship": {
+    businessScenario: "脚本、模板、素材、字幕、效果层和 QC 之间的依赖关系。",
+    useCase: "关系网络页，主链路被点亮，非当前关系降噪。",
+    pageTitle: "从关系网里抽出主链路",
+    usageScene: "系统解释、依赖诊断、自动化流程说明。",
+    videoSubtitle: "关系图的价值是筛选，不是制造复杂。",
+    primaryEvidence: "脚本语义 -> 模板选择 -> 素材/字幕/效果绑定 -> QC。",
+    visualObjects: ["节点簇", "主链路", "关系解释卡"],
+    dataSource: { mode: "dependency-graph", label: "workflow artifact dependency", licenseOrRights: "project-owned workflow contract" },
+  },
+  "funnel-conversion": {
+    businessScenario: "半自动生成流程中，题材输入到 QC 通过的用户操作漏斗。",
+    useCase: "转化漏斗页，展示每阶段数量、转化率和最大流失点。",
+    pageTitle: "流失发生在素材匹配阶段",
+    usageScene: "产品增长、运营复盘、流程诊断。",
+    videoSubtitle: "没有分母的漏斗，就是装饰形状。",
+    primaryEvidence: "示例分母：题材输入 1000，脚本成页 720，素材匹配 510，QC 通过 430。",
+    visualObjects: ["漏斗阶段", "转化率", "流失标记", "行动建议"],
+    dataSource: { mode: "illustrative", label: "synthetic funnel example for UI validation", licenseOrRights: "project-owned synthetic data" },
+  },
+  "agent-simulation": {
+    businessScenario: "多个执行角色分别负责内容规划、配音时间、模板引用和渲染验收。",
+    useCase: "协作流程页，展示并行任务、交接和合并输出。",
+    pageTitle: "多角色协作要看到交接",
+    usageScene: "自动化系统介绍、执行流程说明。",
+    videoSubtitle: "职责互斥，产物合并，最后统一验收。",
+    primaryEvidence: "规划层输出页面任务，配音层输出时间点，模板设计层输出模板，渲染验收层输出验收结果。",
+    visualObjects: ["泳道", "任务卡", "交接箭头", "合并输出"],
+    dataSource: { mode: "workflow", label: "multi-agent production contract", licenseOrRights: "project-owned workflow contract" },
+  },
+  "screenflow-demo": {
+    businessScenario: "用户在视频配置页输入题材、打开自动规划、确认页面并触发合成。",
+    useCase: "界面路径页，三屏状态沿同一操作路径连续切换。",
+    pageTitle: "配置页操作要像真实点击",
+    usageScene: "产品演示、使用教程、配置流程说明。",
+    videoSubtitle: "状态连续，观众才相信这是真流程。",
+    primaryEvidence: "输入题材 -> 自动规划 -> 页面级编辑 -> 合成确认。",
+    visualObjects: ["屏幕状态", "点击焦点", "完成徽章"],
+    dataSource: { mode: "product-demo", label: "semi-auto-config interaction flow", licenseOrRights: "project-owned UI flow" },
+  },
+  "risk-alert": {
+    businessScenario: "模板页面出现文字、组件、卡片重叠时的风险分诊和修复动作。",
+    useCase: "风险告警页，先说明等级和影响面，再给处理动作。",
+    pageTitle: "重叠问题必须被阻断",
+    usageScene: "质量复盘、异常排查、上线前风险说明。",
+    videoSubtitle: "风险表达要准确，不靠红色堆满页面。",
+    primaryEvidence: "影响字幕安全区、图表标签、人物前景和来源脚注。",
+    visualObjects: ["告警等级", "影响范围", "诊断线索", "处理动作"],
+    dataSource: { mode: "quality-incident", label: "layout overlap audit", licenseOrRights: "project-owned validation output" },
+  },
+  "source-citation": {
+    businessScenario: "研究型视频把官方文档、数据源和推论边界放在同一页。",
+    useCase: "资料引用页，来源卡、短引用、解释和结论分层呈现。",
+    pageTitle: "结论必须能追溯",
+    usageScene: "研究报告、事实核验、市场分析。",
+    videoSubtitle: "事实、引用、推论要分开。",
+    primaryEvidence: "效果运行层能加载动画效果，World Bank 数据有指标口径和年份。",
+    visualObjects: ["来源卡", "短引用", "核验章", "推论边界"],
+    dataSource: { mode: "source-backed", label: "official docs + World Bank indicators", licenseOrRights: "source-specific citation required" },
+  },
+  "voice-sync": {
+    businessScenario: "中文、英文、方言和男女声选择与字幕时间点、关键词高亮同步。",
+    useCase: "语音同步页，波形播放头驱动字幕高亮和声音配置状态。",
+    pageTitle: "语音节奏驱动画面",
+    usageScene: "口播视频、双语字幕、方言讲解。",
+    videoSubtitle: "声音、方言、关键词必须绑定到字幕时间点。",
+    primaryEvidence: "普通话女声、粤语候选、英文旁白和关键词时间点共享时间轴。",
+    visualObjects: ["波形", "播放头", "时间点块", "声音配置"],
+    dataSource: { mode: "voice-manifest", label: "voice-subtitle manifest", licenseOrRights: "project-owned voice/subtitle contract" },
+  },
+  "comparison-gallery": {
+    businessScenario: "封面和页面模板候选需要展示真实结构差异，供用户审核。",
+    useCase: "样张对比页，候选墙、选中预览、选择理由和淘汰原因同屏。",
+    pageTitle: "候选样张要能比较结构",
+    usageScene: "封面审核、模板选择、设计评审。",
+    videoSubtitle: "风格选择不能只看颜色。",
+    primaryEvidence: "结构差异、信息密度、动效语义、口播匹配度优先于配色。",
+    visualObjects: ["候选墙", "选中大图", "理由条", "淘汰说明"],
+    dataSource: { mode: "review-candidate", label: "template/cover candidate review", licenseOrRights: "project-owned candidate set" },
+  },
+  "timeline-calendar": {
+    businessScenario: "项目排期或历史内容必须把相对时间转换成绝对日期。",
+    useCase: "日历时间轴页，当前日期、事件线和截止点一起出现。",
+    pageTitle: "时间信息要落到日期",
+    usageScene: "项目计划、历史复盘、课程安排。",
+    videoSubtitle: "相对日期必须写成明确日期或标示例。",
+    primaryEvidence: "当前日期 2026-07-04；示例验收截止 2026-07-06。",
+    visualObjects: ["日历格", "事件线", "当前日期", "截止点"],
+    dataSource: { mode: "date-exact", label: "absolute dates resolved from current run", licenseOrRights: "project-owned schedule data" },
+  },
+};
+
+const galaceanEffectProfiles = {
+  "claim-split": ["energy-beam-reveal", "光束把错误直觉与证据结论分开"],
+  "process-timeline": ["path-trail-trace", "轨迹描出当前流程节点"],
+  "evidence-board": ["focus-scan-spotlight", "聚光先扫过证据，再落到结论章"],
+  "code-walkthrough": ["ui-activation-sparkle", "细粒子跟随当前执行行，不遮挡代码"],
+  "data-chart": ["path-trail-trace", "轨迹沿 GDP 曲线推进，不覆盖标签"],
+  "typed-thesis": ["rich-text-effect-plate", "文字效果板强调命题，精确文字仍在确定性图层"],
+  "whiteboard-method": ["path-trail-trace", "轨迹跟随白板描线路径"],
+  "cover-bridge": ["transition-burst", "短促爆发把封面承诺接到首帧证据"],
+  "ip-knowledge-card": ["spine-character-motion", "人物动作层限定在主讲人轮廓内"],
+  "before-after": ["energy-beam-reveal", "光束揭示优化后的新状态"],
+  "choice-matrix": ["focus-scan-spotlight", "聚光从候选方案移动到目标象限"],
+  "dashboard-inspection": ["focus-scan-spotlight", "聚光落到需要处理的指标"],
+  "formula-derivation": ["path-trail-trace", "轨迹描出推导箭头和顶点路径"],
+  "storyboard-pressure": ["ambient-falling-elements", "低密度粒子强化压力感，不遮挡卡片"],
+  "concept-orbit": ["depth-orbit-3d", "轨道层强化中心与外围模块关系"],
+  "material-collage": ["texture-video-plane", "视频纹理层服务选中素材框"],
+  "quote-lockup": ["rich-text-effect-plate", "文字效果板强调关键词，字幕文字保持最上层"],
+  "checklist-gate": ["ui-activation-sparkle", "激活粒子确认已通过的门禁项"],
+  "journey-map": ["path-trail-trace", "轨迹描出用户路径并停到当前站点"],
+  "recap-loop": ["firework-payoff", "小型收束爆发标记最终行动卡"],
+  "table-ranking": ["focus-scan-spotlight", "聚光扫过排行行并锁定依据"],
+  "geo-map": ["focus-scan-spotlight", "聚光强调目标区域标记"],
+  "hierarchy-tree": ["path-trail-trace", "轨迹描出当前层级路径"],
+  "network-relationship": ["energy-beam-reveal", "光束点亮主依赖链路"],
+  "funnel-conversion": ["path-trail-trace", "轨迹沿漏斗下行到最大流失点"],
+  "agent-simulation": ["path-trail-trace", "轨迹跟随协作泳道的交接路径"],
+  "screenflow-demo": ["ui-activation-sparkle", "激活粒子标记当前点击目标"],
+  "risk-alert": ["focus-scan-spotlight", "聚光隔离重叠风险区域"],
+  "source-citation": ["focus-scan-spotlight", "聚光分离事实、引用和推论卡"],
+  "voice-sync": ["path-trail-trace", "轨迹跟随波形播放头"],
+  "comparison-gallery": ["focus-scan-spotlight", "聚光放大被选中的候选样张"],
+  "timeline-calendar": ["path-trail-trace", "轨迹连接事件日期和截止点"],
+};
+
+function buildScenarioContract(profile, family, variant) {
+  const scenario = scenarioProfiles[profile.contentKind] || {
+    businessScenario: `${profile.categoryZh || family.labelZh || family.id} content page generated from the current script beat.`,
+    useCase: profile.layoutContract,
+    pageTitle: family.labelZh || profile.categoryZh || "视频页面",
+    usageScene: arrayify(profile.topicTypes).join(" / "),
+    videoSubtitle: "页面内容、设计和动效按当前口播任务绑定。",
+    primaryEvidence: profile.dataAccuracy,
+    visualObjects: profile.assetNeeds,
+    dataSource: { mode: "content-bound", label: "script beat and planning contract", licenseOrRights: "project-owned workflow contract" },
+  };
+  return {
+    ...scenario,
+    contentKind: profile.contentKind,
+    familyId: family.id,
+    variantId: variant.id,
+    variantFinish: variantProfiles[variant.id]?.finishZh || variant.labelZh || variant.id,
+    plannerRule: "Auto planner may select this template when topic type, page job, data/source needs, and asset state match this scenario.",
+    sourcePlan: scenario.dataSource,
+  };
+}
+
+function buildGalaceanEffectContract(profile, family, variant) {
+  const [capabilityId, semanticJob] = galaceanEffectProfiles[profile.contentKind] || ["particle-atmosphere", "低密度氛围粒子强化页面状态"];
+  return {
+    active: true,
+    sourceFamily: "Galacean/effects-runtime",
+    capabilityCatalog: "assets/galacean-effects-capability-catalog.json",
+    capabilityId,
+    semanticJob,
+    placement: capabilityId === "rich-text-effect-plate" ? "foreground-accent-behind-deterministic-text" : "background-or-midground-accent",
+    layerOrder: [
+      "scene background",
+      "Galacean fallback effect plate",
+      "deterministic HTML/SVG scene content",
+      "deterministic highlights",
+      "subtitle top layer",
+    ],
+    safeRegions: ["main title", "data labels", "source footnote", "subtitle band"],
+    captionSafe: true,
+    exactTextOwner: "deterministic HTML/SVG/CSS/subtitle layers",
+    fallback: "deterministic CSS/SVG effect layer with the same semantic timing when @galacean/effects runtime assets are unavailable",
+    assetPolicy: "use project-authored effect JSON or authorized assets only; do not embed third-party demo assets without rights review",
+    timing: `bind to ${family.baseTemplate || "scene"} / ${variant.id} time windows`,
+    intensity: variant.id === "editorial-contrast" ? "medium" : "low",
+  };
+}
+
+const verticalShortFormProfiles = {
+  "claim-split": ["第一眼拆掉错误直觉", "左右论证改为上下冲突：上方大字反问，中段证据翻牌，底部字幕只留一句结论。", "反问卡上推，证据卡翻入，结论章在 2.6 秒前盖住误区。"],
+  "process-timeline": ["3 秒看懂当前流程卡点", "时间线改为竖向冲刺轨道，当前节点占中屏，下一步在底部作为滑动提示。", "轨道快速填充，节点依次脉冲，当前节点在 2 秒内放大。"],
+  "evidence-board": ["证据先撞进视线", "三张证据卡叠放成纵向证据板，因果线从上到下连接到结论章。", "聚光先扫卡片，再把因果线描到结论。"],
+  "code-walkthrough": ["这行代码正在决定画面", "代码区压缩为中屏终端，运行状态贴在上方，输出结果固定在字幕上方。", "执行行扫描、状态条填充、结果卡弹出。"],
+  "data-chart": ["先看最大拐点", "图表全屏纵向放大，只保留关键曲线、终点数值和来源短脚注。", "坐标轴立起，曲线在 3 秒内追到终点标签。"],
+  "typed-thesis": ["第一句直接给承诺", "全屏大字两行以内，支持线只在下方短停留，避免竖屏正文墙。", "逐字入场、关键词放大、短促切到下一证据。"],
+  "whiteboard-method": ["手绘先圈住关系", "白板画布占中上屏，笔迹在主体前景、字幕之上方留出安全带。", "笔尖跟随主线，圈画重点，最后彩色回填。"],
+  "cover-bridge": ["封面承诺第一秒兑现", "封面钩子从顶部收束到中屏证明对象，首帧主视觉不被字幕挡住。", "封面元素缩放成首帧证明板，2 秒内出现对应证据。"],
+  "ip-knowledge-card": ["同一个人设讲这一句", "人物放左下或中下，知识卡占中屏，动作箭头指向当前句子的知识点。", "人物轻动作、知识卡翻入、手绘标注跟随口播。"],
+  "before-after": ["一秒看到改前改后", "旧态在上方压暗，新态占中屏，差异点贴近变化区域。", "旧态退后，新态推进，差异标签逐个点亮。"],
+  "choice-matrix": ["别凭感觉选方案", "矩阵改为竖屏坐标卡，目标象限放在中上视觉重心。", "坐标轴建立，候选点滑向目标象限。"],
+  "dashboard-inspection": ["先看哪项卡住合成", "指标卡纵向堆叠，异常项放大，行动条固定在字幕上方。", "扫描卡片，异常项聚焦，行动条锁定。"],
+  "formula-derivation": ["公式每一步都能跟上", "推导链放中屏，图形证明放下半屏，当前变形只高亮一个关系。", "公式项位移，箭头显现，结果在 3 秒内加粗。"],
+  "storyboard-pressure": ["冲突点立刻出现", "目标、阻力、代价纵向排列，压力线贯穿中屏。", "压力线快速爬升，选择节点放大。"],
+  "concept-orbit": ["先抓住中心概念", "核心节点占中屏，外围模块沿手机屏幕纵向轨道进入。", "节点围绕核心短距离旋转，关系线依次点亮。"],
+  "material-collage": ["素材要证明这一句", "主素材占中屏，候选素材缩成底部滑带，授权标签贴近主素材。", "候选快速洗牌，主素材放大锁定。"],
+  "quote-lockup": ["这句话要被记住", "金句全屏拆词，关键词用色块和扫光，不与字幕重复堆叠。", "词组分段入场，关键词在 2 秒前完成重音。"],
+  "checklist-gate": ["没过门禁别合成", "通过项压缩，阻断项放中屏，下一步动作贴近底部。", "勾选逐项亮起，阻断项短震并锁定。"],
+  "journey-map": ["用户现在在哪一步", "路径变成纵向站点地图，当前站点中屏放大，下一步贴底。", "路径从顶部扫到当前站点，行动卡弹出。"],
+  "recap-loop": ["只收束最关键三点", "三张证据卡从不同方向回收到中屏行动卡。", "证据卡快速归位，闭环箭头收束。"],
+  "table-ranking": ["排行先看冠军和口径", "榜单纵向展示前三行，冠军行占中屏，口径留短脚注。", "行扫描，冠军行放大，数值条填充。"],
+  "geo-map": ["先定位，再比较", "地图示意居中，区域标记放大，人口/指标旁注避开右侧操作区。", "地图轮廓显现，区域点亮，旁注连线弹出。"],
+  "hierarchy-tree": ["主干先出来", "层级树改为纵向主干，当前路径粗线高亮，旁支降噪。", "根节点锁定，分支展开，当前路径收束。"],
+  "network-relationship": ["复杂关系只看主链路", "节点簇分布在中屏，主链路纵向加粗，解释卡贴底。", "节点成簇，边线点亮，主链路脉冲。"],
+  "funnel-conversion": ["流失点直接放大", "漏斗纵向占满中屏，最大流失点用醒目行动卡标出。", "阶段收窄，流失点弹出，行动建议贴底。"],
+  "agent-simulation": ["多角色交接一眼看清", "泳道压缩成竖屏并行轨道，合并输出占底部安全区上方。", "任务 token 沿轨道移动，交接点闪亮。"],
+  "screenflow-demo": ["像真实手机操作一样切换", "三屏状态改为手机卡片堆叠，当前点击目标在中屏。", "点击焦点触发状态卡翻页。"],
+  "risk-alert": ["风险等级先出现", "告警等级置顶，影响范围中屏，处理动作在字幕上方。", "告警弹出、影响区描边、动作卡锁定。"],
+  "source-citation": ["事实和推论分开看", "来源卡纵向叠放，引用片段抽出到中屏，结论章靠下。", "资料卡叠入，引用抽出，核验章落位。"],
+  "voice-sync": ["声音节奏带动画面", "波形竖屏横向贯穿中段，字幕关键词在安全区上方同步高亮。", "播放头扫过波形，关键词块同步变色。"],
+  "comparison-gallery": ["候选差异要看得出来", "候选墙缩成上方条带，选中样张中屏放大，理由贴底。", "候选滑动，选中项放大，理由条推入。"],
+  "timeline-calendar": ["日期必须明确", "日历格压缩为手机月历，当前日期和截止点纵向连接。", "日历显现，事件线推进，截止点高亮。"],
+};
+
+function buildVerticalShortFormContract(profile, family, variant, scenarioContract, galaceanEffectContract) {
+  const [firstFramePromise, mobileComposition, motionPlan] = verticalShortFormProfiles[profile.contentKind] || [
+    "3 秒内看懂这一页讲什么",
+    "竖屏上方给承诺，中屏给证明对象，底部保留一行字幕和平台安全区。",
+    "首秒抛出钩子，中段证明对象放大，结尾给行动或结论。",
+  ];
+  const variantPacing = variantProfiles[variant.id]?.pacing || "content-fit";
+  return {
+    active: true,
+    canvas: {
+      aspectRatio: "9:16",
+      width: 1080,
+      height: 1920,
+      platformProfile: "douyin-tiktok-shorts-reels",
+      defaultFps: 60,
+    },
+    plannerRule: "Only use this vertical contract when the user explicitly asks for vertical, short-form, Douyin/TikTok/Shorts/Reels, or a vertical platform target.",
+    hookArchitecture: {
+      firstFramePromise,
+      zeroToOneSecond: `pattern interrupt: ${firstFramePromise}`,
+      oneToThreeSeconds: scenarioContract.primaryEvidence || scenarioContract.pageTitle,
+      threeToSixSeconds: scenarioContract.useCase || mobileComposition,
+      sixToEightPointFiveSeconds: scenarioContract.videoSubtitle || "给出证明对象或操作反馈。",
+      payoffLoop: "最后 1.5 秒回到首帧承诺，形成可循环观看的结论。",
+    },
+    mobileLayout: {
+      composition: mobileComposition,
+      safeAreas: {
+        topProfile: "top 7% reserved for platform/user chrome; no critical copy",
+        rightActionRail: "right 12% reserved for like/comment/share rail; no labels or key data",
+        bottomCaption: "bottom 16-22% reserved for one-line subtitle; no proof object under captions",
+      },
+      maxReadableTextBlocks: 3,
+      headlineMaxChars: 18,
+      subtitlePolicy: "one short line, keyword highlight allowed, no stacked captions over charts/cards/persona",
+      layerOrder: [
+        "vertical background",
+        "caption-safe effect plate",
+        "main proof object",
+        "hook headline",
+        "interaction cue",
+        "deterministic subtitle top layer",
+      ],
+    },
+    interactionContract: {
+      gestureMetaphor: profile.contentKind === "screenflow-demo" ? "tap-to-state-change" : "thumb-scroll-progress",
+      visualStateChangeEverySeconds: "2-4",
+      firstThreeSecondRule: true,
+      pacing: variantPacing,
+      primaryGestureCue: profile.contentKind === "material-collage" || profile.contentKind === "comparison-gallery" ? "horizontal swipe hint" : "vertical progress pulse",
+    },
+    effectPlan: {
+      capabilityId: galaceanEffectContract.capabilityId,
+      semanticJob: galaceanEffectContract.semanticJob,
+      verticalPlacement: galaceanEffectContract.capabilityId === "rich-text-effect-plate"
+        ? "behind hook headline and keyword, never owning exact text"
+        : "midground accent outside caption band and right action rail",
+      avoidRegions: ["top profile zone", "right action rail", "bottom subtitle band", "main numeric labels", "persona face"],
+      fallback: "deterministic CSS/SVG effect plate with identical timing semantics",
+    },
+    captionContract: {
+      defaultOn: true,
+      keywordHighlightDefault: true,
+      band: "bottom safe band, above platform caption collision zone",
+      maxLines: 1,
+      rejects: ["two-line dense subtitles over proof object", "subtitle covering chart labels/persona face", "caption duplicates full headline"],
+    },
+    assetDensity: {
+      minimumVisualChanges: 3,
+      recommendedPersonaOrMaterialVariants: profile.contentKind === "ip-knowledge-card" ? "one main persona image per script unit plus action/detail variants" : "one main proof asset plus 2-3 supporting micro-assets when useful",
+      dataScenesRequireSourceFootnote: ["data-chart", "table-ranking", "geo-map", "funnel-conversion"].includes(profile.contentKind),
+    },
+    qualityGates: [
+      "verticalShortFormContractPresent",
+      "firstFramePromiseVisible",
+      "firstThreeSecondHookPresent",
+      "platformSafeAreasReserved",
+      "oneLineSubtitleSafe",
+      "rightActionRailClear",
+      "effectLayerCaptionSafe",
+      "thumbnailModalParityVertical",
+    ],
+    rejects: [
+      "crop horizontal layout into vertical without redesign",
+      "more than three competing text blocks",
+      "caption overlaps proof object",
+      "right-side action rail covers data label",
+      "slow opening without 0-3s promise",
+    ],
+    appliesTo: {
+      contentKind: profile.contentKind,
+      familyId: family.id,
+      variantId: variant.id,
+    },
+    motionPlan,
+  };
+}
+
+function fallbackProfile(family) {
+  return {
+    contentKind: family.id || "custom",
+    categoryZh: family.labelZh || "自定义模板",
+    topicTypes: arrayify(family.bestFor),
+    pageJobs: arrayify(family.motionVerbs),
+    layoutContract: family.layoutIntent || "按当前口播单元建立页面骨架。",
+    typographyMode: "editorial-display",
+    dataAccuracy: "content-bound; planner must record whether the scene is factual, qualitative, or illustrative",
+    assetNeeds: ["semantic-panel", "foreground-object", "caption-safe-band"],
+    sceneSignals: arrayify(family.bestFor),
+  };
+}
+
+function buildAgentContract() {
+  return {
+    plannerAgent: {
+      owns: ["topic classification", "script beat split", "page jobs", "data/material/personal-IP triggers"],
+      outputs: ["workflow/content-presentation-design.json", "workflow/page-decision-contract.json", "workflow/motion-style-template-selection.json"],
+    },
+    ttsTimingAgent: {
+      owns: ["voice generation", "subtitle cue timing", "scene duration binding"],
+      outputs: ["workflow/voice-subtitle-manifest.json", "workflow/sync-timecode-plan.json"],
+      dependency: "Template timing uses TTS cue boundaries after audio is available.",
+    },
+    templateDirectorAgent: {
+      owns: ["template selection", "layout contract", "typography mode", "motion layer plan", "scene asset task list"],
+      reads: ["assets/motion-style-template-library.json", "references/motion-style-template-design-spec.md"],
+      outputs: ["workflow/motion-style-template-selection.json", "workflow/motion-style-plan.json"],
+    },
+    dataMaterialAgent: {
+      owns: ["data source plan", "data series", "material rights", "local or generated image task fulfillment"],
+      outputs: ["workflow/data-source-plan.json", "workflow/data-series.json", "workflow/free-stock-asset-ledger.json", "workflow/visual-asset-manifest.json"],
+    },
+    rendererQcAgent: {
+      owns: ["HTML/CSS/SVG render", "caption top layer", "overlap audit", "text integrity", "media QC"],
+      outputs: ["workflow/frame-layout-overlap-audit.json", "logs/qc.json", "screenshots/*.png"],
+    },
+  };
+}
+
+function buildBenchmarkContract(profile, family, variant) {
+  return {
+    source: "references/motion-style-template-design-spec.md",
+    externalReferences: [
+      {
+        name: "Apple Human Interface Guidelines / Motion",
+        appliesTo: "motion communicates status, feedback, instruction, and continuity rather than decoration",
+      },
+      {
+        name: "Material Design Motion",
+        appliesTo: "transitions keep a coherent spatial model, stable layout, and accessible motion fallback",
+      },
+      {
+        name: "GSAP CSS motion primitives",
+        appliesTo: "animations prefer transform, opacity, color, and sequenceable state changes",
+      },
+      {
+        name: "FT Visual Vocabulary + Observable Plot",
+        appliesTo: "data scenes choose chart structures by data relationship before visual styling",
+      },
+      {
+        name: "Manim transform model",
+        appliesTo: "formula and reasoning scenes show stepwise object transformations with visible continuity",
+      },
+    ],
+    horizontalComparisonRule: "template must be judged against comparable product UI, data journalism, mathematical animation, editorial explainer, and IP-diagram layouts before release",
+    craftRules: [
+      "thumbnail and modal share the same semantic markup; modal may reveal more detail but not a different design",
+      "layout uses a named content skeleton, not a color-only variant",
+      "main title, proof object, interaction object, animation track, and subtitle safe band occupy separate layers",
+      "horizontal and vertical template scenes keep headline and support/body cards in separate measured lanes with at least 56px planned gap, so renderer QC still passes the 40px minimum after font fitting",
+      "motion has an observable semantic target: state, relation, ranking, path, proof, risk, source, voice timing, or payoff",
+      "small preview must remain readable without overlaps at the default review-page width",
+    ],
+    appliesTo: {
+      contentKind: profile.contentKind,
+      familyId: family.id,
+      variantId: variant.id,
+    },
+  };
+}
+
+function buildTemplate({ family, variant, familyIndex, variantIndex }) {
+  const profile = contentProfiles[family.id] || fallbackProfile(family);
+  const variantProfile = variantProfiles[variant.id] || {
+    finishZh: variant.labelZh || variant.id,
+    colorMode: variant.id,
+    pacing: "content-fit",
+    bestFor: [],
+  };
+  const id = `${family.id}--${variant.id}`;
+  const scenarioContract = buildScenarioContract(profile, family, variant);
+  const galaceanEffectContract = buildGalaceanEffectContract(profile, family, variant);
+  const verticalShortFormContract = buildVerticalShortFormContract(profile, family, variant, scenarioContract, galaceanEffectContract);
+  return {
+    id,
+    familyId: family.id,
+    variantId: variant.id,
+    familyLabelZh: family.labelZh,
+    variantLabelZh: variant.labelZh,
+    contentKind: profile.contentKind,
+    categoryZh: profile.categoryZh,
+    topicTypes: profile.topicTypes,
+    pageJobs: profile.pageJobs,
+    baseTemplate: family.baseTemplate,
+    motionVerbs: arrayify(family.motionVerbs),
+    selectionSignals: {
+      sceneKeywords: profile.sceneSignals,
+      bestFor: arrayify(family.bestFor),
+      htmlMotionTemplate: family.baseTemplate,
+      variantBestFor: variantProfile.bestFor,
+    },
+    scenarioContract,
+    verticalShortFormContract,
+    layoutContract: {
+      blueprint: profile.layoutContract,
+      familyIntent: family.layoutIntent || "",
+      visualHierarchy: family.visualHierarchy || "",
+      captionSafeArea: variant.captionSafeArea || "bottom-caption-band",
+      horizontalTextStackSafeArea: {
+        appliesTo: "html-video template scenes with a headline plus support card or body copy",
+        laneRule: "headline and support/body card must use separate measured lanes; relative margins must not decide their final vertical relationship",
+        minimumGapPx: 40,
+        checkedBy: "workflow/frame-layout-overlap-audit.json",
+      },
+      density: variant.density || "medium",
+      camera: variant.camera || "stable-focus",
+      allowedLayoutModes: [
+        "full-frame",
+        "center-anchor",
+        "top-context-middle-visual",
+        "three-column-proof",
+        "dashboard-grid",
+        "formula-board",
+        "code-run-output",
+        "persona-knowledge-card",
+        "whiteboard-foreground",
+      ],
+    },
+    typographyContract: {
+      mode: profile.typographyMode,
+      exactTextOwner: "deterministic HTML/SVG/CSS layers",
+      minimumHierarchy: ["first-read headline", "support line", "semantic info rail", "stable subtitle band"],
+      rejects: ["plain paragraph card", "text clipped or ellipsized", "generated bitmap owns final Chinese text"],
+    },
+    galaceanEffectContract,
+    motionContract: {
+      verbs: arrayify(family.motionVerbs),
+      animationSteps: arrayify(family.animationSteps),
+      timingProfile: variant.timingProfile || "content-bound",
+      semanticRule: "motion must reveal a relationship, state, proof, path, derivation, or payoff tied to the current script beat",
+      reducedMotionFallback: "show final semantic state with the same layout and readable labels",
+    },
+    dataAccuracyContract: {
+      rule: profile.dataAccuracy,
+      measuredDataRequires: profile.contentKind === "data-chart"
+        ? ["workflow/data-source-plan.json", "workflow/data-series.json", "workflow/data-motion-plan.json"]
+        : [],
+      formulaRequiresVerification: profile.contentKind === "formula-derivation",
+      codeRequiresTruthMode: profile.contentKind === "code-walkthrough",
+      qualitativeFallbackAllowed: true,
+    },
+    assetTaskContract: {
+      assetNeeds: profile.assetNeeds,
+      imageGenerationPolicy: "generate source plates or foreground objects only; final text stays deterministic",
+      personalIpPolicy: profile.contentKind === "ip-knowledge-card"
+        ? "reuse saved authorized persona asset; one main image task per script unit plus action/detail variants"
+        : "use presenter only when it carries a semantic action",
+      whiteboardPolicy: profile.contentKind === "whiteboard-method"
+        ? "foreground strokes only, stable base page, subtitles above strokes"
+        : "whiteboard optional only when selected by scene semantics",
+    },
+    colorContract: {
+      plannerDefault: "auto-by-topic-and-content",
+      variantColorMode: variantProfile.colorMode,
+      paletteBehavior: variant.paletteBehavior || "",
+      supportsUserOverride: true,
+      rejectPalettes: ["generic app blue wash", "flat commodity teal", "candy gradient without topic reason"],
+    },
+    benchmarkContract: buildBenchmarkContract(profile, family, variant),
+    agentHandoff: {
+      plannerInput: ["topicType", "scriptBeat", "pageJob", "contentKind", "assetNeed", "canvas"],
+      templateDirectorOutput: ["scenarioContract", "layoutContract", "typographyContract", "galaceanEffectContract", "motionContract", "assetTaskContract", "qualityGates"],
+      dataMaterialOutputRequired: profile.contentKind === "data-chart" || profile.contentKind === "material-collage",
+      ttsTimingDependency: "bind animation step windows to sync-timecode-plan after TTS timings",
+      rendererQcChecks: ["no overlap", "no clipping", "left headline/body-card safe gap", "subtitle safe area", "no internal labels", "template id recorded"],
+    },
+    qualityGates: [
+      "templateLibrarySelectionPresent",
+      "sceneHasContentKindAndPageJob",
+      "layoutBlueprintApplied",
+      "typographyModeApplied",
+      "motionIsSemantic",
+      "businessScenarioBound",
+      "benchmarkContractPresent",
+      "galaceanEffectContractPresent",
+      "effectLayerCaptionSafe",
+      "effectFallbackRecorded",
+      "thumbnailModalParity",
+      "captionSafeAreaClear",
+      "horizontalTextStackSafeAreaClear",
+      "frameTextFullyVisibleAndFluent",
+      "frameLayoutNoTextVisualOverlap",
+      "verticalShortFormContractPresent",
+      "verticalFirstThreeSecondHookPresent",
+      "verticalPlatformSafeAreaReserved",
+      "dataSourceModeRecorded",
+      profile.contentKind === "data-chart" ? "dataSourcePlanPresentWhenMeasured" : "dataTruthModeRecorded",
+      profile.contentKind === "ip-knowledge-card" ? "personalIpAssetReusePolicyPresent" : "assetTasksContentBound",
+    ],
+    rejectList: [
+      "variant differs only by color",
+      "layout does not match content kind",
+      "motion is decorative",
+      "subtitle or main text overlaps visual object",
+      "headline overlaps or visually touches supporting body/card in the same left column",
+      "internal workflow, renderer, technology stack, or page number visible",
+      ...arrayify(family.guardrails),
+    ],
+    reviewIndex: familyIndex * 5 + variantIndex + 1,
+  };
+}
+
+function buildLibrary(catalog) {
+  const families = arrayify(catalog.families);
+  const variants = arrayify(catalog.variants);
+  const templates = families.flatMap((family, familyIndex) => variants.map((variant, variantIndex) => (
+    buildTemplate({ family, variant, familyIndex, variantIndex })
+  )));
+  const contentKinds = [...new Set(templates.map((template) => template.contentKind))].sort();
+  const topicTypes = [...new Set(templates.flatMap((template) => template.topicTypes))].sort();
+  const typographyModes = [...new Set(templates.map((template) => template.typographyContract.mode))].sort();
+  return {
+    schemaVersion: 1,
+    status: "active-motion-style-template-library",
+    sourceCatalog: "assets/motion-style-catalog.json",
+    designSpec: "references/motion-style-template-design-spec.md",
+    selectionArtifact: "workflow/motion-style-template-selection.json",
+    purpose: "Reusable video page template library for content-specific layout, typography, motion, data truth, asset tasks, and sub-agent handoff.",
+    generationRule: `${families.length} motion families x ${variants.length} visual variants = ${templates.length} reusable scene templates; variants may change finish, density, camera, color, and pacing, but not the semantic content skeleton.`,
+    agentContract: buildAgentContract(),
+    coverage: {
+      familyCount: families.length,
+      variantCount: variants.length,
+      templateCount: templates.length,
+      contentKinds,
+      topicTypes,
+      typographyModes,
+      hasCodeTemplates: templates.some((template) => template.contentKind === "code-walkthrough"),
+      hasFormulaTemplates: templates.some((template) => template.contentKind === "formula-derivation"),
+      hasDataTemplates: templates.some((template) => template.contentKind === "data-chart"),
+      hasPersonalIpTemplates: templates.some((template) => template.contentKind === "ip-knowledge-card"),
+      hasWhiteboardTemplates: templates.some((template) => template.contentKind === "whiteboard-method"),
+      hasCoverBridgeTemplates: templates.some((template) => template.contentKind === "cover-bridge"),
+      hasVerticalShortFormTemplates: templates.every((template) => template.verticalShortFormContract?.active === true),
+      verticalShortForm: {
+        aspectRatio: "9:16",
+        platformProfile: "douyin-tiktok-shorts-reels",
+        templateCount: templates.filter((template) => template.verticalShortFormContract?.active === true).length,
+        defaultFps: 60,
+      },
+    },
+    selectionPolicy: {
+      mode: "planner-auto-first-with-user-override",
+      rankOrder: [
+        "contentKind and pageJob",
+        "base HTML motion template compatibility",
+        "motion verbs",
+        "topic and script signals",
+        "data/material/personal-IP requirements",
+        "variant rhythm and color continuity",
+      ],
+      forbid: [
+        "LLM free-form animation choice without template id",
+        "data chart without source/truth mode",
+        "one repeated layout for all content kinds",
+        "template chosen only because the color looks good",
+      ],
+    },
+    templates,
+  };
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    console.log(usage());
+    return;
+  }
+  if (!existsSync(args.catalog)) throw new Error(`Missing motion style catalog: ${args.catalog}`);
+  const catalog = readJson(args.catalog);
+  const library = buildLibrary(catalog);
+  if (!args.dryRun) writeJson(args.out, library);
+  console.log(JSON.stringify({
+    out: args.out,
+    dryRun: args.dryRun,
+    status: library.status,
+    templateCount: library.coverage.templateCount,
+    contentKindCount: library.coverage.contentKinds.length,
+  }, null, 2));
+}
+
+main();

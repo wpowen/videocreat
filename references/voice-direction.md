@@ -21,6 +21,7 @@ Chinese final-quality narration must use a local backend:
 - MeloTTS Chinese must use `-l ZH`, not lowercase `zh`.
 - MeloTTS should use `-d cpu` by default for reproducible local runs.
 - Default Chinese MeloTTS speed should be around `0.95` for clear口播 pacing unless the brief requires another pace and the chosen value is recorded.
+- For Chinese MeloTTS, load `assets/chinese-polyphone-phrases.json` before model inference so phrase-level 多音字 choices such as `处处`, `削苹果`, `埋怨`, and `一行人` can override generic pypinyin guesses. Record the lexicon source/hash/version in the voice manifest.
 - Do not use an audio fade that starts at `0` on the narration track. Fade-out may start only near the end of the final target duration, after `apad/atrim`.
 - Preserve review files: `assets/narration.wav`, `assets/narration.m4a`, and `assets/narration.mp3`.
 - Record backend, language, speed, device, normalization/filter chain, and fallback failures in `workflow/voice-subtitle-manifest.json`.
@@ -45,6 +46,7 @@ For口语化/conversational narration:
 - Keep sentence meaning complete before every pause.
 - The end of a sentence may pause; the middle of a sentence should not pause.
 - Slightly longer pauses are useful after the hook, examples, reversals, and final rules.
+- Subtitle visual wrapping must not become a TTS split. If a sentence is too long for one subtitle line, keep it as one audio cue, then display the wrapped caption lines sequentially as one-line visual subtitles.
 
 ## Punctuation Pause Durations
 
@@ -82,6 +84,7 @@ Never pause between:
 The spoken narration may add line breaks for pauses, but it must not:
 
 - break sentence completeness;
+- split a word, quote, or incomplete sentence only because it does not fit on one subtitle line;
 - rewrite claims;
 - invent facts;
 - add unauthorized persona, accent, or real-person imitation;

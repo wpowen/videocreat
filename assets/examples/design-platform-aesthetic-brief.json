@@ -1,0 +1,189 @@
+{
+  "title": "12个设计平台，帮AI视频摆脱PPT感",
+  "language": "zh",
+  "audience": "想让AI生成视频更有审美、动效、交互逻辑和平台质感的中文创作者",
+  "objective": "制作一个本地生成的中文讲解视频，解读12个设计平台如何辅助AI视频生成更个性化、更像视频而不是PPT，并验证新的设计平台planner是否生效。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationMode": "auto",
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "style": "screen-glass",
+  "voiceBackend": "auto",
+  "speechStyle": "explainer",
+  "designPlatforms": [
+    "all"
+  ],
+  "rights": {
+    "text": "original analysis written for this workflow",
+    "visuals": "original HTML/CSS/SVG generated locally, with source platform URLs used only as research references",
+    "voice": "local CosyVoice or MeloTTS, no cloning",
+    "music": "ffmpeg generated sine pad",
+    "externalMedia": "none"
+  },
+  "sourceMaterials": [
+    {
+      "title": "Design platform source list",
+      "type": "research-ledger",
+      "rights": "URLs and public platform descriptions used as factual references only; no screenshots, templates, or recordings copied.",
+      "content": "Landing Love: animation landing pages and full-page video recordings. Landbook: curated website design inspiration. Awwwards: award-winning web design and developer/studio recognition. One Page Love: one-page website gallery and section/template references. Mobbin: mobile and web app screenshots, flows, videos, prototypes, and Figma workflows. CollectUI: daily interface inspiration with latest designs, designers, categories, trending surfaces, compact cards, favorites, and submission flow. Pinterest UI样式: Chinese moodboard around UI design, icon design, app/web/mobile UI, cards, dashboards, finance, and e-learning references. Lapa Ninja: landing page examples with screenshots, videos, categories, learning resources, and templates. Framer Gallery: community gallery of creative Framer websites and templates. Aceternity UI: Tailwind CSS and Framer Motion component blocks, animated cards, hero sections, backgrounds, loaders, text effects. 21st.dev: community React component/template registry plus Magic-style variation workflow. Siteinspire: curated web design showcase with category-aware taste references."
+    }
+  ],
+  "scenes": [
+    {
+      "id": "hook",
+      "label": "开场问题",
+      "kicker": "00 / WHY",
+      "headline": ["AI视频", "为什么总像PPT？"],
+      "stat": "12站",
+      "body": "问题不是素材少，而是缺少审美、动效、交互和叙事的planner。",
+      "subtitle": "很多AI视频像PPT，不是因为不会排版，而是没有先决定：画面为什么动，信息怎么被看见。",
+      "narration": "很多AI视频像PPT，不是因为不会排版，而是没有先决定：画面为什么动，信息怎么被看见。我们可以把十二个设计平台拆成一个视频生成planner。",
+      "palette": "cyan"
+    },
+    {
+      "id": "landing-love",
+      "label": "Landing Love",
+      "kicker": "01 / MOTION",
+      "headline": ["Landing Love", "先学运动", "再做画面"],
+      "stat": "动效",
+      "body": "用全页录屏研究滚动节奏、视差、进入和状态变化。",
+      "subtitle": "Landing Love适合训练动效判断：一个画面不是淡入文字，而是用滚动、视差和状态变化，把信息一步步推到眼前。",
+      "narration": "Landing Love负责动效判断，看滚动、视差、进入和状态变化。",
+      "palette": "blue"
+    },
+    {
+      "id": "landbook",
+      "label": "Landbook",
+      "kicker": "02 / TASTE",
+      "headline": ["Landbook", "审美先控密度"],
+      "stat": "高级感",
+      "body": "学习留白、层级、字体比例和产品式质感。",
+      "subtitle": "Landbook提供的是高级感的基本功：留白、层级、字体比例、主视觉和辅助信息的距离。",
+      "narration": "Landbook负责高级感，控制留白、层级、字体比例和视觉密度。",
+      "palette": "teal"
+    },
+    {
+      "id": "awwwards",
+      "label": "Awwwards",
+      "kicker": "03 / CREATIVE",
+      "headline": ["Awwwards", "给每支视频", "一个概念"],
+      "stat": "获奖感",
+      "body": "不是套模板，而是先锁定一个记得住的视觉概念。",
+      "subtitle": "Awwwards的价值是提醒我们：视频要有自己的创意概念，不能只是把好看的组件贴在一起。",
+      "narration": "Awwwards负责创意上限，提醒每支视频都要有一个记得住的视觉概念。",
+      "palette": "magenta"
+    },
+    {
+      "id": "one-page-love",
+      "label": "One Page Love",
+      "kicker": "04 / FLOW",
+      "headline": ["One Page Love", "一条线讲完"],
+      "stat": "单页",
+      "body": "把视频当成一页连续叙事：钩子、证据、机制、收束。",
+      "subtitle": "One Page Love教的是结构：一支视频也应该像单页网站一样，从钩子到证据再到结论，始终沿着一条线走。",
+      "narration": "One Page Love负责单线叙事，让视频像一页网站一样，从钩子到证据再到结论。",
+      "palette": "green"
+    },
+    {
+      "id": "mobbin",
+      "label": "Mobbin",
+      "kicker": "05 / UX",
+      "headline": ["Mobbin", "让信息有状态"],
+      "stat": "流程",
+      "body": "从App流程里借用状态转换：进入、选择、成功、反馈。",
+      "subtitle": "Mobbin让我们把视频做得像流程，而不是讲义：每个观点都可以有进入状态、选择状态、结果状态。",
+      "narration": "Mobbin负责交互流程，把观点做成进入、选择、反馈和成功状态。",
+      "palette": "purple"
+    },
+    {
+      "id": "collectui",
+      "label": "CollectUI",
+      "kicker": "06 / PATTERN",
+      "headline": ["CollectUI", "把UI样式", "拆成组件规则"],
+      "stat": "界面",
+      "body": "从每日界面灵感里提取卡片、标签、状态和浏览节奏。",
+      "subtitle": "CollectUI适合训练界面模式判断：不是复制截图，而是把卡片、分类、收藏、反馈和精选流，转成原创视频界面。",
+      "narration": "CollectUI负责界面模式，把每日灵感拆成卡片、分类、状态和扫描节奏。",
+      "palette": "cyan"
+    },
+    {
+      "id": "pinterest-ui-styles",
+      "label": "Pinterest UI样式",
+      "kicker": "07 / MOODBOARD",
+      "headline": ["Pinterest UI样式", "先聚类", "再定风格"],
+      "stat": "150",
+      "body": "把图标、卡片、仪表盘、教育和金融界面归成视觉词汇。",
+      "subtitle": "Pinterest UI样式更适合做风格词库：把UI、图标、移动端、卡片、金融和教育参考归类，再生成原创画面。",
+      "narration": "Pinterest UI样式负责风格词库，把图标、卡片、仪表盘、教育和金融界面归成视觉家族。",
+      "palette": "teal"
+    },
+    {
+      "id": "lapa-ninja",
+      "label": "Lapa Ninja",
+      "kicker": "08 / HOOK",
+      "headline": ["Lapa Ninja", "每一屏都要转化"],
+      "stat": "卖点",
+      "body": "用落地页逻辑安排承诺、利益、证据和行动。",
+      "subtitle": "Lapa Ninja适合训练视频的转化逻辑：每一屏都要给观众一个继续看的理由。",
+      "narration": "Lapa Ninja负责转化逻辑，每一屏都要给观众一个继续看的理由。",
+      "palette": "amber"
+    },
+    {
+      "id": "framer-gallery",
+      "label": "Framer Gallery",
+      "kicker": "09 / MODULE",
+      "headline": ["Framer Gallery", "用模块做视频"],
+      "stat": "组件化",
+      "body": "把每个分镜当成可复用 section，而不是孤立页面。",
+      "subtitle": "Framer Gallery启发我们把分镜做成模块：开场、解释、证据、对比和收束，都有自己的行为。",
+      "narration": "Framer Gallery负责模块化，把开场、解释、证据、对比和收束做成可复用section。",
+      "palette": "cyan"
+    },
+    {
+      "id": "aceternity-ui",
+      "label": "Aceternity UI",
+      "kicker": "10 / COMPONENT",
+      "headline": ["Aceternity UI", "把动效变成组件"],
+      "stat": "悬浮",
+      "body": "用聚光、视差、卡片堆叠和文字生成效果表达信息。",
+      "subtitle": "Aceternity UI适合抽象出动效组件：聚光、视差、卡片堆叠、文字生成，都可以变成视频的语义动作。",
+      "narration": "Aceternity UI负责动效组件，把聚光、视差、卡片堆叠和文字生成变成语义动作。",
+      "palette": "red"
+    },
+    {
+      "id": "twenty-first",
+      "label": "21st.dev",
+      "kicker": "11 / VARIATION",
+      "headline": ["21st.dev", "先生成多种风格", "再选择"],
+      "stat": "变体",
+      "body": "用组件变体和风格选择避免默认AI平均脸。",
+      "subtitle": "21st.dev的启发是不要只生成一个版本，而是让planner先给出几种风格路线，再锁定最适合内容的那一个。",
+      "narration": "21st dev负责风格变体，先生成多种路线，再选择最适合内容的一种。",
+      "palette": "ink"
+    },
+    {
+      "id": "siteinspire",
+      "label": "Siteinspire",
+      "kicker": "12 / CURATION",
+      "headline": ["Siteinspire", "最后用策展眼光删掉"],
+      "stat": "质感",
+      "body": "用分类、排版和克制感做最终审美过滤。",
+      "subtitle": "Siteinspire更像最终审美过滤器：排版是否克制，间距是否舒服，画面是否真的适合这个主题。",
+      "narration": "Siteinspire负责最终审美过滤：排版是否克制，间距是否舒服，画面是否真的适合这个主题。",
+      "palette": "gold"
+    },
+    {
+      "id": "planner",
+      "label": "生成规则",
+      "kicker": "13 / PLANNER",
+      "headline": ["最后", "把网站变成规则", "而不是素材库"],
+      "stat": "规则",
+      "body": "平台只提供抽象方法：视觉任务、动效动词、交互感、叙事合同。",
+      "subtitle": "所以我们的planner不是复制这些网站，而是把它们转成四个字段：视觉任务、动效动词、交互感和叙事合同。",
+      "narration": "重点不是复制这些网站，而是把它们转成四个planner字段：视觉任务、动效动词、交互感和叙事合同。这样生成的视频才会像一个有节奏的体验，而不是一组会动的PPT。",
+      "palette": "blue"
+    }
+  ],
+  "narration": "很多AI视频像PPT，不是因为不会排版，而是没有先决定：画面为什么动，信息怎么被看见。我们可以把十二个设计平台拆成一个视频生成planner。Landing Love负责动效判断，看滚动、视差、进入和状态变化。Landbook负责高级感，控制留白、层级、字体比例和视觉密度。Awwwards负责创意上限，提醒每支视频都要有一个记得住的视觉概念。One Page Love负责单线叙事，让视频像一页网站一样，从钩子到证据再到结论。Mobbin负责交互流程，把观点做成进入、选择、反馈和成功状态。CollectUI负责界面模式，把每日灵感拆成卡片、分类、状态和扫描节奏。Pinterest UI样式负责风格词库，把图标、卡片、仪表盘、教育和金融界面归成视觉家族。Lapa Ninja负责转化逻辑，每一屏都要给观众一个继续看的理由。Framer Gallery负责模块化，把开场、解释、证据、对比和收束做成可复用section。Aceternity UI负责动效组件，把聚光、视差、卡片堆叠和文字生成变成语义动作。21st dev负责风格变体，先生成多种路线，再选择最适合内容的一种。Siteinspire负责最终审美过滤：排版是否克制，间距是否舒服，画面是否真的适合这个主题。重点不是复制这些网站，而是把它们转成四个planner字段：视觉任务、动效动词、交互感和叙事合同。这样生成的视频才会像一个有节奏的体验，而不是一组会动的PPT。"
+}

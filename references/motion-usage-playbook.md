@@ -16,9 +16,10 @@ Use this playbook after `content-presentation-design.json` and before final rend
    - `transform`: change one state into another.
 3. Choose a template from `templates/html-motion/motion-template-registry.json`.
 4. Write `workflow/motion-template-selection.json` with the selected template and semantic binding.
-5. Replace the template `data-field` values with scene-specific copy.
-6. Bind `setProgress(progress)` to the same timecode plan used by subtitles and scene changes.
-7. Capture at least two timestamps and confirm the scene changes visually without hurting subtitle readability.
+5. Record `remotionMotionPrimitives` so every scene has frame-driven progress, easing, transition discipline, and deterministic text-motion rules.
+6. Replace the template `data-field` values with scene-specific copy.
+7. Bind `setProgress(progress)` to the same timecode plan used by subtitles and scene changes.
+8. Capture at least two timestamps and confirm the scene changes visually without hurting subtitle readability.
 
 ## 2. When To Use Each Template
 
@@ -38,7 +39,8 @@ Use this order:
 4. **Hierarchy**: which element moves first, second, third?
 5. **Timing**: which subtitle or narration timestamp triggers each movement?
 6. **Safe area**: captions and key text must remain readable during the movement.
-7. **Restraint**: one major motion idea per scene; secondary motion should be atmospheric only.
+7. **Frame primitive**: which Remotion-inspired easing/progress rule makes the movement deterministic?
+8. **Restraint**: one major motion idea per scene; secondary motion should be atmospheric only.
 
 ## 4. How To Show Motion In The Final Video
 
@@ -87,3 +89,4 @@ Pass means:
 - The final render uses a static card while the selected template requires movement.
 - The screenshot/motion-difference check is missing.
 - Text or subtitles become unreadable during the animation.
+- `remotionMotionPrimitives` is missing, or a scene relies on wall-clock/random motion that cannot be reproduced from the timecode plan.

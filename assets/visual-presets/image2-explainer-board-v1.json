@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "presetId": "image2-explainer-board-v1",
+  "status": "approved",
+  "approvedFrom": {
+    "selfTest": "image2-explainer-board-final-self-test",
+    "finalMp4": "research/codex-video-workflow-poc/image2-explainer-board-final-self-test/renders/final.mp4",
+    "qc": "research/codex-video-workflow-poc/image2-explainer-board-final-self-test/logs/qc.json"
+  },
+  "appliesTo": [
+    "science explainers",
+    "education explainers",
+    "workflow and mechanism explanations",
+    "high-information-density teaching scenes",
+    "Image2/Codex image_gen storyboard-board scenes"
+  ],
+  "route": {
+    "routeId": "image2-explainer-board",
+    "promptPatternId": "soft-public-explainer-high-density-briefing-board",
+    "sourceReference": "references/gpt-image-2-prompt-library.md"
+  },
+  "renderContract": {
+    "stageClass": "explainer-board-stage",
+    "visualPlateRole": "large lower-stage multi-module board under deterministic overlays",
+    "headlineRole": "compact top-left deterministic title card",
+    "bodyRole": "compact top-right deterministic summary card",
+    "backgroundPolicy": "light readable education stage unless the brief explicitly selects a valid dark strategy",
+    "mustHide": [
+      "internal page numbers",
+      "workflow labels",
+      "Trace JS labels",
+      "renderer/debug labels",
+      "empty placeholder cards"
+    ]
+  },
+  "promptContract": {
+    "artifactRole": "text-safe storyboard/source plate for video crops",
+    "styleTrait": "soft friendly public-education illustration plus high-density briefing-board structure",
+    "deterministicTextOwner": "HTML/SVG/CSS owns exact Chinese text, captions, labels, numbers, and claims",
+    "allowedGeneratedMarks": [
+      "icons",
+      "arrows",
+      "panels",
+      "blank label plaques",
+      "abstract placeholder strokes",
+      "visual hierarchy"
+    ],
+    "forbiddenGeneratedMarks": [
+      "readable Chinese body text",
+      "pseudo Chinese or Japanese",
+      "random letters",
+      "random numbers",
+      "watermarks",
+      "platform UI",
+      "logos",
+      "copied named styles",
+      "exact source layouts"
+    ]
+  },
+  "qcGuardrails": [
+    "frameNoInternalDebugLabels",
+    "frameNoEmptyPlaceholderCards",
+    "frameLayoutNoTextVisualOverlap",
+    "frameTextFullyVisibleAndFluent",
+    "visualSubtitleSingleLine",
+    "themeReadabilityAuditPresent",
+    "blackdetectClean"
+  ]
+}

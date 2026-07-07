@@ -1,0 +1,5088 @@
+{
+  "schemaVersion": 1,
+  "status": "active-caption-style-catalog",
+  "source": {
+    "generatedFrom": "research/codex-video-workflow-poc/subtitle-style-gallery/subtitle-style-research.json",
+    "designReference": "references/subtitle-design.md",
+    "strategyReference": "references/creative-subtitle-strategy.md"
+  },
+  "globalContract": {
+    "timingOwner": "workflow/voice-subtitle-manifest.json actual per-cue TTS timings",
+    "visualOwner": "captionText / subtitleCues[] rendered as deterministic HTML/CSS overlay",
+    "noNewAudioCutsFromVisualStyle": true,
+    "oneLineSequentialDefault": true,
+    "keywordEmphasisIsVisualOnly": true,
+    "reducedMotionRequired": true
+  },
+  "plannerSelection": {
+    "defaultShortlistSize": 8,
+    "requiredOutputs": [
+      "selectedStyleId",
+      "fallbackStyleId",
+      "reason",
+      "sceneJob",
+      "emphasisPlan",
+      "safeAreaProfile"
+    ],
+    "groupPriorityBySceneJob": {
+      "hook": [
+        "kinetic",
+        "mobile",
+        "glass"
+      ],
+      "quote": [
+        "editorial",
+        "glass",
+        "minimal"
+      ],
+      "productDemo": [
+        "ui",
+        "glass",
+        "minimal"
+      ],
+      "dataProof": [
+        "ui",
+        "editorial",
+        "minimal"
+      ],
+      "imageFirst": [
+        "minimal",
+        "editorial",
+        "glass"
+      ],
+      "documentary": [
+        "editorial",
+        "minimal",
+        "audio"
+      ],
+      "verticalShort": [
+        "mobile",
+        "kinetic",
+        "glass"
+      ],
+      "bilingual": [
+        "bilingual",
+        "editorial",
+        "glass"
+      ],
+      "voiceOrInterview": [
+        "audio",
+        "bilingual",
+        "editorial"
+      ]
+    }
+  },
+  "groups": {
+    "glass": {
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentModes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "motionClass": "glass-sweep",
+      "intensity": "subtle"
+    },
+    "editorial": {
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentModes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "motionClass": "editorial-slide",
+      "intensity": "restrained"
+    },
+    "kinetic": {
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentModes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "motionClass": "cue-punch",
+      "intensity": "strong"
+    },
+    "ui": {
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentModes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "motionClass": "ui-state-shift",
+      "intensity": "medium"
+    },
+    "bilingual": {
+      "aestheticDimension": "language-hierarchy",
+      "sceneJobs": [
+        "translation",
+        "global audience",
+        "interview identity"
+      ],
+      "contentModes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "motionClass": "dual-layer-rise",
+      "intensity": "subtle"
+    },
+    "mobile": {
+      "aestheticDimension": "mobile-safe-retention",
+      "sceneJobs": [
+        "vertical short-form",
+        "thumb safe captions",
+        "social clips"
+      ],
+      "contentModes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "motionClass": "retention-pop",
+      "intensity": "medium"
+    },
+    "minimal": {
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentModes": [
+        "captionText"
+      ],
+      "motionClass": "soft-fade",
+      "intensity": "subtle"
+    },
+    "audio": {
+      "aestheticDimension": "voice-identity",
+      "sceneJobs": [
+        "podcast",
+        "voice note",
+        "interview",
+        "recap"
+      ],
+      "contentModes": [
+        "speaker label",
+        "captionText"
+      ],
+      "motionClass": "audio-reactive-lite",
+      "intensity": "medium"
+    }
+  },
+  "styles": [
+    {
+      "id": "prism-glass",
+      "order": 1,
+      "name": "Prism Glass",
+      "labelZh": "轻玻璃折射",
+      "group": "glass",
+      "recommended": true,
+      "useCase": "适合知识类、横版、干净背景",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "blur",
+        "accent rail",
+        "soft depth"
+      ],
+      "rendererClass": "caption-style-prism-glass",
+      "plannerSignals": [
+        "glass",
+        "zh-short",
+        "blur",
+        "accent rail",
+        "soft depth"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "aurora-strip",
+      "order": 2,
+      "name": "Aurora Strip",
+      "labelZh": "极光流光底栏",
+      "group": "glass",
+      "recommended": false,
+      "useCase": "适合科技、趋势、未来感主题",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "gradient mesh",
+        "sweep light",
+        "soft glow"
+      ],
+      "rendererClass": "caption-style-aurora-strip",
+      "plannerSignals": [
+        "glass",
+        "en-space",
+        "gradient mesh",
+        "sweep light",
+        "soft glow"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "editorial-rule",
+      "order": 3,
+      "name": "Editorial Rule",
+      "labelZh": "杂志下三分之一",
+      "group": "editorial",
+      "recommended": true,
+      "useCase": "适合纪录、写作、观点内容",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "serif accent",
+        "fine rule",
+        "paper calm"
+      ],
+      "rendererClass": "caption-style-editorial-rule",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "serif accent",
+        "fine rule",
+        "paper calm"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "ink-capsule",
+      "order": 4,
+      "name": "Ink Capsule",
+      "labelZh": "高级墨色胶囊",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合中文口播、强可读",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "ink fill",
+        "compact",
+        "rounded"
+      ],
+      "rendererClass": "caption-style-ink-capsule",
+      "plannerSignals": [
+        "editorial",
+        "zh-long",
+        "ink fill",
+        "compact",
+        "rounded"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "marker-swipe",
+      "order": 5,
+      "name": "Marker Swipe",
+      "labelZh": "荧光笔划重点",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合教学、拆解、步骤",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "highlight",
+        "word emphasis",
+        "fast reveal"
+      ],
+      "rendererClass": "caption-style-marker-swipe",
+      "plannerSignals": [
+        "kinetic",
+        "number",
+        "highlight",
+        "word emphasis",
+        "fast reveal"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "kinetic-slab",
+      "order": 6,
+      "name": "Kinetic Slab",
+      "labelZh": "粗体节奏块",
+      "group": "kinetic",
+      "recommended": true,
+      "useCase": "适合开场钩子、反差句",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "impact",
+        "tilt",
+        "shadow"
+      ],
+      "rendererClass": "caption-style-kinetic-slab",
+      "plannerSignals": [
+        "kinetic",
+        "zh-short",
+        "impact",
+        "tilt",
+        "shadow"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "holo-hud",
+      "order": 7,
+      "name": "Holo HUD",
+      "labelZh": "全息信息条",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合工具、SaaS、数据内容",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "scanline",
+        "terminal glow",
+        "metadata"
+      ],
+      "rendererClass": "caption-style-holo-hud",
+      "plannerSignals": [
+        "ui",
+        "en-space",
+        "scanline",
+        "terminal glow",
+        "metadata"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "terminal-chip",
+      "order": 8,
+      "name": "Terminal Chip",
+      "labelZh": "命令行提示",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合技术教程、流程演示",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "mono",
+        "prompt",
+        "status"
+      ],
+      "rendererClass": "caption-style-terminal-chip",
+      "plannerSignals": [
+        "ui",
+        "number",
+        "mono",
+        "prompt",
+        "status"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "bento-token",
+      "order": 9,
+      "name": "Bento Token",
+      "labelZh": "词块分组",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合重点词、公式、模型",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "tokens",
+        "semantic chips",
+        "wrap-safe"
+      ],
+      "rendererClass": "caption-style-bento-token",
+      "plannerSignals": [
+        "ui",
+        "zh-long",
+        "tokens",
+        "semantic chips",
+        "wrap-safe"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "split-bilingual",
+      "order": 10,
+      "name": "Split Bilingual",
+      "labelZh": "双语分层",
+      "group": "bilingual",
+      "recommended": true,
+      "useCase": "适合出海、课程、字幕翻译",
+      "aestheticDimension": "language-hierarchy",
+      "sceneJobs": [
+        "translation",
+        "global audience",
+        "interview identity"
+      ],
+      "contentHints": [
+        "primary plus secondary text",
+        "translation hierarchy"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "traits": [
+        "primary/secondary",
+        "quiet translation",
+        "safe hierarchy"
+      ],
+      "rendererClass": "caption-style-split-bilingual",
+      "plannerSignals": [
+        "bilingual",
+        "bilingual",
+        "primary/secondary",
+        "quiet translation",
+        "safe hierarchy"
+      ],
+      "motion": {
+        "class": "dual-layer-rise",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 2,
+        "note": "Secondary translation is metadata; the primary spoken cue still remains one visible active caption line."
+      }
+    },
+    {
+      "id": "karaoke-line",
+      "order": 11,
+      "name": "Karaoke Line",
+      "labelZh": "进度高亮",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合节奏感强的短视频",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "mask",
+        "time progress",
+        "single line"
+      ],
+      "rendererClass": "caption-style-karaoke-line",
+      "plannerSignals": [
+        "kinetic",
+        "en-space",
+        "mask",
+        "time progress",
+        "single line"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "waveform-base",
+      "order": 12,
+      "name": "Waveform Base",
+      "labelZh": "声波底座",
+      "group": "audio",
+      "recommended": true,
+      "useCase": "适合口播、播客、访谈",
+      "aestheticDimension": "voice-identity",
+      "sceneJobs": [
+        "podcast",
+        "voice note",
+        "interview",
+        "recap"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "wave",
+        "voice identity",
+        "subtle motion"
+      ],
+      "rendererClass": "caption-style-waveform-base",
+      "plannerSignals": [
+        "audio",
+        "zh-short",
+        "wave",
+        "voice identity",
+        "subtle motion"
+      ],
+      "motion": {
+        "class": "audio-reactive-lite",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "caption-card",
+      "order": 13,
+      "name": "Caption Card",
+      "labelZh": "悬浮字幕卡",
+      "group": "glass",
+      "recommended": false,
+      "useCase": "适合复杂画面、需要更高遮罩",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "floating card",
+        "inner glow",
+        "readability first"
+      ],
+      "rendererClass": "caption-style-caption-card",
+      "plannerSignals": [
+        "glass",
+        "zh-long",
+        "floating card",
+        "inner glow",
+        "readability first"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "neon-outline",
+      "order": 14,
+      "name": "Neon Outline",
+      "labelZh": "霓虹描边",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合暗色、赛博、游戏",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "outline",
+        "dark mode",
+        "pulse"
+      ],
+      "rendererClass": "caption-style-neon-outline",
+      "plannerSignals": [
+        "kinetic",
+        "number",
+        "outline",
+        "dark mode",
+        "pulse"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "film-subtitle",
+      "order": 15,
+      "name": "Film Subtitle",
+      "labelZh": "电影感细字",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合叙事、纪录、慢节奏",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "cinematic",
+        "thin border",
+        "letterbox"
+      ],
+      "rendererClass": "caption-style-film-subtitle",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "cinematic",
+        "thin border",
+        "letterbox"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "paper-ribbon",
+      "order": 16,
+      "name": "Paper Ribbon",
+      "labelZh": "纸带标签",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合课程、手账、故事拆解",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "paper",
+        "torn edge",
+        "warm but not beige"
+      ],
+      "rendererClass": "caption-style-paper-ribbon",
+      "plannerSignals": [
+        "editorial",
+        "zh-short",
+        "paper",
+        "torn edge",
+        "warm but not beige"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "glass-console",
+      "order": 17,
+      "name": "Glass Console",
+      "labelZh": "透明控制台",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合产品演示、界面讲解",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "panel",
+        "metadata",
+        "indicator"
+      ],
+      "rendererClass": "caption-style-glass-console",
+      "plannerSignals": [
+        "ui",
+        "en-space",
+        "panel",
+        "metadata",
+        "indicator"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "stamp-pop",
+      "order": 18,
+      "name": "Stamp Pop",
+      "labelZh": "印章弹出",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合结论、警告、反转",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "stamp",
+        "impact",
+        "short hold"
+      ],
+      "rendererClass": "caption-style-stamp-pop",
+      "plannerSignals": [
+        "kinetic",
+        "number",
+        "stamp",
+        "impact",
+        "short hold"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "gradient-type",
+      "order": 19,
+      "name": "Gradient Type",
+      "labelZh": "文字渐变主体",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合开场金句、品牌感",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "text fill",
+        "soft shadow",
+        "premium accent"
+      ],
+      "rendererClass": "caption-style-gradient-type",
+      "plannerSignals": [
+        "kinetic",
+        "quote",
+        "text fill",
+        "soft shadow",
+        "premium accent"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "minimal-luxe",
+      "order": 20,
+      "name": "Minimal Luxe",
+      "labelZh": "极简奢华字幕",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合高端、克制、品牌",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "thin line",
+        "small caps",
+        "large spacing"
+      ],
+      "rendererClass": "caption-style-minimal-luxe",
+      "plannerSignals": [
+        "editorial",
+        "zh-short",
+        "thin line",
+        "small caps",
+        "large spacing"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "manga-burst",
+      "order": 21,
+      "name": "Manga Burst",
+      "labelZh": "漫画爆点",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合强情绪、娱乐内容",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "burst",
+        "offset",
+        "loud"
+      ],
+      "rendererClass": "caption-style-manga-burst",
+      "plannerSignals": [
+        "kinetic",
+        "zh-short",
+        "burst",
+        "offset",
+        "loud"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "soft-shadow",
+      "order": 22,
+      "name": "Soft Shadow",
+      "labelZh": "无底框软阴影",
+      "group": "minimal",
+      "recommended": false,
+      "useCase": "适合干净背景和低遮挡",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "no container",
+        "halo",
+        "low obstruction"
+      ],
+      "rendererClass": "caption-style-soft-shadow",
+      "plannerSignals": [
+        "minimal",
+        "zh-long",
+        "no container",
+        "halo",
+        "low obstruction"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "source-label",
+      "order": 23,
+      "name": "Source Label",
+      "labelZh": "来源标注式",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合新闻、数据、引用",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "speaker/source",
+        "fine type",
+        "trust"
+      ],
+      "rendererClass": "caption-style-source-label",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "speaker/source",
+        "fine type",
+        "trust"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "vertical-live",
+      "order": 24,
+      "name": "Vertical Live",
+      "labelZh": "竖屏直播安全区",
+      "group": "mobile",
+      "recommended": true,
+      "useCase": "适合抖音/TikTok/Reels",
+      "aestheticDimension": "mobile-safe-retention",
+      "sceneJobs": [
+        "vertical short-form",
+        "thumb safe captions",
+        "social clips"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "traits": [
+        "9:16",
+        "thumb safe",
+        "large type"
+      ],
+      "rendererClass": "caption-style-vertical-live",
+      "plannerSignals": [
+        "mobile",
+        "zh-short",
+        "9:16",
+        "thumb safe",
+        "large type"
+      ],
+      "motion": {
+        "class": "retention-pop",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "floating-orbital",
+      "order": 25,
+      "name": "Floating Orbital",
+      "labelZh": "轨道浮层",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合解释系统关系",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "anchor dot",
+        "orbit rule",
+        "spatial cue"
+      ],
+      "rendererClass": "caption-style-floating-orbital",
+      "plannerSignals": [
+        "ui",
+        "number",
+        "anchor dot",
+        "orbit rule",
+        "spatial cue"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "liquid-blur",
+      "order": 26,
+      "name": "Liquid Blur",
+      "labelZh": "液态玻璃",
+      "group": "glass",
+      "recommended": true,
+      "useCase": "适合现代感、柔和画面",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "primary plus secondary text",
+        "translation hierarchy"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "liquid edge",
+        "backdrop",
+        "premium"
+      ],
+      "rendererClass": "caption-style-liquid-blur",
+      "plannerSignals": [
+        "glass",
+        "bilingual",
+        "liquid edge",
+        "backdrop",
+        "premium"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "blueprint-caption",
+      "order": 27,
+      "name": "Blueprint Caption",
+      "labelZh": "蓝图注释",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合模型、结构、拆解",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "grid",
+        "ruler",
+        "annotation"
+      ],
+      "rendererClass": "caption-style-blueprint-caption",
+      "plannerSignals": [
+        "ui",
+        "number",
+        "grid",
+        "ruler",
+        "annotation"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "warm-editorial",
+      "order": 28,
+      "name": "Warm Editorial",
+      "labelZh": "温润编辑部",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合文学、写作、故事课",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "warm accent",
+        "serif label",
+        "not PPT"
+      ],
+      "rendererClass": "caption-style-warm-editorial",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "warm accent",
+        "serif label",
+        "not ppt"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "alert-ribbon",
+      "order": 29,
+      "name": "Alert Ribbon",
+      "labelZh": "警示横幅",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合风险、反常识、避坑",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "warning",
+        "stripe",
+        "short punch"
+      ],
+      "rendererClass": "caption-style-alert-ribbon",
+      "plannerSignals": [
+        "kinetic",
+        "number",
+        "warning",
+        "stripe",
+        "short punch"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "quiet-caption",
+      "order": 30,
+      "name": "Quiet Caption",
+      "labelZh": "低存在感字幕",
+      "group": "minimal",
+      "recommended": false,
+      "useCase": "适合画面主体很强的片段",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "low obstruction",
+        "edge glow",
+        "clear"
+      ],
+      "rendererClass": "caption-style-quiet-caption",
+      "plannerSignals": [
+        "minimal",
+        "zh-short",
+        "low obstruction",
+        "edge glow",
+        "clear"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "caption-stack",
+      "order": 31,
+      "name": "Caption Stack",
+      "labelZh": "主副标题堆叠",
+      "group": "bilingual",
+      "recommended": true,
+      "useCase": "适合双层信息，不同时显示多行 cue",
+      "aestheticDimension": "language-hierarchy",
+      "sceneJobs": [
+        "translation",
+        "global audience",
+        "interview identity"
+      ],
+      "contentHints": [
+        "primary plus secondary text",
+        "translation hierarchy"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "traits": [
+        "hierarchy",
+        "secondary line",
+        "metadata"
+      ],
+      "rendererClass": "caption-style-caption-stack",
+      "plannerSignals": [
+        "bilingual",
+        "bilingual",
+        "hierarchy",
+        "secondary line",
+        "metadata"
+      ],
+      "motion": {
+        "class": "dual-layer-rise",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 2,
+        "note": "Secondary translation is metadata; the primary spoken cue still remains one visible active caption line."
+      }
+    },
+    {
+      "id": "data-pill",
+      "order": 32,
+      "name": "Data Pill",
+      "labelZh": "数据胶囊",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合数字、比例、榜单",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "numeric emphasis",
+        "metric cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "stat chip",
+        "pill",
+        "measured"
+      ],
+      "rendererClass": "caption-style-data-pill",
+      "plannerSignals": [
+        "ui",
+        "number",
+        "stat chip",
+        "pill",
+        "measured"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "slash-title",
+      "order": 33,
+      "name": "Slash Title",
+      "labelZh": "斜切字幕",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合运动感、剪辑感",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "slanted",
+        "bold",
+        "editorial energy"
+      ],
+      "rendererClass": "caption-style-slash-title",
+      "plannerSignals": [
+        "kinetic",
+        "en-space",
+        "slanted",
+        "bold",
+        "editorial energy"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "crystal-plate",
+      "order": 34,
+      "name": "Crystal Plate",
+      "labelZh": "晶体透明板",
+      "group": "glass",
+      "recommended": true,
+      "useCase": "适合科技、AI、未来工具",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "crystal border",
+        "light refraction",
+        "depth"
+      ],
+      "rendererClass": "caption-style-crystal-plate",
+      "plannerSignals": [
+        "glass",
+        "en-space",
+        "crystal border",
+        "light refraction",
+        "depth"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "voice-note",
+      "order": 35,
+      "name": "Voice Note",
+      "labelZh": "语音便签",
+      "group": "audio",
+      "recommended": true,
+      "useCase": "适合旁白、复盘、讲故事",
+      "aestheticDimension": "voice-identity",
+      "sceneJobs": [
+        "podcast",
+        "voice note",
+        "interview",
+        "recap"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "note",
+        "voice tag",
+        "calm"
+      ],
+      "rendererClass": "caption-style-voice-note",
+      "plannerSignals": [
+        "audio",
+        "zh-long",
+        "note",
+        "voice tag",
+        "calm"
+      ],
+      "motion": {
+        "class": "audio-reactive-lite",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "proof-highlight",
+      "order": 36,
+      "name": "Proof Highlight",
+      "labelZh": "证明式高亮",
+      "group": "editorial",
+      "recommended": true,
+      "useCase": "适合论证、因果、证据",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "claim/proof",
+        "underline",
+        "trust"
+      ],
+      "rendererClass": "caption-style-proof-highlight",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "claim/proof",
+        "underline",
+        "trust"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "frosted-index",
+      "order": 37,
+      "name": "Frosted Index",
+      "labelZh": "磨砂目录条",
+      "group": "glass",
+      "recommended": false,
+      "useCase": "适合课程段落、章节提示",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "step instruction",
+        "process cue"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "index",
+        "frosted",
+        "chapter"
+      ],
+      "rendererClass": "caption-style-frosted-index",
+      "plannerSignals": [
+        "glass",
+        "step",
+        "index",
+        "frosted",
+        "chapter"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "lens-flare-tag",
+      "order": 38,
+      "name": "Lens Flare Tag",
+      "labelZh": "镜头光标",
+      "group": "glass",
+      "recommended": false,
+      "useCase": "适合开场强提示和视觉转场",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "question hook",
+        "retention cue"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "lens",
+        "flare",
+        "hook"
+      ],
+      "rendererClass": "caption-style-lens-flare-tag",
+      "plannerSignals": [
+        "glass",
+        "question",
+        "lens",
+        "flare",
+        "hook"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "radial-glow-plate",
+      "order": 39,
+      "name": "Radial Glow Plate",
+      "labelZh": "径向发光板",
+      "group": "glass",
+      "recommended": false,
+      "useCase": "适合暗底科技和 AI 解释",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "contrast statement",
+        "keyword emphasis"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "radial light",
+        "halo",
+        "focus"
+      ],
+      "rendererClass": "caption-style-radial-glow-plate",
+      "plannerSignals": [
+        "glass",
+        "contrast",
+        "radial light",
+        "halo",
+        "focus"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "soft-ui-dock",
+      "order": 40,
+      "name": "Soft UI Dock",
+      "labelZh": "软 UI Dock",
+      "group": "ui",
+      "recommended": true,
+      "useCase": "适合产品演示、工具教程",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "step instruction",
+        "process cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "dock",
+        "controls",
+        "product"
+      ],
+      "rendererClass": "caption-style-soft-ui-dock",
+      "plannerSignals": [
+        "ui",
+        "step",
+        "dock",
+        "controls",
+        "product"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "command-palette",
+      "order": 41,
+      "name": "Command Palette",
+      "labelZh": "命令面板",
+      "group": "ui",
+      "recommended": true,
+      "useCase": "适合教程、自动化、流程展示",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "palette",
+        "shortcut",
+        "search"
+      ],
+      "rendererClass": "caption-style-command-palette",
+      "plannerSignals": [
+        "ui",
+        "en-space",
+        "palette",
+        "shortcut",
+        "search"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "timeline-tick",
+      "order": 42,
+      "name": "Timeline Tick",
+      "labelZh": "时间轴刻度",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合复盘、步骤和剪辑节奏",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "metric or outcome cue",
+        "proof point"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "timeline",
+        "ticks",
+        "sequence"
+      ],
+      "rendererClass": "caption-style-timeline-tick",
+      "plannerSignals": [
+        "ui",
+        "metric",
+        "timeline",
+        "ticks",
+        "sequence"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "split-quote-frame",
+      "order": 43,
+      "name": "Split Quote Frame",
+      "labelZh": "分栏引用框",
+      "group": "editorial",
+      "recommended": true,
+      "useCase": "适合观点、金句、人物发言",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "quote",
+        "split frame",
+        "serif"
+      ],
+      "rendererClass": "caption-style-split-quote-frame",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "quote",
+        "split frame",
+        "serif"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "annotated-bracket",
+      "order": 44,
+      "name": "Annotated Bracket",
+      "labelZh": "括号注释",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合拆解概念和补充说明",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "contrast statement",
+        "keyword emphasis"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "brackets",
+        "annotation",
+        "low clutter"
+      ],
+      "rendererClass": "caption-style-annotated-bracket",
+      "plannerSignals": [
+        "editorial",
+        "contrast",
+        "brackets",
+        "annotation",
+        "low clutter"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "duotone-lower-third",
+      "order": 45,
+      "name": "Duotone Lower Third",
+      "labelZh": "双色下三分之一",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合访谈、纪录、品牌口播",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "primary plus secondary text",
+        "translation hierarchy"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "duotone",
+        "lower-third",
+        "identity"
+      ],
+      "rendererClass": "caption-style-duotone-lower-third",
+      "plannerSignals": [
+        "editorial",
+        "bilingual",
+        "duotone",
+        "lower-third",
+        "identity"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "edge-caption-rail",
+      "order": 46,
+      "name": "Edge Caption Rail",
+      "labelZh": "边缘字幕轨",
+      "group": "minimal",
+      "recommended": true,
+      "useCase": "适合强画面主体、低遮挡",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "side rail",
+        "low obstruction",
+        "safe"
+      ],
+      "rendererClass": "caption-style-edge-caption-rail",
+      "plannerSignals": [
+        "minimal",
+        "zh-short",
+        "side rail",
+        "low obstruction",
+        "safe"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "vertical-thumb-guard",
+      "order": 47,
+      "name": "Vertical Thumb Guard",
+      "labelZh": "竖屏拇指安全",
+      "group": "mobile",
+      "recommended": true,
+      "useCase": "适合短视频手机界面避让",
+      "aestheticDimension": "mobile-safe-retention",
+      "sceneJobs": [
+        "vertical short-form",
+        "thumb safe captions",
+        "social clips"
+      ],
+      "contentHints": [
+        "question hook",
+        "retention cue"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "traits": [
+        "thumb zone",
+        "9:16",
+        "large type"
+      ],
+      "rendererClass": "caption-style-vertical-thumb-guard",
+      "plannerSignals": [
+        "mobile",
+        "question",
+        "thumb zone",
+        "9:16",
+        "large type"
+      ],
+      "motion": {
+        "class": "retention-pop",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "social-sticker",
+      "order": 48,
+      "name": "Social Sticker",
+      "labelZh": "社媒贴纸",
+      "group": "mobile",
+      "recommended": true,
+      "useCase": "适合轻娱乐、生活方式、反转句",
+      "aestheticDimension": "mobile-safe-retention",
+      "sceneJobs": [
+        "vertical short-form",
+        "thumb safe captions",
+        "social clips"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "traits": [
+        "sticker",
+        "tap-safe",
+        "casual"
+      ],
+      "rendererClass": "caption-style-social-sticker",
+      "plannerSignals": [
+        "mobile",
+        "zh-short",
+        "sticker",
+        "tap-safe",
+        "casual"
+      ],
+      "motion": {
+        "class": "retention-pop",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "premium-karaoke-tokens",
+      "order": 49,
+      "name": "Premium Karaoke Tokens",
+      "labelZh": "高级词级高亮",
+      "group": "kinetic",
+      "recommended": true,
+      "useCase": "适合节奏口播、重点词推进",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "contrast statement",
+        "keyword emphasis"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "word tokens",
+        "stagger",
+        "mask"
+      ],
+      "rendererClass": "caption-style-premium-karaoke-tokens",
+      "plannerSignals": [
+        "kinetic",
+        "contrast",
+        "word tokens",
+        "stagger",
+        "mask"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "liquid-highlighter",
+      "order": 50,
+      "name": "Liquid Highlighter",
+      "labelZh": "液态荧光笔",
+      "group": "kinetic",
+      "recommended": true,
+      "useCase": "适合教学重点、拆解步骤",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "step instruction",
+        "process cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "liquid mark",
+        "highlight",
+        "motion"
+      ],
+      "rendererClass": "caption-style-liquid-highlighter",
+      "plannerSignals": [
+        "kinetic",
+        "step",
+        "liquid mark",
+        "highlight",
+        "motion"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "capsule-transcript",
+      "order": 51,
+      "name": "Capsule Transcript",
+      "labelZh": "转写胶囊",
+      "group": "audio",
+      "recommended": true,
+      "useCase": "适合播客切片、采访摘要",
+      "aestheticDimension": "voice-identity",
+      "sceneJobs": [
+        "podcast",
+        "voice note",
+        "interview",
+        "recap"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "transcript",
+        "capsule",
+        "voice"
+      ],
+      "rendererClass": "caption-style-capsule-transcript",
+      "plannerSignals": [
+        "audio",
+        "zh-long",
+        "transcript",
+        "capsule",
+        "voice"
+      ],
+      "motion": {
+        "class": "audio-reactive-lite",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "floating-tooltip",
+      "order": 52,
+      "name": "Floating Tooltip",
+      "labelZh": "悬浮提示气泡",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合界面讲解和细节点名",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "metric or outcome cue",
+        "proof point"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "tooltip",
+        "pointer",
+        "context"
+      ],
+      "rendererClass": "caption-style-floating-tooltip",
+      "plannerSignals": [
+        "ui",
+        "metric",
+        "tooltip",
+        "pointer",
+        "context"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "ribbon-cutout",
+      "order": 53,
+      "name": "Ribbon Cutout",
+      "labelZh": "切纸丝带",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合标题、结论、转折",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "question hook",
+        "retention cue"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "cutout",
+        "ribbon",
+        "print"
+      ],
+      "rendererClass": "caption-style-ribbon-cutout",
+      "plannerSignals": [
+        "editorial",
+        "question",
+        "cutout",
+        "ribbon",
+        "print"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "stat-counter-lockup",
+      "order": 54,
+      "name": "Stat Counter Lockup",
+      "labelZh": "指标锁定",
+      "group": "ui",
+      "recommended": true,
+      "useCase": "适合数字、完播率、增长点",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "metric or outcome cue",
+        "proof point"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "stat",
+        "counter",
+        "lockup"
+      ],
+      "rendererClass": "caption-style-stat-counter-lockup",
+      "plannerSignals": [
+        "ui",
+        "metric",
+        "stat",
+        "counter",
+        "lockup"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "minimal-borderless",
+      "order": 55,
+      "name": "Minimal Borderless",
+      "labelZh": "无框高级字",
+      "group": "minimal",
+      "recommended": true,
+      "useCase": "适合纪录片、真实画面、低干扰",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "no box",
+        "cinematic",
+        "shadow"
+      ],
+      "rendererClass": "caption-style-minimal-borderless",
+      "plannerSignals": [
+        "minimal",
+        "quote",
+        "no box",
+        "cinematic",
+        "shadow"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "mono-debug-overlay",
+      "order": 56,
+      "name": "Mono Debug Overlay",
+      "labelZh": "调试层字幕",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合技术、AI Agent、脚本演示",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "debug",
+        "mono",
+        "overlay"
+      ],
+      "rendererClass": "caption-style-mono-debug-overlay",
+      "plannerSignals": [
+        "ui",
+        "en-space",
+        "debug",
+        "mono",
+        "overlay"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "depth-shadow-type",
+      "order": 57,
+      "name": "Depth Shadow Type",
+      "labelZh": "景深投影字",
+      "group": "minimal",
+      "recommended": false,
+      "useCase": "适合大画面、人物主体下方",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "one-line Chinese cue",
+        "short statement"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "depth",
+        "soft cast",
+        "image-first"
+      ],
+      "rendererClass": "caption-style-depth-shadow-type",
+      "plannerSignals": [
+        "minimal",
+        "zh-short",
+        "depth",
+        "soft cast",
+        "image-first"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "magnetic-label",
+      "order": 58,
+      "name": "Magnetic Label",
+      "labelZh": "磁吸标签",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合转场、关键词吸附",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "step instruction",
+        "process cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "magnetic",
+        "snap",
+        "label"
+      ],
+      "rendererClass": "caption-style-magnetic-label",
+      "plannerSignals": [
+        "kinetic",
+        "step",
+        "magnetic",
+        "snap",
+        "label"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "book-margin-note",
+      "order": 59,
+      "name": "Book Margin Note",
+      "labelZh": "书页边注",
+      "group": "editorial",
+      "recommended": true,
+      "useCase": "适合写作课、阅读、文学内容",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "margin note",
+        "paper",
+        "quiet"
+      ],
+      "rendererClass": "caption-style-book-margin-note",
+      "plannerSignals": [
+        "editorial",
+        "quote",
+        "margin note",
+        "paper",
+        "quiet"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "interview-lower-third",
+      "order": 60,
+      "name": "Interview Lower Third",
+      "labelZh": "访谈身份字幕",
+      "group": "bilingual",
+      "recommended": true,
+      "useCase": "适合访谈、纪录、人设介绍",
+      "aestheticDimension": "language-hierarchy",
+      "sceneJobs": [
+        "translation",
+        "global audience",
+        "interview identity"
+      ],
+      "contentHints": [
+        "primary plus secondary text",
+        "translation hierarchy"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "traits": [
+        "speaker",
+        "role",
+        "lower-third"
+      ],
+      "rendererClass": "caption-style-interview-lower-third",
+      "plannerSignals": [
+        "bilingual",
+        "bilingual",
+        "speaker",
+        "role",
+        "lower-third"
+      ],
+      "motion": {
+        "class": "dual-layer-rise",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 2,
+        "note": "Secondary translation is metadata; the primary spoken cue still remains one visible active caption line."
+      }
+    },
+    {
+      "id": "multicolor-word-chips",
+      "order": 61,
+      "name": "Multicolor Word Chips",
+      "labelZh": "多色词卡",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合拆概念、公式、卖点",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "contrast statement",
+        "keyword emphasis"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "chips",
+        "semantic color",
+        "tokens"
+      ],
+      "rendererClass": "caption-style-multicolor-word-chips",
+      "plannerSignals": [
+        "ui",
+        "contrast",
+        "chips",
+        "semantic color",
+        "tokens"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "caption-spotlight",
+      "order": 62,
+      "name": "Caption Spotlight",
+      "labelZh": "字幕聚光",
+      "group": "kinetic",
+      "recommended": false,
+      "useCase": "适合暗场、舞台、强情绪",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "question hook",
+        "retention cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "spotlight",
+        "focus",
+        "dramatic"
+      ],
+      "rendererClass": "caption-style-caption-spotlight",
+      "plannerSignals": [
+        "kinetic",
+        "question",
+        "spotlight",
+        "focus",
+        "dramatic"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "product-toast",
+      "order": 63,
+      "name": "Product Toast",
+      "labelZh": "产品 Toast",
+      "group": "ui",
+      "recommended": true,
+      "useCase": "适合 SaaS、App、AI 工具演示",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "step instruction",
+        "process cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "toast",
+        "status",
+        "UI native"
+      ],
+      "rendererClass": "caption-style-product-toast",
+      "plannerSignals": [
+        "ui",
+        "step",
+        "toast",
+        "status",
+        "ui native"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "dimmer-band",
+      "order": 64,
+      "name": "Dimmer Band",
+      "labelZh": "局部暗场带",
+      "group": "minimal",
+      "recommended": true,
+      "useCase": "适合复杂背景下提升可读性",
+      "aestheticDimension": "low-obstruction",
+      "sceneJobs": [
+        "image-first footage",
+        "documentary",
+        "clean background"
+      ],
+      "contentHints": [
+        "long Chinese cue",
+        "sequential visual cue"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "traits": [
+        "dimmer",
+        "readability",
+        "safe contrast"
+      ],
+      "rendererClass": "caption-style-dimmer-band",
+      "plannerSignals": [
+        "minimal",
+        "zh-long",
+        "dimmer",
+        "readability",
+        "safe contrast"
+      ],
+      "motion": {
+        "class": "soft-fade",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "elegant-parentheses",
+      "order": 65,
+      "name": "Elegant Parentheses",
+      "labelZh": "优雅括号",
+      "group": "editorial",
+      "recommended": false,
+      "useCase": "适合旁白补充、冷静观点",
+      "aestheticDimension": "typographic-editorial",
+      "sceneJobs": [
+        "quotes",
+        "documentary",
+        "writing/story craft"
+      ],
+      "contentHints": [
+        "contrast statement",
+        "keyword emphasis"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "traits": [
+        "parentheses",
+        "editorial",
+        "restraint"
+      ],
+      "rendererClass": "caption-style-elegant-parentheses",
+      "plannerSignals": [
+        "editorial",
+        "contrast",
+        "parentheses",
+        "editorial",
+        "restraint"
+      ],
+      "motion": {
+        "class": "editorial-slide",
+        "intensity": "restrained",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "neon-terminal-bar",
+      "order": 66,
+      "name": "Neon Terminal Bar",
+      "labelZh": "霓虹终端栏",
+      "group": "ui",
+      "recommended": false,
+      "useCase": "适合暗色科技、脚本流",
+      "aestheticDimension": "interface-native",
+      "sceneJobs": [
+        "screen demos",
+        "SaaS/product",
+        "data/tool walkthroughs"
+      ],
+      "contentHints": [
+        "English word spacing",
+        "space-delimited cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "traits": [
+        "terminal",
+        "neon",
+        "status"
+      ],
+      "rendererClass": "caption-style-neon-terminal-bar",
+      "plannerSignals": [
+        "ui",
+        "en-space",
+        "terminal",
+        "neon",
+        "status"
+      ],
+      "motion": {
+        "class": "ui-state-shift",
+        "intensity": "medium",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "cutscene-title",
+      "order": 67,
+      "name": "Cutscene Title",
+      "labelZh": "过场标题字幕",
+      "group": "kinetic",
+      "recommended": true,
+      "useCase": "适合章节转场、强段落切换",
+      "aestheticDimension": "rhythmic-emphasis",
+      "sceneJobs": [
+        "hook",
+        "contrast",
+        "keyword punch",
+        "short-form retention"
+      ],
+      "contentHints": [
+        "question hook",
+        "retention cue"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "cutscene",
+        "title",
+        "impact"
+      ],
+      "rendererClass": "caption-style-cutscene-title",
+      "plannerSignals": [
+        "kinetic",
+        "question",
+        "cutscene",
+        "title",
+        "impact"
+      ],
+      "motion": {
+        "class": "cue-punch",
+        "intensity": "strong",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": true,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    },
+    {
+      "id": "quote-glass-seal",
+      "order": 68,
+      "name": "Quote Glass Seal",
+      "labelZh": "玻璃引用章",
+      "group": "glass",
+      "recommended": true,
+      "useCase": "适合金句、证言、观点承接",
+      "aestheticDimension": "material-depth",
+      "sceneJobs": [
+        "premium narration",
+        "AI/tool explainers",
+        "soft emphasis"
+      ],
+      "contentHints": [
+        "quote or aphorism",
+        "source label"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "traits": [
+        "quote seal",
+        "glass",
+        "credibility"
+      ],
+      "rendererClass": "caption-style-quote-glass-seal",
+      "plannerSignals": [
+        "glass",
+        "quote",
+        "quote seal",
+        "glass",
+        "credibility"
+      ],
+      "motion": {
+        "class": "glass-sweep",
+        "intensity": "subtle",
+        "allowedProperties": [
+          "opacity",
+          "transform",
+          "filter",
+          "clip-path",
+          "background-position"
+        ],
+        "reducedMotionFallback": "opacity-only cue reveal"
+      },
+      "emphasisPolicy": {
+        "supportsKeywordHighlight": false,
+        "allowedEmphasis": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08"
+        ],
+        "forbiddenEmphasis": [
+          "new TTS split",
+          "extra simultaneous subtitle line",
+          "flashing red loop"
+        ]
+      },
+      "safety": {
+        "safeArea": "bottom-caption-band",
+        "displayMode": "single-line-sequential",
+        "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+        "maxVisibleLines": 1,
+        "note": "Do not stack wrapped lines at the same timestamp."
+      }
+    }
+  ]
+}

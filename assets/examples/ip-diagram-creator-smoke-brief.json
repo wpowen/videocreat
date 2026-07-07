@@ -1,0 +1,56 @@
+{
+  "title": "个人IP知识卡视频：把复杂方法讲成一页图解",
+  "language": "zh",
+  "audience": "需要把课程、直播分享和个人IP方法论做成短视频图解的创作者",
+  "objective": "验证 codex-video-workflow 能把 haloshin/ip-diagram-creator 的角色资产、知识卡、执行Agent协作和PPT导演规划能力融合为受控的规划、提示词和QC产物，而不是替换视频渲染框架。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationSeconds": 24,
+  "videoType": "personal-ip-knowledge-card-smoke",
+  "visualMode": "ip-diagram",
+  "ipDiagramCreator": true,
+  "ipDiagramCreatorExecutionMode": "compatible-portfolio",
+  "personalIp": {
+    "role": "方法论讲解型创作者",
+    "persona": "冷静、清晰、偏研究型，不使用真实人物肖像"
+  },
+  "pptPresentationMode": true,
+  "imageSource": "image2-dryrun",
+  "speechStyle": "explainer",
+  "coverTheme": "先定角色，再拆内容，最后生成图解",
+  "rights": {
+    "text": "original smoke brief for this workflow",
+    "visuals": "original local SVG/HTML plus image2-compatible prompts; no real-person likeness or private screenshots",
+    "voice": "local test voice only",
+    "music": "none",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "role-first",
+      "label": "先定个人IP角色",
+      "headline": ["先定角色", "再决定图解语言"],
+      "body": "个人IP内容先确定讲解者气质、角色资产和边界，再进入知识卡设计。",
+      "subtitle": "先定角色，不是为了像某个人，而是让每一页图解有稳定的讲解锚点。",
+      "diagramMode": "character-led-small-scene"
+    },
+    {
+      "id": "agent-collaboration",
+      "label": "执行Agent协作图",
+      "headline": ["把方法拆成", "3个执行Agent"],
+      "body": "一个Agent拆内容，一个Agent找视觉隐喻，一个Agent检查是否还能被观众读懂。",
+      "subtitle": "复杂方法不要直接塞进一页图。先把工作分给几个执行Agent，再让画面表达协作关系。",
+      "agentCount": 3,
+      "diagramMode": "agent-collaboration-diagram"
+    },
+    {
+      "id": "ppt-director-card",
+      "label": "PPT导演规划卡",
+      "headline": ["每页课件", "先写导演任务"],
+      "body": "PPT或直播分享页要先写清楚沟通任务、视觉权重、角色位置和QA风险。",
+      "subtitle": "如果是课件或直播分享，不要直接生成幻灯片。先写导演规划卡，再转成视频场景。",
+      "pptMode": "director-page-card"
+    }
+  ],
+  "narration": "个人IP图解不是先画图，而是先定角色。这个角色不需要复刻真实长相，但要稳定表达讲解气质。然后把复杂方法拆成几个执行Agent：一个拆内容，一个找视觉隐喻，一个检查观众能不能读懂。最后，如果来源是PPT课件或直播分享，先写导演规划卡，再把页面改造成视频场景。"
+}
