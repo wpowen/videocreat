@@ -1,0 +1,29 @@
+# Local OS/editor noise
+.DS_Store
+*.swp
+*.swo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependency/build/cache directories
+node_modules/
+.cache/
+dist/
+build/
+coverage/
+
+# Codex video workflow generated artifacts
+/research/
+/.video-maker/
+
+# Renderer/runtime outputs that may appear outside research/
+/.html-video/
+/logs/
+/screenshots/
+/renders/
+/final.mp4
+/*.wav
+/*.m4a

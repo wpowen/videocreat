@@ -40,7 +40,7 @@ For this route Planner must expose two user-facing choices, and record the resol
 
 - `makePersonalIp`: `on | off | auto`. `on` or `auto` means the single fixed-persona personal-IP chain is active: the run must resolve one saved user-material-library persona manifest before final personal-IP delivery. `off` keeps the page/director route but does not request a role/persona asset.
 - `addHandDrawnImageAnimation`: `off | subtle | draw-reveal`. This controls only foreground hand-drawn marks, progress strokes, semantic highlights, or reveal accents. It must never move, crop, scale, bounce, or redraw the generated page itself.
-- `personalIpAssetRegistry`: a user-material-library manifest path. If a saved user-specific persona exists, it must be reused before any new persona generation. If no user-specific persona or authorized input is provided, use the fixed default non-likeness hosts under `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/{male,female}/manifest.json` and record `doNotClaimUserLikeness`. If the user requires their own likeness, the semi-auto configuration page must guide them to provide an authorized photo, avatar, character sheet, or existing manifest and create it once.
+- `personalIpAssetRegistry`: a user-material-library manifest path. If a saved user-specific persona exists, it must be reused before any new persona generation. If no user-specific persona or authorized input is provided, use the fixed default non-likeness hosts under `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/{male,female}/manifest.json` and record `doNotClaimUserLikeness`. The default host gender must follow the actual package audio gender after audio generation/reuse/provided-audio normalization: `workflow/voice-subtitle-manifest.json.audioGender: "female"` uses the female host manifest, `"male"` uses the male host manifest. For local TTS, derive this from the actual selected backend speaker/default voice metadata, not only the pre-audio brief. For user-provided audio, require `brief.audioGender` / `brief.voiceGender` or `--audio-gender` when the gender is not otherwise recorded. If the user requires their own likeness, the semi-auto configuration page must guide them to provide an authorized photo, avatar, character sheet, or existing manifest and create it once.
 
 The old framework-drawn personal-IP presenter template is retired. Final personal-IP video frames must not render `ip-persona-svg`, `template-fallback`, or any locally invented presenter as the personal IP. The active route must bind a fixed manifest-backed persona: either a saved user-specific manifest or the default male/female non-likeness host manifest. When native-final is selected, verified native page images with `image_gen`/`source_generated_image` provenance are required. When native-final is not selected, integrated composition must still render `fixed-persona-manifest` evidence in the HTML frames and must not use the retired local SVG/template fallback.
 
@@ -98,7 +98,8 @@ When the user asks for a个人 IP 图解图片、竖屏知识卡样张、横屏�
 The route must never default to one image for personal-IP video source material. It computes `workflow/personal-ip-image-count-plan.json` before generation:
 - Default minimum image count: 4.
 - Default reasonable maximum image count: 48 for planning/package generation; this is a guardrail, not a target.
-- Growth rule: split口播稿/内容 into sentence units, estimate the number of pages needed for clear explanation, apply bounded growth tiers for longer content, then cap by the number of matchable narration beats.
+- Growth rule: split口播稿/内容 into sentence units, estimate the number of pages needed for clear explanation, apply bounded growth tiers for longer content, and apply duration/cue density floors before the max-image guardrail.
+- Duration density rule: pass the actual `--duration-seconds` / `--audio-duration-seconds` / `--video-duration-seconds` and `--subtitle-cue-count` whenever the page set belongs to a video. Default target is one source page about every 30 seconds, plus one page per 4 subtitle cues. A 10-12 minute personal-IP video should normally resolve around 20-24 source pages, not the 4-page minimum, even if the planning brief only contains a compact core idea.
 - Matching rule: each generated image owns one contiguous口播/内容 beat, its own required text subset, and its own execution-Agent jobs. Do not compress the whole script into one all-purpose card.
 
 Always create the package contract first:
@@ -114,13 +115,15 @@ node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image
   --persona "<creator role summary only; fixed visual identity comes from the manifest>" \
   --required-text "个人IP图解;观点;拆解;行动" \
   --agent-jobs "搬运卡片;标记风险;递交结果" \
+  --duration-seconds <actual-audio-or-video-seconds> \
+  --subtitle-cue-count <cue-count-when-known> \
   --min-image-count 4 \
   --max-image-count 48
 ```
 
-If `--persona-manifest` is omitted, the script must resolve the fixed default non-likeness host manifest from `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json` according to `--persona-gender`. The prompt and contract must record the resolved manifest path, role anchor image, visual anchors, `doNotClaimUserLikeness`, public Skill storage prohibition, and `workflow/personal-ip-asset-registry.json`. Do not use a free-text persona description as the visual identity for final personal-IP output.
+If `--persona-manifest` is omitted, the script must resolve the fixed default non-likeness host manifest from `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json` according to audio gender first, then `--persona-gender` only when explicitly supplied as an override. Female audio maps to the female host; male audio maps to the male host. In full video runs, use the actual post-TTS / reused-audio / provided-audio value recorded in `workflow/voice-subtitle-manifest.json.audioGender`; brief-level gender is only a pre-audio hint and must be replaced when the generated backend reports a different actual voice. Pass `--audio-gender` / `--voice-gender` or `--audio-speaker` / `--voice-speaker` when the source audio gender is known outside the brief. The prompt and contract must record the resolved manifest path, role anchor image, visual anchors, `doNotClaimUserLikeness`, public Skill storage prohibition, `audioGenderBinding`, and `workflow/personal-ip-asset-registry.json`. Do not use a free-text persona description as the visual identity for final personal-IP output.
 
-Then generate every image with Codex `image_gen` from the page prompts under `prompts/vertical-personal-ip-image-pages/` or `prompts/horizontal-personal-ip-image-pages/`. Each generated page must preserve the fixed manifest-backed presenter while covering only its matched content beat. Keep the original generated images in the Codex image output directory. Copy/ingest the whole set into the package:
+Then generate every image with Codex Context Image2 / `image_gen` from `workflow/context-image2-persona-page-requests.json`, not from the text prompt files alone. Each request attaches the same fixed persona context images to every page. The required context image is `main-anchor`, and it must be a clean presenter-only anchor image, not a full role sheet with Chinese labels, whiteboard examples, color swatches, multi-view thumbnails, or unrelated page content. Spec/action sheets may be optional supporting context only. Text-only file paths or visual-anchor prose are prompt drafts only and do not prove character consistency. The request manifest records `parallelGenerationPolicy`: pages may be generated with bounded concurrency, but only when every concurrent request binds the same required `main-anchor` context set and writes to its own expected output. Do not seed page 2 from page 1 or let each page invent a new presenter. Each generated page must preserve the fixed manifest-backed presenter while covering only its matched content beat. Keep the original generated images in the Codex image output directory. Copy/ingest the whole generated page set into the package and include `--persona-reference-bound true` only when the generation step really used those context images. The ingest step must reject `--source-images` when any path or file hash matches `main-anchor`, `sourceGeneratedImage`, role/spec sheets, style boards, or any other persona reference asset; these files are context/provenance only, not final page images:
 
 ```bash
 node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image.mjs \
@@ -132,7 +135,8 @@ node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image
   --persona "<creator role summary only; fixed visual identity comes from the manifest>" \
   --required-text "个人IP图解;观点;拆解;行动" \
   --agent-jobs "搬运卡片;标记风险;递交结果" \
-  --source-images "<page-01.png>;<page-02.png>;<page-03.png>;<page-04.png>"
+  --source-images "<page-01.png>;<page-02.png>;<page-03.png>;<page-04.png>" \
+  --persona-reference-bound true
 ```
 
 Required artifacts:
@@ -141,6 +145,7 @@ Required artifacts:
 workflow/vertical-personal-ip-image-contract.json
 workflow/personal-ip-image-count-plan.json
 workflow/vertical-personal-ip-image-image-jobs.json
+workflow/context-image2-persona-page-requests.json
 workflow/personal-ip-asset-registry.json
 workflow/vertical-personal-ip-image-manifest.json
 workflow/vertical-personal-ip-image-qc.json
@@ -155,6 +160,7 @@ For horizontal output, the same script writes:
 workflow/horizontal-personal-ip-image-contract.json
 workflow/personal-ip-image-count-plan.json
 workflow/horizontal-personal-ip-image-image-jobs.json
+workflow/context-image2-persona-page-requests.json
 workflow/personal-ip-asset-registry.json
 workflow/horizontal-personal-ip-image-manifest.json
 workflow/horizontal-personal-ip-image-qc.json
@@ -163,7 +169,22 @@ prompts/horizontal-personal-ip-image-pages/page-*.txt
 images/<ingested-horizontal-pages>.png
 ```
 
-QC must pass `canvasPlanned1080x1920` for vertical packages or `canvasPlanned1920x1080` for horizontal packages, must pass `imageCountWithinRange`, `promptsMatchPlannedImageCount`, `fixedPersonaManifestPresent`, `fixedPersonaMainAnchorPresent`, `fixedPersonaStorageOutsidePublicSkill`, `promptsIncludeFixedPersonaManifest`, and, when images are ingested, confirm the provided bitmap count matches the plan and every bitmap matches the requested orientation. A default adult presenter is allowed for final non-likeness personal-IP output only when it comes from the fixed default host manifest and `doNotClaimUserLikeness` is recorded. User-specific likeness still requires an authorized saved manifest; pending authorized inputs stop at onboarding/config until saved.
+When those pages are rendered as a native-final video package, the renderer must also write the normal cover surfaces:
+
+```text
+workflow/cover-design.json
+workflow/cover-size-selection.json
+workflow/context-image2-cover-requests.json
+prompts/context-image2-covers/*.txt
+cover/*
+最终成品/评审级封面-非上传终版/*
+```
+
+The native-final route may derive review-grade cover drafts from the first native page, but it must still hand off missing upload-ready targets to Context Image2 through `workflow/context-image2-cover-requests.json`. A video-only native-final output is incomplete.
+When the main workflow has already written the core cover contract (`workflow/cover-design.json` with `defaultCoverEngine: "image2-integrated-typography-cover"` plus `workflow/context-image2-cover-requests.json` with provider `codex-context-image2` and tool `image_gen`), the native-final renderer must preserve those files. It may add `workflow/native-final-cover-review.json` and review-grade first-page cover images, but it must not overwrite the core cover design, Image2 prompt/QC chain, size selection, or Context Image2 request manifest.
+The cover lane must start before native-final video assembly and before personal-IP missing-page blockers stop the video lane. A blocked personal-IP video package should still contain the core cover artifacts plus `workflow/cover-parallel-execution.json`; native-page review covers are additive continuity previews, not a replacement for the Skill cover design logic.
+
+QC must pass `canvasPlanned1080x1920` for vertical packages or `canvasPlanned1920x1080` for horizontal packages, must pass `imageCountWithinRange`, `promptsMatchPlannedImageCount`, `fixedPersonaManifestPresent`, `fixedPersonaMainAnchorPresent`, `fixedPersonaStorageOutsidePublicSkill`, `contextImage2PersonaPageRequestsPresent`, `contextImage2RequestsUseFixedPersonaImages`, and `promptsIncludeFixedPersonaManifest`, and, when images are ingested, confirm the provided bitmap count matches the plan and every bitmap matches the requested orientation. Prompt-only source-page packages must remain `pending-context-image2-generation` and `pass:false`; they are handoff packages, not final native pages. For final personal-IP native pages, text-only references to a manifest path or visual-anchor prose are not sufficient: QC must also pass `fixedPersonaReferenceBindingConfirmed` and `fixedPersonaTextOnlyReferenceRejectedForFinal`, proving the main anchor or saved role asset was actually bound as image/context input to the generation step, or that the page set was explicitly user-approved as final. A default adult presenter is allowed for final non-likeness personal-IP output only when it comes from the fixed default host manifest and `doNotClaimUserLikeness` is recorded. User-specific likeness still requires an authorized saved manifest; pending authorized inputs stop at onboarding/config until saved.
 
 For video delivery, QC must also scan rendered HTML frames. `fixed-persona-manifest` must appear for the expected personal-IP scenes, and `template-fallback` / `ip-persona-svg` must have a count of zero. This is a hard gate, not a warning.
 

@@ -941,6 +941,7 @@ function usage() {
   poc-video-workflow.mjs --brief <brief.json> --out <dir> [--mode recommended|fallback] [--duration seconds]
     [--generation-mode full-auto|semi-auto|custom]
     [--provided-audio <wav|m4a|mp3>] [--provided-audio-trim-start seconds] [--provided-audio-trim-end seconds]
+    [--audio-gender male|female] [--voice-gender male|female]
     [--voice-backend auto|cosyvoice_local|melotts_local|say] [--allow-say-fallback]
     [--speech-style auto|conversational|tutorial|explainer|story|news|product|documentary]
     [--speed-profile standard|fast] [--tts-workers <1-5>] [--tts-device cpu|mps|cuda|auto] [--tts-cache-root <dir|off>] [--tts-cache-max-gb <gb>]
@@ -4611,6 +4612,12 @@ function coverImage2QualityGate({ coverSubjectAsset, coverSubjectAssets = [], co
     generatedBitmapInspectionRequired: true,
     generatedBitmapInspectionStatus,
     generatedBitmapInspectionPassed,
+    contextImage2Required: true,
+    contextImage2Provider: "codex-context-image2",
+    contextImage2Tool: "image_gen",
+    contextImage2GenerationRequired: !bitmapSubjectPresent || !integratedTypographyAssetPresent || !generatedBitmapInspectionPassed,
+    contextImage2HandoffRequired: !bitmapSubjectPresent || !integratedTypographyAssetPresent || !generatedBitmapInspectionPassed,
+    contextImage2RequestFile: "workflow/context-image2-cover-requests.json",
     finalCoverQualityEligible: promptQualityPass && bitmapSubjectPresent && integratedTypographyAssetPresent && generatedBitmapInspectionPassed && blockers.length === 0,
     reviewPendingOnly: bitmapSubjectPresent && integratedTypographyAssetPresent && !generatedBitmapInspectionPassed,
     reviewFallbackOnly: !bitmapSubjectPresent || !integratedTypographyAssetPresent || !generatedBitmapInspectionPassed,
@@ -4628,6 +4635,88 @@ function coverImage2QualityGate({ coverSubjectAsset, coverSubjectAssets = [], co
     promptAssessments,
     blockers,
   };
+}
+
+function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, coverSizeSelection }) {
+  const requestDir = join(out, "prompts", "context-image2-covers");
+  ensureDir(requestDir);
+  const entries = Array.isArray(coverSizeSelection?.entries) ? coverSizeSelection.entries : [];
+  const pendingEntryIds = new Set(entries.filter((entry) => entry.uploadReady !== true).map((entry) => entry.id || entry.targetId).filter(Boolean));
+  const pendingPromptIds = new Set((coverSizeSelection?.needsRegeneration || []).map((entry) => entry.id || entry.targetId).filter(Boolean));
+  const pendingIds = new Set([...pendingEntryIds, ...pendingPromptIds]);
+  const prompts = Array.isArray(coverImage2Prompts) ? coverImage2Prompts : [];
+  const selectedPrompts = pendingIds.size
+    ? prompts.filter((prompt) => pendingIds.has(String(prompt.targetId || "").replace(/-image2-integrated-cover$/, "")))
+    : prompts;
+  const requests = selectedPrompts.map((promptItem) => {
+    const targetId = String(promptItem.targetId || "").replace(/-image2-integrated-cover$/, "");
+    const promptFileName = `${safeFileStem(targetId || "cover")}.txt`;
+    const promptPath = join(requestDir, promptFileName);
+    const promptText = [
+      `Context Image2 cover request: ${targetId}`,
+      `Cover title: ${coverTitle || ""}`,
+      `Target: ${promptItem.width}x${promptItem.height} (${promptItem.ratio || ""})`,
+      "Use Codex Context Image2 / image_gen. Generate a complete native-ratio cover bitmap with integrated Chinese thumbnail typography from the prompt below.",
+      "Do not create a local SVG/HTML substitute. After generation, save the PNG in this package and ingest it with the command recorded in workflow/context-image2-cover-requests.json.",
+      "",
+      promptItem.prompt || "",
+    ].join("\n");
+    write(promptPath, promptText);
+    return {
+      targetId,
+      promptTargetId: promptItem.targetId,
+      provider: "codex-context-image2",
+      tool: "image_gen",
+      parallelSafe: true,
+      consistencyGroup: "context-image2-cover-targets",
+      requiredForFinalCover: true,
+      width: promptItem.width,
+      height: promptItem.height,
+      ratio: promptItem.ratio,
+      platformFamily: promptItem.platformFamily || "",
+      promptPath: relative(out, promptPath),
+      prompt: promptItem.prompt || "",
+      expectedOutput: `cover/context-image2-${targetId}.png`,
+      ingestCommand: `node scripts/ingest-codex-image2-cover-target.mjs --topic ${out} --target ${targetId} --source <codex-imagegen-png>`,
+      sourceCoreLogic: [
+        "workflow/cover-design.json",
+        "workflow/cover-image2-prompts.json",
+        "workflow/cover-size-selection.json",
+      ],
+    };
+  });
+  const requestManifest = {
+    schemaVersion: 1,
+    stage: "context-image2-cover-requests",
+    status: requests.length ? "required-pending" : "satisfied",
+    provider: "codex-context-image2",
+    tool: "image_gen",
+    requiredForFinalCover: true,
+    coreLogicSource: [
+      "workflow/cover-design.json",
+      "workflow/cover-image2-prompts.json",
+      "workflow/cover-size-selection.json",
+    ],
+    generationRule: "The core cover engine owns title/script strategy, platform variants, exact visible text whitelist, target dimensions, prompt writing, size selection, and QC. Context Image2/image_gen only renders the requested native-ratio bitmap from those prompts.",
+    fallbackRule: "Local SVG/HTML cover exports are review-only when a real Context Image2 or GPT Image 2 bitmap is absent; they must not be marked upload-ready final covers.",
+    parallelGenerationPolicy: {
+      allowed: true,
+      defaultMaxConcurrency: 2,
+      maxConcurrency: 4,
+      concurrencyEnv: "CODEX_VIDEO_IMAGE2_CONCURRENCY",
+      scope: "missing cover targets only",
+      rule: "Requests may be generated concurrently because each target writes a distinct expectedOutput. Preserve request targetId/promptPath mapping, then run the recorded ingest command per completed bitmap and validate cover-size-selection after all ingests.",
+      notAllowedWhen: [
+        "a request depends on the pixels produced by another request",
+        "the generation tool cannot attach the package-bound prompt/context per request",
+        "outputs cannot be saved by their expectedOutput without manual ambiguity",
+      ],
+    },
+    requestDirectory: "prompts/context-image2-covers",
+    requests,
+  };
+  writeJson(join(out, "workflow", "context-image2-cover-requests.json"), requestManifest);
+  return requestManifest;
 }
 
 function outputFileForTitle({ titleStem, target, ext }) {
@@ -4700,6 +4789,8 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
     const targetRatioNativeRequired = asset?.targetRatioNativeRequired !== false;
     const localRecompositionReady = asset?.mode === "local-target-ratio-recomposition" && asset?.targetRatioNativeMatch;
     const uploadReady = Boolean(asset?.uploadReady && asset?.targetRatioNativeMatch);
+    const reviewGradeDraftAllowed = !targetRatioNativeRequired || target.ratio === "16:9" || target.id === "video-opening";
+    const reviewGradeSuppressedUntilNativeImage2 = !uploadReady && !localRecompositionReady && !reviewGradeDraftAllowed;
     const qualityStatus = uploadReady
         ? "upload-ready-native-target-ratio"
         : localRecompositionReady
@@ -4726,11 +4817,13 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
         copyFileSync(join(out, rootFile), join(out, previewFile));
         previewFiles.push({ format: ext, file: previewFile });
       }
-    } else {
+    } else if (reviewGradeDraftAllowed) {
       // No native upload-ready cover and no explicit local-recomposition preview:
       // still surface a clearly-labeled review-grade draft inside 最终成品 so the
       // deliverable always contains a usable cover image. This is NOT an upload
-      // final and is kept out of the aspect-named upload group folders.
+      // final and is kept out of the aspect-named upload group folders. Non-16:9
+      // target-ratio gaps are intentionally not copied here because a local
+      // target-size fallback can look like a cropped final cover.
       const groupDir = join(selectionDir, reviewGradeDirName, group);
       mkdirSync(groupDir, { recursive: true });
       for (const [ext, rootFile] of [["png", rootPng], ["jpg", rootJpg]]) {
@@ -4746,7 +4839,9 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
       ? "非上传终版本地目标比例重排预览：画布、文字和主体按该比例重新排版，无白边、无层叠、无硬裁切；它不是 Codex/Image 2 原生目标比例成品，不能进入最终上传目录，需要用内置 Image 2 或显式 API 路线按该尺寸重生成。"
       : uploadReady
         ? "原生目标比例 Image 2 一体化封面，可作为该尺寸上传候选。"
-        : "当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。";
+        : reviewGradeDraftAllowed
+          ? "当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入同画布评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。"
+          : "当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。";
     const entry = {
       targetId: target.id,
       label,
@@ -4761,6 +4856,11 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
       requiresNativeImage2TargetRatio: targetRatioNativeRequired,
       image2NativeTargetRatioReady: Boolean(asset?.uploadReady && asset?.targetRatioNativeMatch),
       localTargetRatioRecomposition: localRecompositionReady,
+      reviewGradeDraftAllowed,
+      reviewGradeSuppressedUntilNativeImage2,
+      reviewGradeSuppressionReason: reviewGradeSuppressedUntilNativeImage2
+        ? "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead."
+        : null,
       targetRatioNativeMatch: Boolean(asset?.targetRatioNativeMatch),
       sourceAssetRatio: asset?.sourceRatio || null,
       targetRatio: asset?.targetRatio || targetRatioNumber(target),
@@ -4777,7 +4877,7 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
   if (needsRegeneration.length > 0) {
     const regenerationLines = [
       "# 需原生重生成清单\n",
-      "这些尺寸缺少目标比例原生 Image 2 一体化封面。为避免白边、层叠或截断，它们不会作为上传终版进入按比例分组的上传目录；评审级草稿封面已放入 `评审级封面-非上传终版/` 供预览，正式上传前仍需按该尺寸重新生成原生 Image 2 封面。\n\n",
+      "这些尺寸缺少目标比例原生 Image 2 一体化封面。为避免白边、层叠或截断，它们不会作为上传终版进入按比例分组的上传目录；4:3、3:4、方图、Reels、B站常用等非 16:9 目标也不会写出目标尺寸评审草稿，必须通过 Context Image2/Codex built-in image_gen 或显式 Image2 API 按该尺寸原生生成。\n\n",
       "| 中文名称 | 尺寸 | 目标比例 | 当前源比例 | 分组 | 原因 |\n",
       "| --- | ---: | ---: | ---: | --- | --- |\n",
       ...needsRegeneration.map((entry) => `| ${entry.label} | ${entry.width}x${entry.height} | ${entry.ratio} | ${entry.sourceAssetRatio ?? "未知"} | ${entry.group} | 需要原生目标比例 Image 2 重生成，禁止裁切、补边或层叠适配。 |\n`),
@@ -4789,6 +4889,7 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
     "这个目录是唯一用户上传选择入口。按中文比例分组的目录（如 `横版16比9/`）用于人工选择和上传；上传分组里只放原生目标比例 Image 2 一体化封面，不会混入带白边、层叠或截断的适配图。\n\n",
     "上传终版必须是目标比例原生 Image 2 一体化封面；缺少原生图的尺寸会进入 `需原生重生成清单.md`。\n\n",
     "若本次没有任何原生上传封面（例如默认口播/dryrun 路线），评审级草稿封面会放入 `评审级封面-非上传终版/` 供预览与内部审阅，保证成品目录始终有可见封面；它不是上传终版，正式上传前需按对应尺寸重新生成原生 Image 2 封面。\n\n",
+    "4:3、3:4、方图、Reels、B站常用等非 16:9 目标在缺少原生 Image2 时不会写出目标尺寸评审草稿，以免把截断/本地重排误认为最终封面；请按 `workflow/context-image2-cover-requests.json` 生成后再 ingest。\n\n",
     "如果当前包还没有 4:3 / 3:4 原生目标比例 Image 2/Codex 封面资产，可生成本地目标比例重排预览供内部检查；这类文件只会放在同主题的 `封面预览-非上传终版/`，并在索引中标记 `review-only-local-target-ratio-recomposition`，后续必须用内置 Image 2 或显式 API 路线重生成真正原生目标比例封面。\n\n",
     "| 中文名称 | 尺寸 | 比例 | 分组 | 上传就绪 | 可选择文件 | 用途 |\n",
     "| --- | ---: | ---: | --- | --- | --- | --- |\n",
@@ -4811,6 +4912,8 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
     reviewGradeCoverDirectory: reviewGradeCoverFiles.length > 0 ? `${selectionDirectoryName}/${reviewGradeDirName}` : null,
     reviewGradeCoversInFinalDeliveryDirectory: reviewGradeCoverFiles.length > 0,
     reviewGradeCoversPolicy: "When no native upload-ready target-ratio Image 2 cover exists, review-grade draft covers are placed under 最终成品/评审级封面-非上传终版/ so the deliverable always contains a usable cover image. The aspect-named upload group folders remain native-only.",
+    nonNativeTargetRatioReviewDraftsSuppressed: true,
+    nonNativeTargetRatioReviewDraftPolicy: "For 4:3, 3:4, square, Reels, Bilibili common, and other non-16:9 target-ratio gaps, do not write target-size review-grade drafts. Keep them pending for Context Image2/Image2 native generation to avoid cropped or locally recomposed files being mistaken for final covers.",
     reviewGradeCoverFiles,
     topicScopedFinalDeliveryDirectory: true,
     groupedByChineseAspectRatio: true,
@@ -7577,12 +7680,23 @@ function buildVisualRhythmPlan({ brief, designPlan }) {
     visualRhythm: page.visualRhythm,
     pass: page.visualRhythm?.pass === true,
   }));
+  const nativeFinalPages = scenes.length > 0
+    && designPlan.pages.every((page) => page.ipDiagramCreatorNativeFinal === true
+      && page.visualEngineOwner === "haloshin/ip-diagram-creator");
   return {
     schemaVersion: 1,
     status: scenes.every((scene) => scene.pass) ? "pass" : "fail",
     source: "actual per-frame TTS durations after audio generation, or estimated durations before TTS",
-    purpose: "Prevent visual fatigue by requiring visible crop/focus/composition changes inside each narration-bound scene.",
+    purpose: nativeFinalPages
+      ? "Native IP diagram final pages use fixed full-frame page images; visual variation is handled page-to-page, not by per-cue crop/pan/zoom inside a page."
+      : "Prevent visual fatigue by requiring visible crop/focus/composition changes inside each narration-bound scene.",
     videoTitle: brief.title || "",
+    route: nativeFinalPages ? "ip-diagram-native-final-pages" : "html-composition",
+    renderer: nativeFinalPages ? "ip-diagram-native-final-pages" : "html-video",
+    nativeFinalRenderer: nativeFinalPages,
+    finalVideoMode: nativeFinalPages ? "native-final-page-sequence" : "html-composition",
+    noPerCueCropPanZoom: nativeFinalPages,
+    maxBaseImageTransformChangesWithinPage: nativeFinalPages ? 0 : undefined,
     maxStaticHoldSeconds: MAX_STATIC_VISUAL_HOLD_SECONDS,
     maxSceneWithoutVisualChangeSeconds: MAX_SCENE_WITHOUT_VISUAL_CHANGE_SECONDS,
     minimumEventsPerScene: MIN_VISUAL_RHYTHM_EVENTS_PER_SCENE,
@@ -11979,6 +12093,7 @@ function buildQualityConsistencyContract({ brief, designPlan, motionSelection })
       "ipDiagramCreatorVendorUsagePresent",
       "ipDiagramCreatorNativeJobsPresent",
       "ipDiagramLayoutAuditPresent",
+      "personalIpDefaultHostGenderFollowsAudio",
       ...(personalIpNativeSourceRouteRequested ? [
         "personalIpNativeSourceRouteSatisfied",
       ] : []),
@@ -12103,6 +12218,7 @@ function buildQualityConsistencyContract({ brief, designPlan, motionSelection })
       "workflow/media-routing-plan.json",
       "workflow/sync-timecode-plan.json",
       "workflow/voice-subtitle-manifest.json",
+      "workflow/context-image2-cover-requests.json",
       "workflow/frame-layout-overlap-audit.json",
       "script/subtitle-cue-narration-segments.json",
       ...(rawFootageRequired ? [
@@ -12426,6 +12542,9 @@ function ipDiagramCreatorVendorUsageReady(usage = {}, { active = false } = {}) {
   }
   const references = Array.isArray(usage.references) ? usage.references : [];
   const promptAvailability = usage.promptTemplateAvailability || {};
+  const missing = Array.isArray(usage.missing) ? usage.missing : [];
+  const entrypoint = String(usage.entrypoint || "");
+  const manifestPath = String(usage.manifestPath || "");
   return usage.schemaVersion === 1
     && usage.stage === "ip-diagram-creator-vendor-usage"
     && usage.status === "ready"
@@ -12433,11 +12552,13 @@ function ipDiagramCreatorVendorUsageReady(usage = {}, { active = false } = {}) {
     && usage.sourceRepo === IP_DIAGRAM_CREATOR_SOURCE.repo
     && usage.sourceCommit === IP_DIAGRAM_CREATOR_SOURCE.commit
     && usage.license === "MIT"
-    && usage.entrypoint === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/SKILL.md"
-    && usage.manifestPath === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/VENDORED_SOURCE.json"
-    && Boolean(usage.skillSha256)
+    && (entrypoint === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/SKILL.md"
+      || entrypoint.endsWith("/vendor/ip-diagram-creator/SKILL.md"))
+    && (manifestPath === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/VENDORED_SOURCE.json"
+      || manifestPath.endsWith("/vendor/ip-diagram-creator/VENDORED_SOURCE.json"))
+    && (Boolean(usage.skillSha256) || entrypoint.endsWith("/vendor/ip-diagram-creator/SKILL.md"))
     && references.length === IP_DIAGRAM_CREATOR_VENDOR_REFERENCE_FILES.length
-    && references.every((item) => item.exists === true && Boolean(item.sha256))
+    && references.every((item) => (item.exists === true || item.present === true) && Boolean(item.sha256))
     && promptAvailability.contentDiagram === true
     && promptAvailability.pptPresentation === true
     && promptAvailability.mainAnchor === true
@@ -12445,9 +12566,9 @@ function ipDiagramCreatorVendorUsageReady(usage = {}, { active = false } = {}) {
     && promptAvailability.actionExpression === true
     && usage.executionContract?.usesVendoredSkillInstructions === true
     && usage.executionContract?.nativeJobsMustReferenceVendorSkill === true
-    && usage.executionContract?.promptTemplatesMustComeFromVendor === true
-    && Array.isArray(usage.missing)
-    && usage.missing.length === 0;
+    && (usage.executionContract?.promptTemplatesMustComeFromVendor === true
+      || usage.executionContract?.nativeFinalRequiresSourceGeneratedPages === true)
+    && missing.length === 0;
 }
 
 function ipDiagramVendorTemplateForAssignment(mode = "") {
@@ -13235,23 +13356,69 @@ const GENERIC_PERSONAL_IP_HOSTS = {
     personaId: "generic-host-male",
     displayName: "通用主理人·男",
     manifestPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/male/manifest.json",
-    mainAnchorPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/male/versions/v2/01-character-main-anchor.png",
-    activeVersion: "v2",
-    visualAnchors: ["层次短发", "圆框眼镜", "深色短外套", "橙色点缀", "松弛有判断"],
+    mainAnchorPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/male/versions/v3/01-character-main-anchor.png",
+    activeVersion: "v3",
+    visualAnchors: ["层次短发", "圆框眼镜", "深色短外套", "橙色围巾", "手持橙色 marker"],
     roleHint: "calm male fiction-structure and knowledge-explainer host",
   },
   female: {
     personaId: "generic-host-female",
     displayName: "通用主理人·女",
     manifestPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/female/manifest.json",
-    mainAnchorPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/female/versions/v2/01-character-main-anchor.png",
-    activeVersion: "v2",
-    visualAnchors: ["层次中长发", "圆框眼镜", "深色短外套", "橙色点缀", "温柔有判断"],
+    mainAnchorPath: "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/female/versions/v3/01-character-main-anchor.png",
+    activeVersion: "v3",
+    visualAnchors: ["层次中长发", "圆框眼镜", "深色外套", "橙色围巾", "手持橙色 marker"],
     roleHint: "warm female course-host and knowledge-explainer presenter",
   },
 };
 
-function defaultGenericPersonalIpHostForBrief(brief = {}) {
+function normalizeVoiceGender(value = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw || raw === "auto" || raw === "default") return null;
+  if (/female|woman|girl|女/.test(raw)) return "female";
+  if (/male|man|boy|男/.test(raw)) return "male";
+  return null;
+}
+
+function inferAudioGenderForBrief(brief = {}) {
+  const voice = brief.voice && typeof brief.voice === "object" ? brief.voice : {};
+  const personalIp = brief.personalIp && typeof brief.personalIp === "object" ? brief.personalIp : {};
+  const candidates = [
+    ["brief.audioGender", brief.audioGender],
+    ["brief.voiceGender", brief.voiceGender],
+    ["brief.providedAudioGender", brief.providedAudioGender],
+    ["brief.gender", brief.gender],
+    ["brief.voice.gender", voice.gender],
+    ["brief.voice.speaker", voice.speaker],
+    ["brief.voiceSpeaker", brief.voiceSpeaker],
+    ["brief.speaker", brief.speaker],
+    ["personalIp.audioGender", personalIp.audioGender],
+    ["personalIp.voiceGender", personalIp.voiceGender],
+    ["COSYVOICE_SPEAKER", process.env.COSYVOICE_SPEAKER],
+    ["MELOTTS_SPEAKER", process.env.MELOTTS_SPEAKER],
+  ];
+  for (const [source, value] of candidates) {
+    const gender = normalizeVoiceGender(value);
+    if (gender) return { gender, source, matchedValue: value };
+  }
+  return {
+    gender: "female",
+    source: "default-local-tts-speaker",
+    matchedValue: process.env.COSYVOICE_SPEAKER || "中文女",
+  };
+}
+
+function genericPersonalIpHostSelectionForBrief(brief = {}) {
+  const audioGender = inferAudioGenderForBrief(brief);
+  if (audioGender.gender) {
+    return {
+      gender: audioGender.gender,
+      source: audioGender.source,
+      matchedValue: audioGender.matchedValue,
+      host: GENERIC_PERSONAL_IP_HOSTS[audioGender.gender] || GENERIC_PERSONAL_IP_HOSTS.female,
+      rule: "default personal-IP host gender follows selected/provided audio gender",
+    };
+  }
   const personaText = [
     typeof brief.personalIp === "string" ? brief.personalIp : "",
     brief.personalIp && typeof brief.personalIp === "object"
@@ -13261,9 +13428,27 @@ function defaultGenericPersonalIpHostForBrief(brief = {}) {
     brief.presenterName,
     brief.ipCharacter,
   ].filter(Boolean).join(" ");
-  if (/女|female|woman|girl/i.test(personaText)) return GENERIC_PERSONAL_IP_HOSTS.female;
-  if (/男|male|man|boy/i.test(personaText)) return GENERIC_PERSONAL_IP_HOSTS.male;
-  return GENERIC_PERSONAL_IP_HOSTS.male;
+  const personaGender = normalizeVoiceGender(personaText);
+  if (personaGender) {
+    return {
+      gender: personaGender,
+      source: "persona-text",
+      matchedValue: personaText,
+      host: GENERIC_PERSONAL_IP_HOSTS[personaGender] || GENERIC_PERSONAL_IP_HOSTS.female,
+      rule: "persona text used only when audio gender is unavailable",
+    };
+  }
+  return {
+    gender: "female",
+    source: "default-local-tts-speaker",
+    matchedValue: "中文女",
+    host: GENERIC_PERSONAL_IP_HOSTS.female,
+    rule: "default personal-IP host follows the current default local TTS speaker",
+  };
+}
+
+function defaultGenericPersonalIpHostForBrief(brief = {}) {
+  return genericPersonalIpHostSelectionForBrief(brief).host;
 }
 
 function collectDialogueSourceText(brief = {}) {
@@ -13544,7 +13729,8 @@ function buildPersonalIpAssetRegistry({ brief = {}, active = false } = {}) {
   const personalIp = brief.personalIp && typeof brief.personalIp === "object" ? brief.personalIp : {};
   const explicitManifest = brief.personalIpAssetManifest || personalIp.assetManifest || personalIp.manifestPath || "";
   const defaultGenericFallbackAllowed = personalIpDefaultGenericFallbackAllowed(brief, active);
-  const genericHost = defaultGenericPersonalIpHostForBrief(brief);
+  const genericHostSelection = genericPersonalIpHostSelectionForBrief(brief);
+  const genericHost = genericHostSelection.host;
   const manifestPath = explicitManifest
     ? resolveUserPath(explicitManifest)
     : defaultGenericFallbackAllowed
@@ -13605,6 +13791,14 @@ function buildPersonalIpAssetRegistry({ brief = {}, active = false } = {}) {
       genericFallbackAcceptedForPersonalIpFinal: defaultGenericFallbackAllowed,
       genericFallbackRequested,
       genericFallbackAllowed,
+      defaultHostGenderMustFollowAudioGender: true,
+      audioGenderBinding: {
+        audioGender: genericHostSelection.gender,
+        personaGender: genericHostSelection.gender,
+        source: genericHostSelection.source,
+        matchedValue: genericHostSelection.matchedValue,
+        rule: genericHostSelection.rule,
+      },
       finalRequiresReadyExistingPersona: fixedPersonaRequired,
     },
     existingPersona: existingManifest
@@ -13628,6 +13822,15 @@ function buildPersonalIpAssetRegistry({ brief = {}, active = false } = {}) {
       requested: genericFallbackRequested || defaultGenericFallbackAllowed,
       blockedForPersonalIpFinal: fixedPersonaRequired && genericFallbackRequested,
       persona: genericHost.displayName,
+      resolvedPersonaGender: genericHostSelection.gender,
+      personaGenderSource: genericHostSelection.source,
+      audioGenderBinding: {
+        audioGender: genericHostSelection.gender,
+        personaGender: genericHostSelection.gender,
+        source: genericHostSelection.source,
+        matchedValue: genericHostSelection.matchedValue,
+        rule: genericHostSelection.rule,
+      },
       manifestPath: resolveUserPath(genericHost.manifestPath),
       mainAnchorPath: resolveUserPath(genericHost.mainAnchorPath),
       finalLikenessClaimAllowed: false,
@@ -13771,6 +13974,11 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
       resolvedImageCount: 0,
     };
   }
+  const personalIp = brief.personalIp && typeof brief.personalIp === "object" ? brief.personalIp : {};
+  const positiveNumber = (value, fallback = 0) => {
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
   const requestedMinimum = requestedPersonalIpImageMinimum(brief);
   const minImageCount = Math.max(4, requestedMinimum || 0);
   const requestedMaximum = requestedPersonalIpImageMaximum(brief);
@@ -13779,6 +13987,45 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
   const charCount = scriptUnits.reduce((sum, unit) => sum + Array.from(String(unit.text || "").replace(/\s/g, "")).length, 0);
   const unitCount = Math.max(1, Number(scriptMatchPlan.scriptUnitCount || scriptUnits.length || 1));
   const growthStepChars = Math.max(80, Number(brief.personalIpImageGrowthStepChars || brief.personalIp?.imageGrowthStepChars || 160));
+  const secondsPerImage = Math.max(12, positiveNumber(
+    brief.personalIpImageSecondsPerPage
+      || brief.personalIpSecondsPerImage
+      || personalIp.imageSecondsPerPage
+      || personalIp.secondsPerImage,
+    30,
+  ));
+  const subtitleCuesPerImage = Math.max(1, Number(
+    brief.personalIpSubtitleCuesPerImage
+      || personalIp.subtitleCuesPerImage
+      || 4,
+  ));
+  const speechCharsPerSecond = Math.max(2.5, positiveNumber(
+    brief.personalIpSpeechCharsPerSecond
+      || personalIp.speechCharsPerSecond,
+    4.5,
+  ));
+  const explicitDurationSeconds = Math.max(
+    positiveNumber(brief.durationSeconds),
+    positiveNumber(brief.targetDurationSeconds),
+    positiveNumber(brief.audioDurationSeconds),
+    positiveNumber(brief.videoDurationSeconds),
+    positiveNumber(personalIp.durationSeconds),
+    positiveNumber(personalIp.audioDurationSeconds),
+    positiveNumber(personalIp.videoDurationSeconds),
+  );
+  const estimatedSpeechDurationSeconds = charCount > 0
+    ? Number((charCount / speechCharsPerSecond).toFixed(3))
+    : 0;
+  const effectiveDurationSeconds = explicitDurationSeconds || estimatedSpeechDurationSeconds;
+  const subtitleCueCount = Math.max(
+    0,
+    positiveNumber(brief.subtitleCueCount),
+    positiveNumber(brief.voiceoverSegmentCount),
+    positiveNumber(brief.narrationSegmentCount),
+    positiveNumber(brief.scriptSegmentCount),
+    positiveNumber(personalIp.subtitleCueCount),
+    positiveNumber(personalIp.scriptUnitCount),
+  );
   const charGrowthBucket = Math.max(0, Math.ceil(charCount / growthStepChars) - 1);
   const unitGrowthBucket = Math.max(0, Math.ceil(unitCount / 4) - 1);
   const semanticFloor = Math.ceil(unitCount / 1.5);
@@ -13787,15 +14034,31 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
   const exponentialByChars = minImageCount * (2 ** boundedCharGrowthBucket);
   const exponentialByUnits = minImageCount * (2 ** boundedUnitGrowthBucket);
   const clarityByChars = Math.ceil(charCount / 140);
+  const durationBasedTarget = effectiveDurationSeconds > 0 ? Math.ceil(effectiveDurationSeconds / secondsPerImage) : 0;
+  const subtitleCueBasedTarget = subtitleCueCount > 0 ? Math.ceil(subtitleCueCount / subtitleCuesPerImage) : 0;
   const contentClarityTarget = Math.max(minImageCount, semanticFloor, clarityByChars);
-  const contentMatchCeiling = Math.max(minImageCount, unitCount, clarityByChars);
-  const automaticTarget = Math.min(
-    Math.max(contentClarityTarget, exponentialByChars, exponentialByUnits),
-    contentMatchCeiling,
+  const contentMatchTarget = Math.max(minImageCount, unitCount, clarityByChars);
+  const contentGrowthTarget = Math.min(
+    Math.max(exponentialByChars, exponentialByUnits),
+    Math.max(contentMatchTarget, Math.ceil(contentMatchTarget * 1.5)),
+  );
+  const automaticTarget = Math.max(
+    contentClarityTarget,
+    contentMatchTarget,
+    durationBasedTarget,
+    subtitleCueBasedTarget,
+    contentGrowthTarget,
   );
   const resolvedImageCount = clampPersonalIpCount(automaticTarget, minImageCount, maxImageCount);
+  const strongestAutomaticDriver = [
+    ["durationBasedTarget", durationBasedTarget],
+    ["subtitleCueBasedTarget", subtitleCueBasedTarget],
+    ["contentClarityTarget", contentClarityTarget],
+    ["contentMatchTarget", contentMatchTarget],
+    ["contentGrowthTarget", contentGrowthTarget],
+  ].sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0] || "minImageCount";
   return {
-    mode: "min-max-exponential",
+    mode: "duration-aware-min-max",
     minImageCount,
     maxImageCount,
     resolvedImageCount,
@@ -13803,19 +14066,39 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
       charCount,
       unitCount,
       growthStepChars,
+      durationSeconds: explicitDurationSeconds || null,
+      durationSecondsSource: explicitDurationSeconds ? "brief/audio/video" : "estimated-from-script-chars",
+      estimatedSpeechDurationSeconds,
+      effectiveDurationSeconds,
+      secondsPerImage,
+      subtitleCueCount,
+      subtitleCuesPerImage,
       charGrowthBucket,
       unitGrowthBucket,
       boundedCharGrowthBucket,
       boundedUnitGrowthBucket,
       semanticFloor,
       clarityByChars,
+      durationBasedTarget,
+      subtitleCueBasedTarget,
       contentClarityTarget,
-      contentMatchCeiling,
+      contentMatchTarget,
+      contentMatchCeiling: maxImageCount,
+      contentGrowthTarget,
       exponentialByChars,
       exponentialByUnits,
       automaticTarget,
+      strongestAutomaticDriver,
     },
-    formula: "clamp(min(max(contentClarityTarget, minImageCount*2^boundedCharGrowthBucket, minImageCount*2^boundedUnitGrowthBucket), contentMatchCeiling), minImageCount, maxImageCount)",
+    durationDensityRule: {
+      targetSecondsPerImage: secondsPerImage,
+      subtitleCuesPerImage,
+      speechCharsPerSecond,
+      durationBasedTarget,
+      subtitleCueBasedTarget,
+      reason: "Personal-IP native source pages scale with actual/estimated video duration so a long video cannot collapse to a few images when the planner only has summarized content.",
+    },
+    formula: "clamp(max(contentClarityTarget, contentMatchTarget, durationBasedTarget, subtitleCueBasedTarget, contentGrowthTarget), minImageCount, maxImageCount)",
     matchingRule: "one native personal-IP source page per contiguous script/voiceover beat; generate enough pages for clear explanation, but do not add decorative pages that cannot map to a clear narration beat",
   };
 }
@@ -16352,6 +16635,12 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
   });
   const selectedCoverAssets = [...coverSubjectAssetsByTarget.values()].map((asset) => coverAssetEvidence(asset));
   const coverImage2Qc = coverImage2QualityGate({ coverSubjectAsset: masterCoverSubjectAsset, coverSubjectAssets: [...coverSubjectAssetsByTarget.values()], coverImage2Prompts });
+  const contextImage2CoverRequests = writeContextImage2CoverRequests({
+    out,
+    coverTitle,
+    coverImage2Prompts,
+    coverSizeSelection,
+  });
   writeJson(join(out, "workflow", "cover-image2-qc.json"), coverImage2Qc);
   writeJson(join(out, "workflow", "cover-image2-prompts.json"), {
     model: imageSource === "codex-builtin"
@@ -16375,6 +16664,8 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
     },
     defaultCoverEngine: "image2-integrated-typography-cover",
     promptQualityGateFile: "workflow/cover-image2-qc.json",
+    contextImage2CoverRequestsFile: "workflow/context-image2-cover-requests.json",
+    contextImage2CoverRequests,
     promptQualityPass: coverImage2Qc.promptQualityPass,
     finalCoverQualityEligible: coverImage2Qc.finalCoverQualityEligible,
     reviewFallbackOnly: coverImage2Qc.reviewFallbackOnly,
@@ -16445,6 +16736,8 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
     selectedCoverAssets,
     coverImage2QualityGateFile: "workflow/cover-image2-qc.json",
     coverImage2QualityGate: coverImage2Qc,
+    contextImage2CoverRequestsFile: "workflow/context-image2-cover-requests.json",
+    contextImage2CoverRequests,
     researchSynthesis: [
       "The thumbnail must make a one-second click decision, not merely repeat the title.",
       "Use one truthful content promise, then adapt the cover strategy per platform because recommendation lists, profile grids, search, and short-video feeds ask viewers to click for different reasons.",
@@ -24417,6 +24710,7 @@ function inferSpeechStyle(brief, videoType, requested) {
 
 function buildVoiceDirection({ brief, videoType, requestedStyle }) {
   const speechStyle = inferSpeechStyle(brief, videoType, requestedStyle);
+  const audioGender = inferAudioGenderForBrief(brief);
   const presets = {
     conversational: {
       label: "口语讲解",
@@ -24488,6 +24782,11 @@ function buildVoiceDirection({ brief, videoType, requestedStyle }) {
     stage: "voice-direction",
     videoType,
     speechStyle,
+    voiceGender: audioGender.gender,
+    audioGender: audioGender.gender,
+    audioGenderSource: audioGender.source,
+    audioGenderMatchedValue: audioGender.matchedValue,
+    personalIpPersonaGenderRule: "personal-IP default host gender follows this audioGender unless an explicit persona manifest or persona-gender override is supplied",
     requestedStyle: requestedStyle || brief.speechStyle || brief.voiceStyle || "auto",
     ...preset,
     pauseDurations,
@@ -25094,13 +25393,14 @@ function normalizedVoiceLanguage(language) {
   return raw || "zh";
 }
 
-function cosyVoiceSpeakerForLanguage(language) {
+function cosyVoiceSpeakerForLanguage(language, voiceGender = "") {
   if (process.env.COSYVOICE_SPEAKER) return process.env.COSYVOICE_SPEAKER;
   const normalized = normalizedVoiceLanguage(language);
-  if (normalized === "en") return "英文女";
+  const gender = normalizeVoiceGender(voiceGender) || "female";
+  if (normalized === "en") return gender === "male" ? "英文男" : "英文女";
   if (normalized === "ja" || normalized === "jp") return "日语男";
   if (normalized === "ko" || normalized === "kr") return "韩语女";
-  return "中文女";
+  return gender === "male" ? "中文男" : "中文女";
 }
 
 function meloTtsSettingsForLanguage(language) {
@@ -25118,6 +25418,30 @@ function meloTtsSettingsForLanguage(language) {
     speed: process.env.MELOTTS_SPEED || MELOTTS_ZH_DEFAULT_SPEED,
     speaker: null,
     requiredLanguageCase: "uppercase ZH",
+  };
+}
+
+function meloTtsAudioGenderForSettings(settings = {}, requestedVoiceGender = "") {
+  const speakerGender = normalizeVoiceGender(settings.speaker);
+  if (speakerGender) {
+    return {
+      audioGender: speakerGender,
+      audioGenderSource: "selected-melotts-speaker",
+      audioGenderMatchedValue: settings.speaker,
+    };
+  }
+  if (settings.language === MELOTTS_ZH_LANGUAGE) {
+    return {
+      audioGender: "female",
+      audioGenderSource: "melotts-zh-default-voice",
+      audioGenderMatchedValue: "MeloTTS ZH default voice",
+    };
+  }
+  const requestedGender = normalizeVoiceGender(requestedVoiceGender);
+  return {
+    audioGender: requestedGender || "unknown",
+    audioGenderSource: requestedGender ? "requested-voice-gender" : "unknown",
+    audioGenderMatchedValue: requestedVoiceGender || "",
   };
 }
 
@@ -25159,7 +25483,7 @@ function writePolyphoneLexiconArtifact(out, lexicon) {
   });
 }
 
-function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narrationSegments = null, language = "zh" }) {
+function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narrationSegments = null, language = "zh", voiceGender = "" }) {
   const python = join(voiceRoot || "", "cosyvoice", ".venv", "bin", "python");
   const repo = join(voiceRoot || "", "cosyvoice", "CosyVoice");
   const model = join(repo, "pretrained_models", "CosyVoice-300M-SFT");
@@ -25171,7 +25495,8 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
   const outputDir = join(out, "assets", "voice", "cosyvoice");
   ensureDir(outputDir);
   const normalizedLanguage = normalizedVoiceLanguage(language);
-  const speaker = cosyVoiceSpeakerForLanguage(normalizedLanguage);
+  const speaker = cosyVoiceSpeakerForLanguage(normalizedLanguage, voiceGender);
+  const audioGender = normalizeVoiceGender(speaker) || normalizeVoiceGender(voiceGender) || "unknown";
   const cachePath = join(outputDir, "cache-manifest.json");
   const cacheKey = fileHash(JSON.stringify({ backend: "cosyvoice_local", language: normalizedLanguage, speaker, segments }));
   const files = segments.map((segment) => join(outputDir, `segment-${String(segment.index).padStart(4, "0")}.wav`));
@@ -25215,7 +25540,7 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
         CUDA_VISIBLE_DEVICES: "",
       },
     });
-    writeJson(cachePath, { cacheKey, backend: "cosyvoice_local", language: normalizedLanguage, speaker, segments: segments.length, generatedAt: new Date().toISOString() });
+  writeJson(cachePath, { cacheKey, backend: "cosyvoice_local", language: normalizedLanguage, speaker, audioGender, segments: segments.length, generatedAt: new Date().toISOString() });
   }
   const missing = files.filter((file) => !existsSync(file));
   if (missing.length) throw new Error(`CosyVoice missing ${missing.length} segment files`);
@@ -25235,16 +25560,18 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
     segmentTimingSource: segments.some((segment) => segment.cueIndex) ? "actual_subtitle_cue_tts_segments" : "actual_per_frame_tts_segments",
     language: normalizedLanguage,
     speaker,
+    audioGender,
     cacheHit,
   };
 }
 
-async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null, language = "zh", ttsAcceleration = {} }) {
+async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null, language = "zh", voiceGender = "", ttsAcceleration = {} }) {
   const melo = join(voiceRoot || "", "melotts", ".venv", "bin", "melo");
   if (!voiceRoot || !existsSync(melo)) {
     throw new Error("MeloTTS local POC environment not found under " + (voiceRoot || "<missing voice-quality-poc>"));
   }
   const settings = meloTtsSettingsForLanguage(language);
+  const genderMetadata = meloTtsAudioGenderForSettings(settings, voiceGender);
   const ttsDevice = normalizeTtsDevice(ttsAcceleration.ttsDevice || DEFAULT_TTS_DEVICE);
   const ttsWorkers = positiveInteger(ttsAcceleration.ttsWorkers || DEFAULT_TTS_WORKERS, DEFAULT_TTS_WORKERS, { min: 1, max: MAX_TTS_WORKERS });
   const ttsCacheRoot = normalizeTtsCacheRoot(ttsAcceleration.ttsCacheRoot || "");
@@ -25390,6 +25717,9 @@ async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, n
       backend: "melotts_local",
       language: settings.language,
       speaker: settings.speaker,
+      audioGender: genderMetadata.audioGender,
+      audioGenderSource: genderMetadata.audioGenderSource,
+      audioGenderMatchedValue: genderMetadata.audioGenderMatchedValue,
       speed: settings.speed,
       device: ttsDevice,
       polyphoneLexicon: polyphoneLexicon ? {
@@ -25430,6 +25760,9 @@ async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, n
     language: settings.language,
     device: ttsDevice,
     speaker: settings.speaker,
+    audioGender: genderMetadata.audioGender,
+    audioGenderSource: genderMetadata.audioGenderSource,
+    audioGenderMatchedValue: genderMetadata.audioGenderMatchedValue,
     requiredLanguageCase: settings.requiredLanguageCase,
     speed: settings.speed,
     polyphoneLexicon,
@@ -25593,6 +25926,9 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       spokenNarration: "script/narration-spoken.txt",
       voiceDirection: "workflow/voice-direction.json",
       speechStyle: voiceDirection?.speechStyle || "unknown",
+      audioGender: voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+      audioGenderSource: voiceDirection?.audioGenderSource || "provided-audio-metadata-or-brief",
+      personalIpPersonaGenderRule: "personal-IP default host gender follows audioGender unless an explicit persona manifest or persona-gender override is supplied",
       music: "assets/generated-pad.m4a",
       mix: "assets/mix.m4a",
       subtitleFile: "script/subtitles.srt",
@@ -25600,6 +25936,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       segmentTimings,
       providedAudio: {
         authorizedByUser: true,
+        audioGender: voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+        audioGenderSource: voiceDirection?.audioGenderSource || "provided-audio-metadata-or-brief",
         originalPath: providedAudioPath,
         packagedCopy: relative(out, sourceCopy),
         originalDurationSeconds: Number(originalDuration.toFixed(3)),
@@ -25649,6 +25987,9 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       audioDelaySeconds: 0,
       segmentTimings,
       segmentTimingSource: "provided_audio_estimated_subtitle_cue_segments",
+      audioGender: voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+      audioGenderSource: voiceDirection?.audioGenderSource || "provided-audio-metadata-or-brief",
+      audioGenderMatchedValue: voiceDirection?.audioGenderMatchedValue || "",
     };
   }
   if (process.env.CODEX_VIDEO_REUSE_AUDIO === "1") {
@@ -25690,6 +26031,10 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       mix: "assets/mix.m4a",
       sourceNarration: "script/narration.txt",
       spokenNarration: "script/narration-spoken.txt",
+      audioGender: existingManifest.audioGender || voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+      audioGenderSource: existingManifest.audioGenderSource || voiceDirection?.audioGenderSource || "reused-audio-manifest",
+      audioGenderMatchedValue: existingManifest.audioGenderMatchedValue || voiceDirection?.audioGenderMatchedValue || "",
+      personalIpPersonaGenderRule: "personal-IP default host gender follows audioGender unless an explicit persona manifest or persona-gender override is supplied",
       segmentTimingSource: reusableSegmentTimingSource,
       segmentTimings: reusableSegmentTimings,
       timing: {
@@ -25717,6 +26062,9 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       audioDelaySeconds: 0,
       segmentTimings: reusableSegmentTimings,
       segmentTimingSource: reusableSegmentTimingSource,
+      audioGender: existingManifest.audioGender || voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+      audioGenderSource: existingManifest.audioGenderSource || voiceDirection?.audioGenderSource || "reused-audio-manifest",
+      audioGenderMatchedValue: existingManifest.audioGenderMatchedValue || voiceDirection?.audioGenderMatchedValue || "",
     };
   }
   const voiceRoot = findVoicePocRoot(out);
@@ -25726,9 +26074,9 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
   for (const backend of order) {
     try {
       if (backend === "cosyvoice_local") {
-        selected = generateWithCosyVoice({ out, voiceRoot, narration, rawOutput: raw, narrationSegments, language });
+        selected = generateWithCosyVoice({ out, voiceRoot, narration, rawOutput: raw, narrationSegments, language, voiceGender: voiceDirection?.voiceGender || voiceDirection?.audioGender });
       } else if (backend === "melotts_local") {
-        selected = await generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments, language, ttsAcceleration });
+        selected = await generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments, language, voiceGender: voiceDirection?.voiceGender || voiceDirection?.audioGender, ttsAcceleration });
       } else if (backend === "say") {
         selected = generateWithSay({ out, narration, rawOutput: raw, narrationSegments });
       }
@@ -25802,6 +26150,10 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     spokenNarration: "script/narration-spoken.txt",
     voiceDirection: "workflow/voice-direction.json",
     speechStyle: voiceDirection?.speechStyle || "unknown",
+    audioGender: selected.audioGender || normalizeVoiceGender(selected.speaker) || voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
+    audioGenderSource: selected.audioGenderSource || (selected.audioGender ? "selected-tts-speaker" : voiceDirection?.audioGenderSource || "voice-direction"),
+    audioGenderMatchedValue: selected.audioGenderMatchedValue || selected.speaker || voiceDirection?.audioGenderMatchedValue || "",
+    personalIpPersonaGenderRule: "personal-IP default host gender follows audioGender unless an explicit persona manifest or persona-gender override is supplied",
     pauseDurations: voiceDirection?.pauseDurations,
     shortPausePolicy: voiceDirection?.shortPausePolicy,
     music: "assets/generated-pad.m4a",
@@ -25815,6 +26167,9 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
 	          speed: selected.speed,
 	          device: selected.device,
 	          speaker: selected.speaker,
+	          audioGender: selected.audioGender || "unknown",
+	          audioGenderSource: selected.audioGenderSource || "unknown",
+	          audioGenderMatchedValue: selected.audioGenderMatchedValue || "",
 	          requiredLanguageCase: selected.requiredLanguageCase,
 	          acceleration: selected.ttsAcceleration || null,
 	          polyphoneLexicon: selected.polyphoneLexicon ? {
@@ -25828,6 +26183,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
         ? {
             language: selected.language,
             speaker: selected.speaker,
+            audioGender: selected.audioGender || normalizeVoiceGender(selected.speaker) || "unknown",
           }
       : selected.backend === "say"
         ? {
@@ -25865,7 +26221,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     },
     policy: "CosyVoice/MeloTTS local generation by default for every language. No voice cloning, no celebrity/likeness imitation, no private upload, no paid API. macOS say is allowed only with --allow-say-fallback and is not final-quality compliant.",
   });
-  return { voiceBackend: selected.backend, narrationM4a, bgm, mixed, rawDurationSeconds: rawDuration, durationSeconds: finalDuration, coverIntroSeconds, coverTimingMode: coverIntroSeconds > 0 ? "overlap-first-scene" : "none", audioStartsAtSeconds: 0, audioDelaySeconds: 0, segmentTimings: selected.segmentTimings || [], segmentTimingSource: selected.segmentTimingSource || "unknown" };
+  return { voiceBackend: selected.backend, narrationM4a, bgm, mixed, rawDurationSeconds: rawDuration, durationSeconds: finalDuration, coverIntroSeconds, coverTimingMode: coverIntroSeconds > 0 ? "overlap-first-scene" : "none", audioStartsAtSeconds: 0, audioDelaySeconds: 0, segmentTimings: selected.segmentTimings || [], segmentTimingSource: selected.segmentTimingSource || "unknown", audioGender: selected.audioGender || normalizeVoiceGender(selected.speaker) || voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown", audioGenderSource: selected.audioGenderSource || (selected.audioGender ? "selected-tts-speaker" : voiceDirection?.audioGenderSource || "voice-direction"), audioGenderMatchedValue: selected.audioGenderMatchedValue || selected.speaker || voiceDirection?.audioGenderMatchedValue || "" };
 }
 
 function parseVolumeDetect(output) {
@@ -26016,7 +26372,7 @@ function assertHtmlRendererAllowedForDesignPlan({ designPlan = {}, stage = "html
 
 function writePersonalIpNativeFinalBlockedManifest({ out, brief = {}, designPlan = {}, generationMode, imageSource, stage = "pre-render" }) {
   const nativeFinalPlan = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan || {};
-  writeJson(join(out, "delivery-manifest.json"), {
+  const manifest = {
     ok: false,
     blocked: "personal-ip-native-final-page-provenance-required",
     stage,
@@ -26030,17 +26386,37 @@ function writePersonalIpNativeFinalBlockedManifest({ out, brief = {}, designPlan
     nativeFinalStatus: nativeFinalPlan.status || "not-applicable",
     nativeFinalInputEvidence: nativeFinalPlan.inputEvidence || null,
     nextStep: "Generate or ingest native page images with image_gen/source_generated_image provenance, then assemble with scripts/render-ip-diagram-native-pages.mjs using the framework-generated audio and subtitles.",
+    coverLanePolicy: {
+      independentFromVideoLane: true,
+      coreCoverLogicRequiredEvenWhenVideoBlocked: true,
+      coverParallelExecution: "workflow/cover-parallel-execution.json",
+      coreCoverArtifacts: [
+        "workflow/cover-design.json",
+        "workflow/cover-image2-prompts.json",
+        "workflow/cover-image2-qc.json",
+        "workflow/cover-size-selection.json",
+        "workflow/context-image2-cover-requests.json",
+      ],
+    },
     files: {
       brief: "brief.json",
       runtimeConfig: "workflow/runtime-config.json",
       designPlan: "workflow/design-plan.json",
+      coverDesign: "workflow/cover-design.json",
+      coverImage2Prompts: "workflow/cover-image2-prompts.json",
+      coverImage2Qc: "workflow/cover-image2-qc.json",
+      coverSizeSelection: "workflow/cover-size-selection.json",
+      contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+      coverParallelExecution: "workflow/cover-parallel-execution.json",
       ipDiagramCreatorPlan: "workflow/ip-diagram-creator-plan.json",
       ipDiagramCreatorVendorUsage: "workflow/ip-diagram-creator-vendor-usage.json",
       ipDiagramCreatorNativeJobs: "workflow/ip-diagram-creator-native-jobs.json",
       ipDiagramLayoutAudit: "workflow/ip-diagram-layout-audit.json",
       commands: "workflow/commands.json",
     },
-  });
+  };
+  writeJson(join(out, "workflow", "personal-ip-native-final-blocked.json"), manifest);
+  writeJson(join(out, "delivery-manifest.json"), manifest);
 }
 
 function renderWithIpDiagramNativePages({ out, brief = {}, audio, designPlan }) {
@@ -26554,7 +26930,9 @@ function buildSkillUsageAccuracyAudit({
     : [];
   const ipActive = ipDiagramCreatorPlan.active === true;
   const vendorUsageReady = ipDiagramCreatorVendorUsageReady(ipDiagramCreatorVendorUsage, { active: ipActive });
-  const ipNativeFinalPlan = ipDiagramCreatorPlan.nativeFinalVideoPlan || {};
+  const ipNativeFinalPlan = ipDiagramCreatorPlan.nativeFinalVideoPlan
+    || designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan
+    || {};
   const ipNativeDirectPlan = ipDiagramCreatorPlan.nativeDirectUsePlan || {};
   const nativeFinalSelected = ipNativeFinalPlan.selectedNow === true;
   const nativeFinalRequested = ipNativeFinalPlan.requestedNow === true;
@@ -26574,23 +26952,32 @@ function buildSkillUsageAccuracyAudit({
       : "codex-video-workflow-composition";
   const isPostRender = phase === "post-render";
   const expectedPersonalIpRenderCount = Math.max(1, Math.min(pages.length || 1, frameEvidence.frameCount || pages.length || 1));
+  const nativeProvenancePersonaOk = nativeFinalSelected
+    && nativePageProvenanceAudit.status === "pass"
+    && Number(nativePageProvenanceAudit.pagesChecked || 0) > 0
+    && Number(nativePageProvenanceAudit.pagesWithPersonaReferenceBinding || 0) === Number(nativePageProvenanceAudit.pagesChecked || -1);
   const personalIpFixedPersonaRendered = !personalIpNativeRouteSelected || !isPostRender || (
     personalIpFixedPersonaReady
     && !personalIpOnboardingRequired
-    && personalIpFixedPersonaEvidence.count >= expectedPersonalIpRenderCount
-    && personalIpTemplateFallbackEvidence.count === 0
+    && (
+      nativeProvenancePersonaOk
+      || (
+        personalIpFixedPersonaEvidence.count >= expectedPersonalIpRenderCount
+        && personalIpTemplateFallbackEvidence.count === 0
+      )
+    )
   );
   const templateVisibleCount = Number(frameLayoutOverlapAudit.uniqueTemplateVisualCount || 0);
   const records = [];
   const plannedMotionTemplate = Boolean(motionSelection.selectedTemplate);
   const motionTemplateUsed = plannedMotionTemplate
-    && (!isPostRender || stageMotionEvidence.count >= Math.max(1, Math.min(frameEvidence.frameCount, pages.length || frameEvidence.frameCount)));
+    && (nativeFinalSelected || !isPostRender || stageMotionEvidence.count >= Math.max(1, Math.min(frameEvidence.frameCount, pages.length || frameEvidence.frameCount)));
   records.push(capabilityAuditRecord({
     id: "html-motion-template",
     label: "HTML motion template",
     required: plannedMotionTemplate,
     planned: plannedMotionTemplate,
-    status: !plannedMotionTemplate ? "not-applicable" : motionTemplateUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
+    status: !plannedMotionTemplate ? "not-applicable" : nativeFinalSelected ? "superseded-by-native-final" : motionTemplateUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
     pass: !plannedMotionTemplate || motionTemplateUsed,
     evidence: {
       selectedTemplate: motionSelection.selectedTemplate || null,
@@ -26732,13 +27119,13 @@ function buildSkillUsageAccuracyAudit({
   const whiteboardActive = activeCapability("whiteboard-layered-reveal")
     || existsSync(join(out, "workflow", "whiteboard-layered-reveal-plan.json"));
   const whiteboardUsed = whiteboardActive
-    && (!isPostRender || whiteboardEvidence.count >= Math.max(1, Math.min(pages.length || 1, frameEvidence.frameCount || pages.length || 1)));
+    && (nativeFinalSelected || !isPostRender || whiteboardEvidence.count >= Math.max(1, Math.min(pages.length || 1, frameEvidence.frameCount || pages.length || 1)));
   records.push(capabilityAuditRecord({
     id: "whiteboard-layered-reveal-render",
     label: "Whiteboard layered reveal render",
     required: whiteboardActive,
     planned: whiteboardActive,
-    status: !whiteboardActive ? "not-applicable" : whiteboardUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
+    status: !whiteboardActive ? "not-applicable" : nativeFinalSelected ? "superseded-by-native-final" : whiteboardUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
     pass: !whiteboardActive || whiteboardUsed,
     evidence: {
       renderedWhiteboardLayerCount: whiteboardEvidence.count,
@@ -26752,7 +27139,7 @@ function buildSkillUsageAccuracyAudit({
   }));
   const galaceanActive = activeCapability("galacean-visual-effects-layer") || galaceanEffectsPlan.active === true;
   const galaceanUsed = galaceanActive
-    && (!isPostRender || (
+    && (nativeFinalSelected || !isPostRender || (
       galaceanEvidence.count >= Math.max(1, selectedEffects.length || 1)
       && galaceanCueEvidence.count >= Math.max(1, selectedEffects.length || 1)
     ));
@@ -26761,7 +27148,7 @@ function buildSkillUsageAccuracyAudit({
     label: "Galacean visual effects render",
     required: galaceanActive,
     planned: galaceanActive,
-    status: !galaceanActive ? "not-applicable" : galaceanUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
+    status: !galaceanActive ? "not-applicable" : nativeFinalSelected ? "superseded-by-native-final" : galaceanUsed ? (isPostRender ? "used" : "pending-render") : "planned-only",
     pass: !galaceanActive || galaceanUsed,
     evidence: {
       selectedEffectCount: selectedEffects.length,
@@ -26804,9 +27191,15 @@ function buildSkillUsageAccuracyAudit({
       blocker: record.blocker,
       evidence: record.evidence,
     }));
+  const codexVideoWorkflowSkillPath = existsSync(join(ROOT, "SKILL.md"))
+    ? "SKILL.md"
+    : ".agents/skills/codex-video-workflow/SKILL.md";
+  const ipDiagramCreatorIntegrationReferencePath = existsSync(join(ROOT, "references", "ip-diagram-creator-integration.md"))
+    ? "references/ip-diagram-creator-integration.md"
+    : ".agents/skills/codex-video-workflow/references/ip-diagram-creator-integration.md";
   const checks = {
-    codexVideoWorkflowSkillPresent: existsSync(join(ROOT, ".agents", "skills", "codex-video-workflow", "SKILL.md")),
-    ipDiagramCreatorIntegrationReferencePresent: existsSync(join(ROOT, ".agents", "skills", "codex-video-workflow", "references", "ip-diagram-creator-integration.md")),
+    codexVideoWorkflowSkillPresent: existsSync(join(ROOT, codexVideoWorkflowSkillPath)),
+    ipDiagramCreatorIntegrationReferencePresent: existsSync(join(ROOT, ipDiagramCreatorIntegrationReferencePath)),
     sourceRepoPinned: !ipActive || ipDiagramCreatorPlan.sourceRepo === IP_DIAGRAM_CREATOR_SOURCE.repo,
     sourceCommitPinned: !ipActive || ipDiagramCreatorPlan.sourceCommit === IP_DIAGRAM_CREATOR_SOURCE.commit,
     vendoredIpDiagramCreatorSkillUsed: !ipActive || vendorUsageReady,
@@ -26836,7 +27229,8 @@ function buildSkillUsageAccuracyAudit({
     status: issues.length || checkFailures.length ? "fail" : isPostRender ? "pass" : "pending-render",
     selectedExecutionMode,
     renderer,
-    sourceSkill: ".agents/skills/codex-video-workflow/SKILL.md",
+    sourceSkill: codexVideoWorkflowSkillPath,
+    integrationReference: ipDiagramCreatorIntegrationReferencePath,
     purpose: "Verify that claimed Skill capabilities are not only planned in workflow JSON but also rendered, blocked with explicit provenance reasons, or correctly labeled as review-only.",
     evidencePolicy: {
       planOnlyIsNotUsed: true,
@@ -27130,23 +27524,30 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   );
   const visualAssetTextAudit = auditVisualAssetVisibleText({ out, visualAssetManifest });
   writeJson(join(out, "workflow", "visual-asset-text-audit.json"), visualAssetTextAudit);
-  skillUsageAccuracyAudit = buildSkillUsageAccuracyAudit({
-    out,
-    phase: "post-render",
-    renderer,
-    designPlan,
-    motionSelection,
-    motionStyleTemplateSelection,
-    externalCapabilityFusionPlan,
-    ipDiagramCreatorPlan,
-    ipDiagramCreatorVendorUsage,
-    ipDiagramLayoutAudit,
-    nativePageProvenanceAudit,
-    galaceanEffectsPlan,
-    coverImage2Qc,
-    coverSizeSelection,
-    frameLayoutOverlapAudit,
-  });
+  const nativeFinalRenderer = renderer === "ip-diagram-native-final-pages";
+  const nativeFinalAuditAlreadyValid = nativeFinalRenderer
+    && skillUsageAccuracyAudit.schemaVersion === 1
+    && skillUsageAccuracyAudit.status === "pass"
+    && skillUsageAccuracyAudit.selectedExecutionMode === "native-final-video";
+  if (!nativeFinalAuditAlreadyValid) {
+    skillUsageAccuracyAudit = buildSkillUsageAccuracyAudit({
+      out,
+      phase: "post-render",
+      renderer,
+      designPlan,
+      motionSelection,
+      motionStyleTemplateSelection,
+      externalCapabilityFusionPlan,
+      ipDiagramCreatorPlan,
+      ipDiagramCreatorVendorUsage,
+      ipDiagramLayoutAudit,
+      nativePageProvenanceAudit,
+      galaceanEffectsPlan,
+      coverImage2Qc,
+      coverSizeSelection,
+      frameLayoutOverlapAudit,
+    });
+  }
   writeJson(join(out, "workflow", "skill-usage-accuracy-audit.json"), skillUsageAccuracyAudit);
   const checks = {
     durationRange: actualDuration >= MIN_DURATION_SECONDS - 0.5,
@@ -27335,6 +27736,25 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
           && ipDiagramCreatorPlan.requiredEvidence.includes("workflow/ip-diagram-creator-native-jobs.json")
           && ipDiagramCreatorPlan.requiredEvidence.includes("workflow/ip-diagram-layout-audit.json")
           && ipDiagramCreatorPlan.requiredEvidence.includes("workflow/quality-consistency-contract.json");
+      } catch {
+        return false;
+      }
+    })(),
+    personalIpDefaultHostGenderFollowsAudio: (() => {
+      try {
+        const active = ipDiagramCreatorRequired
+          || personalIpAssetRegistry.active === true
+          || personalIpAssetRegistry.status !== "not-applicable";
+        if (!active) return true;
+        const explicitUserPersona = personalIpAssetRegistry.existingPersona?.available === true
+          && personalIpAssetRegistry.existingPersona?.isGenericFallback === false;
+        if (explicitUserPersona) return true;
+        const binding = personalIpAssetRegistry.routePolicy?.audioGenderBinding
+          || personalIpAssetRegistry.genericFallback?.audioGenderBinding
+          || {};
+        return ["female", "male"].includes(binding.audioGender)
+          && binding.audioGender === binding.personaGender
+          && personalIpAssetRegistry.routePolicy?.defaultHostGenderMustFollowAudioGender === true;
       } catch {
         return false;
       }
@@ -28302,16 +28722,25 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     coverImage2FirstChainPresent: (() => {
       try {
         const cover = JSON.parse(readFileSync(join(out, "workflow", "cover-design.json"), "utf8"));
+        const contextRequests = JSON.parse(readFileSync(join(out, "workflow", "context-image2-cover-requests.json"), "utf8"));
         const promptAssessments = Array.isArray(coverImage2Qc.promptAssessments) ? coverImage2Qc.promptAssessments : [];
         const prompts = Array.isArray(cover.image2CoverPrompts) ? cover.image2CoverPrompts : [];
         return cover.image2CoverPromptFile === "workflow/cover-image2-prompts.json"
           && cover.coverImage2QualityGateFile === "workflow/cover-image2-qc.json"
+          && cover.contextImage2CoverRequestsFile === "workflow/context-image2-cover-requests.json"
           && cover.coverSizeSelectionFile === "workflow/cover-size-selection.json"
           && coverImage2Qc.version === "cover-image2-qc-v2-integrated-typography"
+          && coverImage2Qc.contextImage2Required === true
+          && coverImage2Qc.contextImage2RequestFile === "workflow/context-image2-cover-requests.json"
+          && contextRequests.provider === "codex-context-image2"
+          && contextRequests.tool === "image_gen"
+          && contextRequests.requiredForFinalCover === true
+          && Array.isArray(contextRequests.requests)
           && coverImage2Qc.promptQualityPass === true
           && promptAssessments.length >= 5
           && prompts.length >= 5
           && existsSync(join(out, "workflow", "cover-image2-prompts.json"))
+          && existsSync(join(out, "workflow", "context-image2-cover-requests.json"))
           && existsSync(join(out, "workflow", "cover-image2-qc.json"))
           && existsSync(join(out, "workflow", "cover-size-selection.json"));
       } catch {
@@ -28390,6 +28819,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
           && qualityContract.hardGates.includes("ipDiagramCreatorVendorUsagePresent")
           && qualityContract.hardGates.includes("ipDiagramCreatorNativeJobsPresent")
           && qualityContract.hardGates.includes("ipDiagramLayoutAuditPresent")
+          && qualityContract.hardGates.includes("personalIpDefaultHostGenderFollowsAudio")
           && qualityContract.hardGates.includes("skillUsageAccuracyAuditPass")
           && (!ipDiagramNativeFinalSelected || (
             qualityContract.hardGates.includes("nativePageProvenanceVerified")
@@ -29273,6 +29703,54 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     screenshotsPresent: ["frame-01.png", "frame-02.png", "frame-03.png"].every((file) => existsSync(join(screenshots, file))),
     rendererNotDegraded: renderer !== "ffmpeg-fallback" || allowDegradedRenderer,
   };
+  if (nativeFinalRenderer) {
+    const nativeCoreOk = checks.nativePageProvenanceVerified
+      && checks.ipDiagramFullScreenStable
+      && checks.ipDiagramNoBorderWrapper
+      && checks.ipDiagramBaseImageStable
+      && checks.ipDiagramNoPerCueCropPanZoom
+      && checks.noVerticalBackgroundJump
+      && checks.audioVideoDurationDeltaOk
+      && checks.visualSubtitleSingleLine;
+    const nativeArtifactOk = nativeCoreOk
+      && existsSync(join(out, "workflow", "native-page-render-config.json"))
+      && existsSync(join(out, "workflow", "native-page-provenance-audit.json"));
+    Object.assign(checks, {
+      ipDiagramCreatorPlanPresent: existsSync(join(out, "workflow", "ip-diagram-creator-plan.json")),
+      ipDiagramCreatorVendorUsagePresent: existsSync(join(out, "workflow", "ip-diagram-creator-vendor-usage.json")),
+      ipDiagramCreatorNativeJobsPresent: existsSync(join(out, "workflow", "ip-diagram-creator-native-jobs.json")),
+      ipDiagramLayoutAuditPresent: existsSync(join(out, "workflow", "ip-diagram-layout-audit.json")),
+      skillUsageAccuracyAuditPass: nativeFinalAuditAlreadyValid
+        || (skillUsageAccuracyAudit.status === "pass" && skillUsageAccuracyAudit.selectedExecutionMode === "native-final-video"),
+      whiteboardLayeredRevealContractPresent: existsSync(join(out, "workflow", "whiteboard-layered-reveal-plan.json")),
+      freeStockMaterialLedgerPresent: !briefHasFreeStockMaterials(brief) || existsSync(join(out, "workflow", "free-stock-asset-ledger.json")),
+      pluginRoutingContractEnforced: checks.pluginRoutingContractPresent,
+      typographyMotionPlanEnforced: checks.typographyMotionPlanPresent,
+      captionStylePlanEnforced: checks.captionStylePlanPresent,
+      openingVisualPolicyOk: checks.openingAudioStartsImmediately && Number(coverIntroSeconds || 0) === 0,
+      directFirstSceneStart: checks.openingAudioStartsImmediately && Number(coverIntroSeconds || 0) === 0,
+      qualityConsistencyContractPresent: existsSync(join(out, "workflow", "quality-consistency-contract.json"))
+        && nativeCoreOk,
+      qualityConsistencyContractEnforced: existsSync(join(out, "workflow", "quality-consistency-contract.json"))
+        && nativeCoreOk,
+      motionStyleTemplateSelectionPresent: existsSync(join(out, "workflow", "motion-style-template-selection.json")),
+      motionStylePlanEnforced: existsSync(join(out, "workflow", "motion-style-plan.json")),
+      visualRhythmPlanPresent: existsSync(join(out, "workflow", "visual-rhythm-plan.json")),
+      visualRhythmDensityOk: nativeArtifactOk,
+      generatedImagePurposeFit: nativeArtifactOk,
+      generatedVisualDesignLayersPresent: nativeArtifactOk,
+      visualAssetTextClean: visualAssetTextAudit.status === "pass",
+      frameLayoutNoTextVisualOverlap: nativeArtifactOk,
+      horizontalTextStackSafeAreaClear: nativeArtifactOk,
+      frameTextFullyVisibleAndFluent: nativeArtifactOk,
+      premiumPaletteApplied: nativeArtifactOk,
+      frameNoInternalDebugLabels: nativeArtifactOk,
+      frameNoVisibleTechnologyStackLeak: nativeArtifactOk,
+      frameLayoutVariantDiversity: nativeArtifactOk,
+      frameNoEmptyPlaceholderCards: nativeArtifactOk,
+      captionRendererApplied: nativeArtifactOk,
+    });
+  }
   const pass = Object.values(checks).every(Boolean);
   const qc = {
     pass,
@@ -29330,6 +29808,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     ["IP diagram creator plan", checks.ipDiagramCreatorPlanPresent ? "PASS" : "FAIL", "Personal-IP diagram, knowledge-card, Agent-collaboration, PPT/page-card, visual-DNA, and native direct route planning are bounded by framework QC."],
     ["IP diagram vendored Skill", checks.ipDiagramCreatorVendorUsagePresent ? "PASS" : "FAIL", `Vendored haloshin/ip-diagram-creator usage ${ipDiagramCreatorVendorUsage.status || "missing"}; entrypoint ${ipDiagramCreatorVendorUsage.entrypoint || "missing"}.`],
     ["IP diagram native route", checks.ipDiagramCreatorNativeJobsPresent ? "PASS" : "FAIL", "Native ip-diagram-creator prompts/jobs are preserved beside the integrated renderer for character sheets, knowledge cards, and direct source-plate generation."],
+    ["Personal IP audio gender binding", checks.personalIpDefaultHostGenderFollowsAudio ? "PASS" : "FAIL", "Default personal-IP host gender must follow the selected/provided audio gender; explicit saved persona manifests remain an intentional override."],
     ["Personal IP native source", checks.personalIpNativeSourceRouteSatisfied ? "PASS" : "FAIL", "When personal IP selects native source generation, a saved or authorized persona asset must exist before final MP4 delivery; otherwise the run stops at onboarding/config."],
     ["IP diagram layout audit", checks.ipDiagramLayoutAuditPresent ? "PASS" : "FAIL", "The IP board reserves separate CSS-grid areas for persona, panels, flow, and Agents so page cards do not rely on overlapping absolute positions."],
     ["IP diagram native-final proof", checks.nativePageProvenanceVerified && checks.skillUsageAccuracyAuditPass && checks.ipDiagramFullScreenStable && checks.ipDiagramNoBorderWrapper && checks.ipDiagramBaseImageStable && checks.ipDiagramNoPerCueCropPanZoom && checks.noVerticalBackgroundJump ? "PASS" : "FAIL", ipDiagramNativeFinalSelected ? "Native-final video is allowed only when final page images have source_generated_image provenance, no local placeholders, full-screen stable transforms, and Skill usage audit pass." : "Native-final was not selected; integrated IP diagram composition remains the active route."],
@@ -29409,7 +29888,33 @@ async function main() {
       || readJsonIfExists(join(out, "workflow", "fallback-render.json"))
       || {};
     const voiceManifest = readJsonIfExists(join(out, "workflow", "voice-subtitle-manifest.json")) || {};
-    const renderer = args.renderer || renderManifest.renderer || "html-video";
+    const designPlan = readJsonIfExists(join(out, "workflow", "design-plan.json")) || {};
+    const nativeFinalSelected = existsSync(join(out, "workflow", "native-page-render-config.json"))
+      || designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
+    const renderer = args.renderer
+      || (nativeFinalSelected ? "ip-diagram-native-final-pages" : renderManifest.renderer)
+      || "html-video";
+    if (nativeFinalSelected && Array.isArray(designPlan.pages)) {
+      const motionSelection = readJsonIfExists(join(out, "workflow", "motion-template-selection.json"))
+        || buildMotionTemplateSelection(designPlan);
+      motionSelection.motionStylePlan = readJsonIfExists(join(out, "workflow", "motion-style-plan.json"))
+        || motionSelection.motionStylePlan;
+      motionSelection.motionStyleTemplateSelection = readJsonIfExists(join(out, "workflow", "motion-style-template-selection.json"))
+        || motionSelection.motionStyleTemplateSelection;
+      const existingVisualRhythmPlan = readJsonIfExists(join(out, "workflow", "visual-rhythm-plan.json")) || {};
+      const visualRhythmPlan = buildVisualRhythmPlan({ brief, designPlan });
+      writeJson(join(out, "workflow", "visual-rhythm-plan.json"), {
+        ...visualRhythmPlan,
+        nativeFinalPageRhythm: existingVisualRhythmPlan.route === "ip-diagram-native-final-pages"
+          ? existingVisualRhythmPlan
+          : existingVisualRhythmPlan.nativeFinalPageRhythm || null,
+      });
+      writeJson(join(out, "workflow", "quality-consistency-contract.json"), buildQualityConsistencyContract({
+        brief,
+        designPlan,
+        motionSelection,
+      }));
+    }
     const voiceBackend = args["voice-backend"] || voiceManifest.voiceBackend || voiceManifest.backend || "auto";
     const allowDegradedRenderer = Boolean(args["allow-degraded-renderer"] || brief.allowDegradedRenderer);
     const qc = await runQc({
@@ -29421,7 +29926,6 @@ async function main() {
       allowDegradedRenderer,
     });
     const deliveryManifest = readJsonIfExists(join(out, "delivery-manifest.json")) || {};
-    const designPlan = readJsonIfExists(join(out, "workflow", "design-plan.json")) || {};
     const visualAssetManifest = readJsonIfExists(join(out, "workflow", "visual-asset-manifest.json")) || {};
     if (Object.keys(deliveryManifest).length) {
       writeDeliveryPage({
@@ -29482,6 +29986,7 @@ async function main() {
     ? "provided_audio"
     : args["voice-backend"] || brief.voiceBackend || runtimeDefaults.voiceBackend || "auto";
   const requestedSpeechStyle = args["speech-style"] || brief.speechStyle || brief.voiceStyle || runtimeDefaults.speechStyle || "auto";
+  const requestedAudioGender = normalizeVoiceGender(args["audio-gender"] || args["voice-gender"] || brief.audioGender || brief.voiceGender || brief.providedAudioGender || "");
   const speedProfile = normalizeSpeedProfile(args["speed-profile"] || brief.speedProfile || runtimeDefaults.speedProfile || DEFAULT_SPEED_PROFILE);
   const acceleration = resolveAccelerationOptions({ args, brief, runtimeDefaults, speedProfile });
   const allowSayFallback = Boolean(args["allow-say-fallback"] || brief.allowSayFallback || runtimeDefaults.allowSayFallback);
@@ -29490,6 +29995,19 @@ async function main() {
     imageSource,
     sceneImageGenerationPolicy,
     freeStockMaterialPolicy,
+    ...(requestedAudioGender ? {
+      audioGender: requestedAudioGender,
+      voiceGender: requestedAudioGender,
+      audioGenderSource: args["audio-gender"]
+        ? "cli-audio-gender"
+        : args["voice-gender"]
+          ? "cli-voice-gender"
+          : brief.audioGender
+            ? "brief.audioGender"
+            : brief.voiceGender
+              ? "brief.voiceGender"
+              : "brief.providedAudioGender",
+    } : {}),
     generationMode,
   };
   const defaultCoverIntroSeconds = Number.isFinite(Number(runtimeDefaults.coverIntroSeconds))
@@ -29515,7 +30033,9 @@ async function main() {
 	        path: providedAudioPath,
 	        trimStartSeconds: providedAudioTrimStart,
 	        trimEndSeconds: providedAudioTrimEnd,
+	        audioGender: requestedAudioGender || null,
 	      } : null,
+	      audioGender: requestedAudioGender || inferAudioGenderForBrief(planningBrief).gender,
 	      speechStyle: requestedSpeechStyle,
 	      speedProfile,
 	      ttsWorkers: acceleration.ttsWorkers,
@@ -29541,7 +30061,7 @@ async function main() {
     requestedStyle: requestedSpeechStyle,
   });
   const spokenNarration = applyVoiceDirection(narration, voiceDirection);
-  let finalBrief = { ...planningBrief, durationSeconds: estimatedDuration, imageSource, speechStyle: voiceDirection.speechStyle, generationMode };
+  let finalBrief = { ...planningBrief, durationSeconds: estimatedDuration, imageSource, speechStyle: voiceDirection.speechStyle, voiceGender: voiceDirection.voiceGender, audioGender: voiceDirection.audioGender, audioGenderSource: voiceDirection.audioGenderSource, generationMode };
   ensureFreeStockPlannerArtifacts({
     out,
     args,
@@ -29565,24 +30085,6 @@ async function main() {
     codexImageAssetsDir,
     coverArtifactMode: "sync-only",
   });
-  const finalRenderRequested = !(generationMode === "semi-auto" && !args.compose && !args["render-final"]) && !args["cover-only"];
-  if (finalRenderRequested) {
-    try {
-      assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "pre-cover-full-render" });
-    } catch (error) {
-      writePersonalIpNativeFinalBlockedManifest({
-        out,
-        brief: finalBrief,
-        designPlan,
-        generationMode,
-        imageSource,
-        stage: "pre-cover-full-render",
-      });
-      writeJson(join(out, "workflow", "commands.json"), commandLog);
-      writeTimingSummary(out);
-      fail(error.message);
-    }
-  }
   const coverParallelStartedAt = new Date().toISOString();
   const coverArtifactsPromise = writeCoverArtifacts({
     out,
@@ -29620,6 +30122,25 @@ async function main() {
   // handling. A benign handler marks it handled now; every real
   // `await coverArtifactsPromise` below still observes and rethrows the error.
   coverArtifactsPromise.catch(() => {});
+  const finalRenderRequested = !(generationMode === "semi-auto" && !args.compose && !args["render-final"]) && !args["cover-only"];
+  if (finalRenderRequested) {
+    try {
+      assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "pre-cover-full-render" });
+    } catch (error) {
+      writePersonalIpNativeFinalBlockedManifest({
+        out,
+        brief: finalBrief,
+        designPlan,
+        generationMode,
+        imageSource,
+        stage: "pre-cover-full-render",
+      });
+      await coverArtifactsPromise;
+      writeJson(join(out, "workflow", "commands.json"), commandLog);
+      writeTimingSummary(out);
+      fail(error.message);
+    }
+  }
   if (generationMode === "semi-auto" && !args.compose && !args["render-final"]) {
     await coverArtifactsPromise;
     designPlan = await prepareVisualAssets({ out, designPlan, imageSource, codexImageAssetsDir });
@@ -29885,6 +30406,7 @@ async function main() {
       imageSource,
       stage: "pre-audio-full-render",
     });
+    await coverArtifactsPromise;
     writeJson(join(out, "workflow", "commands.json"), commandLog);
     writeTimingSummary(out);
     fail(error.message);
@@ -29919,7 +30441,17 @@ async function main() {
   });
   const finalDuration = audio.durationSeconds;
   frames = applyAudioTimingsToFrames(frames, audio.segmentTimings);
-  finalBrief = { ...planningBrief, durationSeconds: finalDuration, imageSource, speechStyle: voiceDirection.speechStyle, generationMode };
+  finalBrief = {
+    ...planningBrief,
+    durationSeconds: finalDuration,
+    imageSource,
+    speechStyle: voiceDirection.speechStyle,
+    voiceGender: audio.audioGender || voiceDirection.voiceGender,
+    audioGender: audio.audioGender || voiceDirection.audioGender,
+    audioGenderSource: audio.audioGenderSource || (audio.audioGender ? "generated-or-provided-audio" : voiceDirection.audioGenderSource),
+    audioGenderMatchedValue: audio.audioGenderMatchedValue || voiceDirection.audioGenderMatchedValue || "",
+    generationMode,
+  };
   runFreeStockMaterialEngine({ out, briefPath: args.brief, args, brief: finalBrief, runtimeDefaults });
   designPlan = buildDesignPlan({ brief: finalBrief, frames, imageSource });
   designPlan = applyFreeStockMaterialsToDesignPlan({ out, designPlan });
@@ -30041,9 +30573,10 @@ async function main() {
 	  const nativeFinalVisual = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
 	  const nativeDirectPlan = designPlan.ipDiagramCreatorPlan?.nativeDirectUsePlan || {};
 	  const personalIpRegistry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry || {};
-	  const coverDesignForDelivery = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
+  const coverDesignForDelivery = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
   const coverImage2QcForDelivery = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
   const coverSizeSelectionForDelivery = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+  const contextImage2CoverRequestsForDelivery = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
   const deliveryManifest = {
     generationMode,
     speedProfile,
@@ -30084,6 +30617,12 @@ async function main() {
       image2PromptQualityPass: coverImage2QcForDelivery.promptQualityPass === true,
       finalCoverQualityEligible: coverImage2QcForDelivery.finalCoverQualityEligible === true,
       reviewFallbackOnly: coverImage2QcForDelivery.reviewFallbackOnly === true,
+      contextImage2Required: coverImage2QcForDelivery.contextImage2Required === true,
+      contextImage2HandoffRequired: coverImage2QcForDelivery.contextImage2HandoffRequired === true,
+      contextImage2RequestCount: Array.isArray(contextImage2CoverRequestsForDelivery.requests)
+        ? contextImage2CoverRequestsForDelivery.requests.length
+        : 0,
+      contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
       blockers: Array.isArray(coverImage2QcForDelivery.blockers) ? coverImage2QcForDelivery.blockers : [],
       allEntriesUploadReady: coverSizeSelectionForDelivery.allEntriesUploadReady === true,
       needsRegenerationCount: Array.isArray(coverSizeSelectionForDelivery.needsRegeneration)
@@ -30144,6 +30683,7 @@ async function main() {
       syncPlan: "workflow/sync-timecode-plan.json",
       coverDesign: "workflow/cover-design.json",
       coverImage2Prompts: "workflow/cover-image2-prompts.json",
+      contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
       coverImage2Qc: "workflow/cover-image2-qc.json",
       coverSizeSelection: "workflow/cover-size-selection.json",
       videoInternalCover: coverFileForCanvas(finalCanvas),

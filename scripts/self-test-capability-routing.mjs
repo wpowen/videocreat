@@ -295,6 +295,7 @@ function scenarios(fixtureDir) {
         title: "个人 IP 手绘图解视频",
         objective: "生成个人 IP 手绘图解视频，用个人 IP 形象把口播内容做成白底手绘知识卡，不要普通模板。",
         videoType: "professional-explainer",
+        durationSeconds: 720,
         personalIp: {
           name: "方法课主讲人",
           allowGenericFallback: false,
@@ -344,6 +345,7 @@ function scenarios(fixtureDir) {
         ipPersonalIpChoice: "auto",
         ipPrimaryPlannerRoute: true,
         ipPersonaStatus: "ready-default-persona",
+        ipNativeMinResolvedImageCount: 24,
       },
     },
     {
@@ -782,6 +784,12 @@ function validateScenario(scenario, run) {
 	    }
 	    if (expect.ipPersonaStatus) {
 	      assert(ipPlan.personalIpAssetRegistry?.status === expect.ipPersonaStatus, `expected personal IP persona status ${expect.ipPersonaStatus}, got ${ipPlan.personalIpAssetRegistry?.status}`, failures);
+	    }
+	    if (expect.ipNativeMinResolvedImageCount) {
+	      const nativeCount = Number(ipPlan.imageCountPolicy?.nativeSourcePageCountPolicy?.resolvedImageCount || 0);
+	      const durationTarget = Number(ipPlan.imageCountPolicy?.nativeSourcePageCountPolicy?.contentMetrics?.durationBasedTarget || 0);
+	      assert(nativeCount >= expect.ipNativeMinResolvedImageCount, `expected duration-aware personal IP native pages >= ${expect.ipNativeMinResolvedImageCount}, got ${nativeCount}`, failures);
+	      assert(durationTarget >= expect.ipNativeMinResolvedImageCount, `expected durationBasedTarget >= ${expect.ipNativeMinResolvedImageCount}, got ${durationTarget}`, failures);
 	    }
 	  }
 	  for (const libraryId of expect.motionLibraries || []) {
