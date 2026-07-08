@@ -1046,9 +1046,13 @@ function main() {
     images: ingestedImages,
   };
   const sourceGeneratedImages = ingestedImages.map((image, index) => ({
-    tool: args.sourceGeneratedTool || "Codex built-in image_gen",
+    provider: "codex-context-image2",
+    tool: "image_gen",
+    generator: "Codex built-in image_gen",
     id: args.sourceGeneratedId ? `${args.sourceGeneratedId}-${String(index + 1).padStart(2, "0")}` : null,
     originalPath: image.source,
+    canonicalWorkflowGeneratedBitmap: true,
+    requestManifest: "workflow/context-image2-persona-page-requests.json",
     fixedPersonaManifest: fixedPersona.manifestPath,
     fixedPersonaMainAnchor: fixedPersona.mainAnchorPath,
     fixedPersonaStatus: fixedPersona.status,
@@ -1064,7 +1068,9 @@ function main() {
   const manifest = {
     schemaVersion: 1,
     route: `ip-diagram-creator-${canvas.orientation}-source-pages`,
-    generationRoute: sourceImages.length > 0 ? "Codex built-in image_gen or user-provided generated image page set ingested by contract" : "prompt-only-multi-page",
+    generationRoute: sourceImages.length > 0 ? "Codex Context Image2 / built-in image_gen page set ingested by contract" : "prompt-only-multi-page",
+    canonicalImageProvider: "codex-context-image2",
+    canonicalImageTool: "image_gen",
     source_generated_images: sourceGeneratedImages,
     fixedPersona,
     audioGenderBinding: fixedPersona.audioGenderBinding,

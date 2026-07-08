@@ -27,6 +27,7 @@ function main() {
   const semiAutoConfigBuilder = read("scripts/build-semi-auto-config-html.mjs");
   const skill = read("SKILL.md");
   const coverDesign = read("references/cover-design.md");
+  const imageGenerationRouting = read("references/image-generation-routing.md");
   const qualityGates = read("references/quality-gates.md");
   const readme = read("README.md");
   const finalPreviewFunction = semiAutoConfigBuilder.match(/function coverFinalPreviewSample[\s\S]*?\n}\n\nfunction coverImage2PromptCount/)?.[0] || "";
@@ -134,6 +135,9 @@ function main() {
   expect(/generate-cover-targets-image2\.mjs/.test(skill) && /generate-cover-targets-image2\.mjs/.test(coverDesign), "skill/docs must document the explicit Image2 target-ratio completion script", failures);
   expect(/ingest-codex-image2-cover-target\.mjs/.test(skill) && /ingest-codex-image2-cover-target\.mjs/.test(coverDesign), "skill/docs must document the Codex built-in Image2 cover ingest script", failures);
   expect(/context-image2-cover-requests\.json/.test(skill) && /Context Image2/.test(skill) && /image_gen/.test(skill), "SKILL.md must require Context Image2 image_gen cover requests from core cover logic", failures);
+  expect(/Canonical generated-image rule/.test(skill) && /every workflow-generated bitmap must be produced through Codex Context Image2/.test(skill) && /provider `codex-context-image2` and tool `image_gen`/.test(skill), "SKILL.md must make Codex Context Image2/image_gen the canonical provider for all workflow-generated bitmaps", failures);
+  expect(/Canonical Codex Image2 Rule/.test(imageGenerationRouting) && /every workflow-generated bitmap/.test(imageGenerationRouting) && /provider `codex-context-image2`, tool `image_gen`/.test(imageGenerationRouting), "image-generation-routing.md must document Codex Context Image2/image_gen as the canonical generated-bitmap route", failures);
+  expect(/Final-quality runs that require or use workflow-generated bitmaps/.test(qualityGates) && /provider `codex-context-image2`, tool `image_gen`/.test(qualityGates), "quality-gates.md must fail final packages that use generated bitmaps without Codex Context Image2/image_gen provenance", failures);
   expect(/context-image2-cover-requests\.json/.test(coverDesign) && /Context Image2 Handoff Contract/.test(coverDesign), "cover-design.md must document the Context Image2 cover handoff contract", failures);
   expect(/context-image2-cover-requests\.json/.test(qualityGates) && /contextImage2Required/.test(qualityGates), "quality-gates.md must require Context Image2 request and QC evidence", failures);
   expect(/synthetic side panels/.test(skill) && /synthetic side panels/.test(coverDesign) && /synthetic side panels/.test(qualityGates), "skill/docs must reject synthetic side panels for missing native target ratios", failures);
@@ -168,6 +172,7 @@ function main() {
   expect(/coverNativeImage2Ready/.test(nativeFinalRendererScript) && /native-image2-ready/.test(nativeFinalRendererScript) && /review-grade-pending-context-image2/.test(nativeFinalRendererScript), "native-final renderer must fail final cover readiness until a real native Image2 cover target is ingested", failures);
   expect(/sourceImageCountPlanRequiredCount/.test(nativeFinalRendererScript) && /nativePageCountSatisfiesSourceImageCountPlan/.test(nativeFinalRendererScript), "native-final renderer must enforce the source personal-IP automatic image-count policy", failures);
   expect(/explicitTargetRaisedToAutomatic/.test(personalIpImagePlannerScript) && /allowUnderCount/.test(personalIpImagePlannerScript) && /automaticResolvedTarget/.test(personalIpImagePlannerScript), "personal-IP image planner must not let target-image-count undercut the automatic duration/content/cue policy by default", failures);
+  expect(/provider:\s*"codex-context-image2"[\s\S]*tool:\s*"image_gen"/.test(personalIpImagePlannerScript) && /canonicalImageProvider:\s*"codex-context-image2"[\s\S]*canonicalImageTool:\s*"image_gen"/.test(personalIpImagePlannerScript), "personal-IP image planner must record Codex Context Image2/image_gen as the canonical generated-page provider", failures);
   expect(/coverNativeImage2Ready/.test(skill) && /coverNativeImage2Ready/.test(qualityGates), "skill/docs must require native-final coverNativeImage2Ready before claiming final personal-IP delivery", failures);
   expect(/const coverArtifactsPromise = writeCoverArtifacts[\s\S]*const finalRenderRequested =/.test(script), "core cover design lane must start before personal-IP native-final pre-render blocking checks", failures);
   expect(/stage:\s*"pre-cover-full-render"[\s\S]*await coverArtifactsPromise[\s\S]*fail\(error\.message\)/.test(script), "personal-IP pre-cover native-final blocker must wait for core cover artifacts before failing the video lane", failures);
@@ -229,6 +234,7 @@ function main() {
       "scripts/build-semi-auto-config-html.mjs",
       "SKILL.md",
       "references/cover-design.md",
+      "references/image-generation-routing.md",
       "references/quality-gates.md",
       "README.md",
     ],

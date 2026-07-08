@@ -2,6 +2,14 @@
 
 Use this reference when a run needs polished generated stills, cover art, or scene inserts.
 
+## Canonical Codex Image2 Rule
+
+For Codex App final-quality runs, Codex Context Image2 / built-in `image_gen` is the canonical generator for every workflow-generated bitmap. The request artifact must record provider `codex-context-image2`, tool `image_gen`, request ids, prompt paths, expected output paths, dimensions/aspect ratio, and any context images or style locks. The generated PNG must be copied into the workspace and ingested before it can satisfy final QC.
+
+This applies to covers, target-ratio cover variants, scene stills, explainer boards, Image2 visual-series pages, personal-IP source pages, role/action sheets, knowledge-card/source plates, posters, thumbnails, and any other generated bitmap created by this Skill. Deterministic HTML/SVG/CSS, charts, subtitles, MG layers, and exact Chinese text remain valid framework-owned design layers, but they are not substitutes for required generated bitmaps.
+
+`image2-dryrun`, local SVG/HTML rasters, direct OpenAI Images API output, stock/provider media, or user-imported files may support drafts, deterministic layers, external material, explicit non-Codex automation, or user-approved imports. They must not be labeled as this workflow's generated Image2 output, must not satisfy generated-image provenance, and must not make a final package pass when a Codex Image2 bitmap is required.
+
 ## Research Snapshot
 
 Primary references checked:
@@ -28,8 +36,8 @@ The ip-diagram-creator repository is used as a planner/prompt/native-source/QC r
 
 | Tool/provider | Use in this skill | Best for | Not for |
 | --- | --- | --- | --- |
-| Codex built-in `image_gen` | Default project-bound bitmap generation in Codex App sessions, especially final cover handoff | Fast scene-specific images, visual metaphors, covers, manual inspection | Scene captions/claims/logos inside pixels, unattended batch production without workspace copy; cover typography is the explicit exception |
-| OpenAI Images API | Explicit API path via `--image-source image2` | Scriptable generation or edits when `OPENAI_API_KEY`, cost, and review are acceptable | Default local runs or hidden credential-dependent generation |
+| Codex built-in `image_gen` | Canonical project-bound bitmap generation in Codex App final-quality sessions | Scene-specific images, visual metaphors, covers, personal-IP pages, visual-series pages, native target-ratio covers | Scene captions/claims/logos inside pixels, unattended batch production without workspace copy; cover typography and approved integrated-text series are explicit exceptions |
+| OpenAI Images API | Explicit non-default automation path via `--image-source image2` | Scriptable generation or edits when `OPENAI_API_KEY`, cost, and review are acceptable outside the Codex App handoff | Default Skill runs, hidden credential-dependent generation, or satisfying Codex Context Image2 provenance |
 | Adobe Firefly / Photoshop generative edit | Future polish/edit route after an image is selected | Brand/commercial workflow, style/structure reference, expand, object/background edits | Silent default dependency or unrecorded account/credit usage |
 | Google Gemini image generation | Future optional provider slot | High-resolution/professional image variants or real-time-grounded graphics when selected | Current default path; deprecated Imagen-specific workflows |
 | Stability AI | Future optional provider slot | Provider diversity, image generation/editing experiments | Current default path without explicit provider choice |
@@ -37,14 +45,14 @@ The ip-diagram-creator repository is used as a planner/prompt/native-source/QC r
 
 ## Default Routing Rule
 
-1. Cover generation is Image 2-first by default through Context Image2 / Codex built-in `image_gen` in Codex App sessions. The workflow must first run the core cover engine and write `workflow/cover-design.json`, `workflow/cover-image2-prompts.json`, `workflow/cover-size-selection.json`, and `workflow/context-image2-cover-requests.json`; then Context Image2 renders each requested native-ratio bitmap from that package-bound request file. Use that bitmap as the complete cover, with the main Chinese title, subtitle/method line, badge, visual subject, lighting, texture, and depth integrated in the same image. Deterministic SVG/HTML overlays are fallback/text-repair only after review. Export the approved cover design to resolution presets; when platform click logic requires a different composition, generate a platform-specific integrated cover rather than blindly cropping. If no integrated bitmap is present, record the cover as prompt-pending and render only a degraded professional review fallback, not the old title-card cover. The OpenAI Images API route is only `--image-source image2` explicit opt-in, not the default cover path.
+1. Cover generation is Image 2-first by default through Context Image2 / Codex built-in `image_gen` in Codex App sessions. The workflow must first run the core cover engine and write `workflow/cover-design.json`, `workflow/cover-image2-prompts.json`, `workflow/cover-size-selection.json`, and `workflow/context-image2-cover-requests.json`; then Context Image2 renders each requested native-ratio bitmap from that package-bound request file. Use that bitmap as the complete cover, with the main Chinese title, subtitle/method line, badge, visual subject, lighting, texture, and depth integrated in the same image. Deterministic SVG/HTML overlays are fallback/text-repair only after review. Export the approved cover design to resolution presets; when platform click logic requires a different composition, generate a platform-specific integrated cover rather than blindly cropping. If no integrated bitmap is present, record the cover as prompt-pending and render only a degraded professional review fallback, not the old title-card cover. The OpenAI Images API route is only `--image-source image2` explicit opt-in, not the default cover path and not a substitute for Codex Context Image2 provenance in final Codex App runs.
 2. Scene image generation is optional. Do not insert a generated scene image merely because a provider, prompt, or asset file exists.
 3. Write a per-scene `visualAssetDecision` before rendering. It must state whether a generated image is used, where it goes, why it helps, and what deterministic fallback owns the scene when it is not used.
-4. Use Codex built-in `image_gen` for project-bound image assets when the scene has a concrete subject, visual metaphor, or approved explainer-board job that benefits from bitmap treatment.
+4. Use Codex built-in `image_gen` for every project-bound generated image asset when the scene has a concrete subject, visual metaphor, approved explainer-board job, role/source-plate job, or visual-series page that benefits from bitmap treatment.
 5. Prefer deterministic HTML/SVG/CSS, MG components, charts, state machines, timelines, countdowns, and kinetic typography for abstract concepts, process explanations, rules, comparisons, and data/flow scenes unless the Image2 explainer-board route below is active.
 6. Copy selected outputs into the workspace before they are referenced by video artifacts.
 7. Keep scene captions, numeric claims, UI labels, and logos in deterministic HTML/SVG/CSS layers. For covers only, approved title/subtitle/badge text should be integrated into the Image 2 bitmap because thumbnail typography is part of the visual hook.
-8. Treat OpenAI Images API, Firefly, Gemini, Stability, Canva, and Figma as explicit opt-in routes unless the user asks for that provider.
+8. Treat OpenAI Images API, Firefly, Gemini, Stability, Canva, and Figma as explicit opt-in routes unless the user asks for that provider. Their outputs are external/imported assets, not canonical Codex Image2-generated assets, unless they are later routed through the Codex Context Image2 request/ingest contract.
 
 ## Bounded Parallel Generation
 

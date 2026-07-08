@@ -96,6 +96,8 @@ function testAspect(root, aspect, prefix) {
   assert(qc.checks?.contextImage2NoSourceGeneratedPersonaContext === true, `${prefix}: source-generated role sheet must not be a Context Image2 persona image`, failures);
   assert(qc.checks?.fixedPersonaReferenceBindingConfirmed === false, `${prefix}: prompt-only run should not claim persona reference binding`, failures);
   assert(contextRequests.status === "required-pending", `${prefix}: Context Image2 requests should remain pending until generated pages are ingested`, failures);
+  assert(contextRequests.provider === "codex-context-image2", `${prefix}: Context Image2 request manifest must use codex-context-image2 provider`, failures);
+  assert(contextRequests.tool === "image_gen", `${prefix}: Context Image2 request manifest must use image_gen tool`, failures);
   assert(Array.isArray(contextRequests.requests) && contextRequests.requests.length === countPlan.resolvedImageCount, `${prefix}: Context Image2 request count does not match planned image count`, failures);
   assert(contextRequests.parallelGenerationPolicy?.allowed === true, `${prefix}: Context Image2 requests should allow bounded parallel generation`, failures);
   assert(contextRequests.parallelGenerationPolicy?.defaultMaxConcurrency === 2, `${prefix}: Context Image2 bounded parallel default should be 2`, failures);
@@ -104,6 +106,7 @@ function testAspect(root, aspect, prefix) {
   assert(Array.isArray(contextRequests.contextImages) && contextRequests.contextImages.some((image) => image.role === "main-anchor" && image.required === true), `${prefix}: Context Image2 context images missing required main-anchor`, failures);
   assert(contextRequests.contextImages.every((image) => image.role !== "source-generated-persona"), `${prefix}: Context Image2 context images include retired source-generated-persona role`, failures);
   assert(contextRequests.requests.every((request) => request.parallelSafe === true && request.consistencyGroup === "fixed-persona-main-anchor-page-set"), `${prefix}: every Context Image2 page request must be marked parallel-safe inside the fixed persona group`, failures);
+  assert(contextRequests.requests.every((request) => request.provider === "codex-context-image2" && request.tool === "image_gen"), `${prefix}: every Context Image2 page request must use codex-context-image2/image_gen`, failures);
   assert(contextRequests.requests.every((request) => request.requiredContextImageRoles?.length === 1 && request.requiredContextImageRoles[0] === "main-anchor"), `${prefix}: every Context Image2 page request must require only main-anchor`, failures);
   assert(contextRequests.requests.every((request) => request.contextImages?.some((image) => image.role === "main-anchor" && image.required === true && image.path.includes("/versions/v3/"))), `${prefix}: every Context Image2 page request must attach the clean v3 main-anchor`, failures);
   if (prefix === "vertical") {
