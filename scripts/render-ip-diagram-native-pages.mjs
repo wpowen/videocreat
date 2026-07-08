@@ -4,22 +4,24 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 const SOURCE_REPO = "https://github.com/haloshin/ip-diagram-creator";
 const SOURCE_COMMIT = "dd64ab5d972893f7ca271d9c560362d7788eb2d6";
-const CODEX_VIDEO_SKILL_PATH = ".agents/skills/codex-video-workflow/SKILL.md";
-const IP_DIAGRAM_INTEGRATION_REFERENCE_PATH = ".agents/skills/codex-video-workflow/references/ip-diagram-creator-integration.md";
-const IP_DIAGRAM_CREATOR_SKILL_PATH = ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/SKILL.md";
-const IP_DIAGRAM_CREATOR_VENDOR_MANIFEST_PATH = ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/VENDORED_SOURCE.json";
+const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const CODEX_VIDEO_SKILL_PATH = join(SKILL_ROOT, "SKILL.md");
+const IP_DIAGRAM_INTEGRATION_REFERENCE_PATH = join(SKILL_ROOT, "references", "ip-diagram-creator-integration.md");
+const IP_DIAGRAM_CREATOR_SKILL_PATH = join(SKILL_ROOT, "vendor", "ip-diagram-creator", "SKILL.md");
+const IP_DIAGRAM_CREATOR_VENDOR_MANIFEST_PATH = join(SKILL_ROOT, "vendor", "ip-diagram-creator", "VENDORED_SOURCE.json");
 const IP_DIAGRAM_CREATOR_VENDOR_REFERENCE_PATHS = [
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/identity-and-character.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/visual-language.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/content-workflow.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/modes-and-sizes.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/ppt-presentation-mode.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/prompt-templates.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/qa-repair.md",
-  ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/references/safety-and-assets.md",
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "identity-and-character.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "visual-language.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "content-workflow.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "modes-and-sizes.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "ppt-presentation-mode.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "prompt-templates.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "qa-repair.md"),
+  join(SKILL_ROOT, "vendor", "ip-diagram-creator", "references", "safety-and-assets.md"),
 ];
 const DEFAULT_LANDSCAPE_WIDTH = 1920;
 const DEFAULT_LANDSCAPE_HEIGHT = 1080;
@@ -393,11 +395,14 @@ function loadNativePageProvenance(pagesDir, pages) {
       generationRoute: null,
       pagesChecked: pages.length,
       pagesWithGeneratedImageSource: 0,
+      pagesWithPersonaReferenceBinding: 0,
       perPage: pages.map((page) => ({
         pageId: page.id,
         file: page.file,
         manifestEntryPresent: false,
         sourceGeneratedImage: null,
+        personaReferenceBoundToGeneration: false,
+        userApprovedPersonaConsistency: false,
       })),
       issues,
     };
@@ -415,6 +420,14 @@ function loadNativePageProvenance(pagesDir, pages) {
       raw: entry,
       assetPath: normalizeManifestPath(asset, manifestPath),
       sourceGeneratedImage: entry.source_generated_image || entry.sourceGeneratedImage || null,
+      personaReferenceBoundToGeneration: entry.personaReferenceBoundToGeneration
+        ?? entry.source_generated_image?.personaReferenceBoundToGeneration
+        ?? entry.sourceGeneratedImage?.personaReferenceBoundToGeneration
+        ?? false,
+      userApprovedPersonaConsistency: entry.userApprovedPersonaConsistency
+        ?? entry.source_generated_image?.userApprovedPersonaConsistency
+        ?? entry.sourceGeneratedImage?.userApprovedPersonaConsistency
+        ?? false,
     };
   });
   const entriesByAsset = new Map(
@@ -429,13 +442,19 @@ function loadNativePageProvenance(pagesDir, pages) {
       file: page.file,
       manifestEntryPresent: Boolean(entry),
       sourceGeneratedImage: entry?.sourceGeneratedImage || null,
+      personaReferenceBoundToGeneration: Boolean(entry?.personaReferenceBoundToGeneration),
+      userApprovedPersonaConsistency: Boolean(entry?.userApprovedPersonaConsistency),
     };
   });
   const pagesWithGeneratedImageSource = perPage.filter((page) => Boolean(page.sourceGeneratedImage)).length;
+  const pagesWithPersonaReferenceBinding = perPage.filter((page) => page.personaReferenceBoundToGeneration || page.userApprovedPersonaConsistency).length;
   const routeClaimsOnlyLocalAssets = /project-local assets|local assets|PIL|placeholder|wireframe/i.test(generationRoute)
     && !/built-in image_gen|source_generated_image|generated_images/i.test(generationRoute);
   if (pagesWithGeneratedImageSource !== pages.length) {
     issues.push(`Only ${pagesWithGeneratedImageSource}/${pages.length} final pages have source_generated_image provenance.`);
+  }
+  if (pagesWithPersonaReferenceBinding !== pages.length) {
+    issues.push(`Only ${pagesWithPersonaReferenceBinding}/${pages.length} final pages prove fixed-persona image/context binding or explicit user-approved persona consistency.`);
   }
   if (routeClaimsOnlyLocalAssets) {
     issues.push("Manifest route says pages were project-local assets rather than built-in image_gen/native direct-generation outputs.");
@@ -451,6 +470,7 @@ function loadNativePageProvenance(pagesDir, pages) {
     generationRoute,
     pagesChecked: pages.length,
     pagesWithGeneratedImageSource,
+    pagesWithPersonaReferenceBinding,
     perPage,
     issues,
   };
@@ -464,6 +484,9 @@ function createSkillUsageAccuracyAudit({ pageProvenance, args }) {
   const allPagesHaveNativeImageGenProvenance = pageProvenance.status === "pass"
     && pageProvenance.pagesChecked > 0
     && pageProvenance.pagesWithGeneratedImageSource === pageProvenance.pagesChecked;
+  const allPagesHavePersonaReferenceBinding = pageProvenance.status === "pass"
+    && pageProvenance.pagesChecked > 0
+    && pageProvenance.pagesWithPersonaReferenceBinding === pageProvenance.pagesChecked;
   const noLocalPlaceholderFinalPages = pageProvenance.status === "pass" && (pageProvenance.issues || []).length === 0;
   const checks = {
     codexVideoWorkflowSkillPresent: existsSync(codexSkillPath),
@@ -474,6 +497,7 @@ function createSkillUsageAccuracyAudit({ pageProvenance, args }) {
     executionModeMatchesRequest: true,
     nativeFinalOwnershipBoundaryRecorded: true,
     allFinalPagesHaveNativeImageGenProvenance: allPagesHaveNativeImageGenProvenance,
+    allFinalPagesHaveFixedPersonaReferenceBinding: allPagesHavePersonaReferenceBinding,
     noLocalPlaceholderFinalPages,
     personalIpChoiceRecorded: ["on", "off", "auto"].includes(args.personalIp),
     handDrawnAnimationChoiceRecorded: ["off", "subtle", "draw-reveal"].includes(args.handDrawnAnimation),
@@ -524,6 +548,7 @@ function createSkillUsageAccuracyAudit({ pageProvenance, args }) {
       generationRoute: pageProvenance.generationRoute,
       pagesChecked: pageProvenance.pagesChecked,
       pagesWithGeneratedImageSource: pageProvenance.pagesWithGeneratedImageSource,
+      pagesWithPersonaReferenceBinding: pageProvenance.pagesWithPersonaReferenceBinding,
       issues: pageProvenance.issues,
     },
     checks,
@@ -917,6 +942,8 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       "visualSubtitleSingleLine",
       "audioVideoDurationDeltaOk",
       "screenshotsPresent",
+      "coverArtifactsPresent",
+      "coverContextImage2HandoffPresent",
       ...(canvas.vertical ? ["verticalPersonalIpDesignContractPresent", "nativePagesGeneratedForVerticalCanvas", "topSafeAreaAuditPresent", "topSafeAreaReservedForMobileChrome"] : []),
     ],
     requiredArtifacts: [
@@ -928,8 +955,12 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       "workflow/native-page-count-policy.json",
       "workflow/whiteboard-layered-reveal-plan.json",
       "workflow/visual-rhythm-plan.json",
+      "workflow/cover-design.json",
+      "workflow/cover-size-selection.json",
+      "workflow/context-image2-cover-requests.json",
       "logs/qc.json",
       "renders/final.mp4",
+      "cover/native-final-cover-1920x1080.png",
       ...(canvas.vertical ? ["workflow/vertical-personal-ip-design-contract.json", "workflow/top-safe-area-audit.json"] : []),
     ],
     rejectList: [
@@ -1190,6 +1221,10 @@ concat_path.write_text("\n".join(concat_lines) + "\n", encoding="utf-8")
 
 function createDeliveryPage(out, title, videoPath, qc, canvas) {
   const relVideo = videoPath.startsWith(out) ? videoPath.slice(out.length + 1) : videoPath;
+  const coverPath = join(out, "cover", "native-final-cover-1920x1080.png");
+  const coverHtml = existsSync(coverPath)
+    ? `<section><h2>封面</h2><img src="cover/native-final-cover-1920x1080.png" alt="封面" style="width:100%;display:block;border:1px solid rgba(24,24,24,.08);background:#fff"></section>`
+    : "";
   const html = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -1216,8 +1251,10 @@ function createDeliveryPage(out, title, videoPath, qc, canvas) {
       <div class="item"><strong>画布</strong><br>${canvas.width}x${canvas.height} · ${escapeHtml(canvas.aspectRatio)}</div>
       <div class="item"><strong>画面策略</strong><br>官方页面全屏固定，前景手绘动效</div>
       <div class="item"><strong>跳动防护</strong><br>无逐字幕裁切/缩放/纵向偏移</div>
+      <div class="item"><strong>封面</strong><br>${qc.checks?.coverArtifactsPresent ? "已生成" : "缺失"}</div>
       <div class="item"><strong>文件</strong><br><code>${escapeHtml(videoPath)}</code></div>
     </section>
+    ${coverHtml}
   </main>
 </body>
 </html>`;
@@ -1273,6 +1310,150 @@ function normalizeFinalAudio({ out, finalPath, commands }) {
     },
     purpose: "Raise final delivered MP4 loudness and reduce narration dynamics so口播 remains clearly audible at normal playback volume.",
   });
+}
+
+function createCoverArtifacts({ out, title, pages, canvas, commands }) {
+  const coverDir = join(out, "cover");
+  const finalDir = join(out, "最终成品", "评审级封面-非上传终版");
+  const promptDir = join(out, "prompts", "context-image2-covers");
+  ensureDir(coverDir);
+  ensureDir(finalDir);
+  ensureDir(promptDir);
+  const sourcePage = pages[0]?.file;
+  if (!sourcePage || !existsSync(sourcePage)) {
+    throw new Error("Cannot create cover artifacts: first native page image is missing.");
+  }
+  const pngCover = join(coverDir, "native-final-cover-1920x1080.png");
+  const jpgCover = join(coverDir, "native-final-cover-1280x720.jpg");
+  const finalPng = join(finalDir, "01-横版16比9-评审级封面-1920x1080.png");
+  const finalJpg = join(finalDir, "02-横版16比9-评审级封面-1280x720.jpg");
+  const pngFilter = "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,format=rgb24";
+  const jpgFilter = "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,format=yuvj420p";
+  run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", sourcePage, "-vf", pngFilter, "-frames:v", "1", pngCover], { log: commands });
+  run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", sourcePage, "-vf", jpgFilter, "-q:v", "3", "-frames:v", "1", jpgCover], { log: commands });
+  copyFileSync(pngCover, finalPng);
+  copyFileSync(jpgCover, finalJpg);
+  const coverDesignPath = join(out, "workflow", "cover-design.json");
+  const coverSizeSelectionPath = join(out, "workflow", "cover-size-selection.json");
+  const contextImage2RequestsPath = join(out, "workflow", "context-image2-cover-requests.json");
+  const existingCoverDesign = readJsonIfExists(coverDesignPath);
+  const existingContextImage2Requests = readJsonIfExists(contextImage2RequestsPath);
+  const coreCoverLogicPresent = existingCoverDesign?.defaultCoverEngine === "image2-integrated-typography-cover"
+    && existingCoverDesign?.image2CoverPromptFile === "workflow/cover-image2-prompts.json"
+    && existingCoverDesign?.coverSizeSelectionFile === "workflow/cover-size-selection.json"
+    && existingContextImage2Requests?.provider === "codex-context-image2"
+    && existingContextImage2Requests?.tool === "image_gen";
+  const coverPrompt = [
+    `Create a 16:9 video thumbnail/cover for: ${title}`,
+    "Use the native personal-IP hand-drawn page visual as context.",
+    "Make the click promise clear: 小说主题不是一句金句.",
+    "Preserve the fixed manifest-backed presenter identity if a presenter appears.",
+    "White-canvas hand-drawn style, sparse orange/blue marker accents, mobile-readable title, no workflow labels.",
+    "This prompt is a Context Image2 handoff; the review-grade cover PNG/JPG in this package was derived from the native opening page so the deliverable is never cover-less.",
+  ].join("\n");
+  writeFileSync(join(promptDir, "cover-16x9-native-final-context-image2.txt"), coverPrompt, "utf8");
+  const nativeReviewCover = {
+    schemaVersion: 1,
+    status: "ready-review-grade-native-page-cover",
+    route: "ip-diagram-native-final-pages",
+    title,
+    sourceNativePage: sourcePage,
+    coverPromise: "小说主题不是一句金句",
+    visualContinuity: "Cover is derived from the opening native generated page so thumbnail and first frame stay consistent.",
+    contextImage2Handoff: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
+    preservesCoreCoverLogic: coreCoverLogicPresent,
+    uploadReady: false,
+    reasonUploadReadyFalse: "Review-grade cover is created from the native opening page. Native target-ratio Context Image2 cover generation can replace it for platform upload variants.",
+    outputs: {
+      png1920x1080: "cover/native-final-cover-1920x1080.png",
+      jpg1280x720: "cover/native-final-cover-1280x720.jpg",
+      finalReviewPng: "最终成品/评审级封面-非上传终版/01-横版16比9-评审级封面-1920x1080.png",
+      finalReviewJpg: "最终成品/评审级封面-非上传终版/02-横版16比9-评审级封面-1280x720.jpg",
+    },
+  };
+  const coverDesign = {
+    schemaVersion: 1,
+    status: "ready-review-grade-native-page-cover",
+    route: "ip-diagram-native-final-pages",
+    title,
+    sourceNativePage: sourcePage,
+    coverPromise: "小说主题不是一句金句",
+    visualContinuity: "Cover is derived from the opening native generated page so thumbnail and first frame stay consistent.",
+    contextImage2Handoff: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
+    uploadReady: false,
+    reasonUploadReadyFalse: "Review-grade cover is created from the native opening page. Native target-ratio Context Image2 cover generation can replace it for platform upload variants.",
+    outputs: {
+      png1920x1080: "cover/native-final-cover-1920x1080.png",
+      jpg1280x720: "cover/native-final-cover-1280x720.jpg",
+      finalReviewPng: "最终成品/评审级封面-非上传终版/01-横版16比9-评审级封面-1920x1080.png",
+      finalReviewJpg: "最终成品/评审级封面-非上传终版/02-横版16比9-评审级封面-1280x720.jpg",
+    },
+  };
+  const coverSizeSelection = {
+    schemaVersion: 1,
+    status: "review-grade-cover-present",
+    route: "ip-diagram-native-final-pages",
+    defaultVideoRatio: canvas.aspectRatio,
+    uploadReadyCount: 0,
+    reviewGradeCount: 2,
+    targets: [
+      {
+        id: "native-final-review-1920x1080",
+        label: "横版16比9评审封面",
+        width: 1920,
+        height: 1080,
+        ratio: "16:9",
+        file: "cover/native-final-cover-1920x1080.png",
+        uploadReady: false,
+        reviewGrade: true,
+      },
+      {
+        id: "native-final-review-1280x720",
+        label: "YouTube/通用横版评审封面",
+        width: 1280,
+        height: 720,
+        ratio: "16:9",
+        file: "cover/native-final-cover-1280x720.jpg",
+        uploadReady: false,
+        reviewGrade: true,
+      },
+    ],
+    pending: ["native Context Image2 upload-ready platform variants"],
+  };
+  const contextImage2Requests = {
+    schemaVersion: 1,
+    status: "handoff-ready",
+    route: "ip-diagram-native-final-pages",
+    provider: "codex-context-image2",
+    tool: "image_gen",
+    requiredForFinalCover: true,
+    coreCoverLogicPreserved: coreCoverLogicPresent,
+    sourceNativePage: sourcePage,
+    parallelGenerationPolicy: {
+      allowed: false,
+      reason: "This standalone native-final review cover is a single source-page continuity handoff. Full platform cover targets use the core workflow/context-image2-cover-requests.json contract when present.",
+    },
+    requests: [
+      {
+        id: "cover-16x9-native-final",
+        target: "16:9 video thumbnail",
+        prompt: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
+        contextImages: [sourcePage],
+        expectedOutput: "cover/native-final-cover-1920x1080.png",
+      },
+    ],
+  };
+  writeJson(join(out, "workflow", "native-final-cover-review.json"), nativeReviewCover);
+  if (!coreCoverLogicPresent) {
+    writeJson(coverDesignPath, coverDesign);
+    writeJson(coverSizeSelectionPath, coverSizeSelection);
+    writeJson(contextImage2RequestsPath, contextImage2Requests);
+  }
+  return {
+    coverDesign: coreCoverLogicPresent ? existingCoverDesign : coverDesign,
+    coreCoverLogicPreserved: coreCoverLogicPresent,
+    outputs: [pngCover, jpgCover, finalPng, finalJpg],
+  };
 }
 
 function main() {
@@ -1383,9 +1564,10 @@ function main() {
     "-vf", `fps=${fps},format=yuv420p`,
     "-c:v", "libx264",
     "-preset", "veryfast",
-    "-b:v", "8M",
-    "-maxrate", "10M",
-    "-bufsize", "16M",
+    "-b:v", "12M",
+    "-minrate", "10M",
+    "-maxrate", "14M",
+    "-bufsize", "24M",
     "-movflags", "+faststart",
     visualPath,
   ], { log: commands });
@@ -1422,6 +1604,7 @@ function main() {
       join(out, "screenshots", `${label}.png`),
     ], { log: commands });
   }
+  const coverArtifacts = createCoverArtifacts({ out, title: args.title, pages, canvas, commands });
 
   const probe = ffprobeJson(finalPath, commands);
   writeJson(join(out, "logs", "ffprobe.json"), probe);
@@ -1453,6 +1636,12 @@ function main() {
     subtitlesPresentWhenRequested: args.subtitleMode === "hard" ? true : Boolean(subtitleStream),
     audioVideoDurationDeltaOk: durationDelta <= 0.35,
     screenshotsPresent: screenshotTimes.every(([label]) => existsSync(join(out, "screenshots", `${label}.png`))),
+    coverArtifactsPresent: existsSync(join(out, "workflow", "cover-design.json"))
+      && existsSync(join(out, "workflow", "cover-size-selection.json"))
+      && existsSync(join(out, "workflow", "context-image2-cover-requests.json"))
+      && existsSync(join(out, "cover", "native-final-cover-1920x1080.png"))
+      && existsSync(join(out, "最终成品", "评审级封面-非上传终版", "01-横版16比9-评审级封面-1920x1080.png")),
+    coverContextImage2HandoffPresent: existsSync(join(out, "prompts", "context-image2-covers", "cover-16x9-native-final-context-image2.txt")),
     ipDiagramCreatorPlanPresent: existsSync(join(out, "workflow", "ip-diagram-creator-plan.json")),
     ipDiagramCreatorVendorUsagePresent: existsSync(join(out, "workflow", "ip-diagram-creator-vendor-usage.json")),
     ipDiagramCreatorNativeJobsPresent: existsSync(join(out, "workflow", "ip-diagram-creator-native-jobs.json")),
@@ -1518,6 +1707,12 @@ function main() {
       noVerticalCameraOffset: true,
       noBorderWrapper: true,
       note: "Source page pixels are rendered full-screen with a fixed cover transform. All animation is foreground-only.",
+    },
+    coverArtifacts: {
+      status: checks.coverArtifactsPresent ? "present" : "missing",
+      outputs: coverArtifacts.outputs,
+      uploadReady: false,
+      reviewGrade: true,
     },
     checks,
   };

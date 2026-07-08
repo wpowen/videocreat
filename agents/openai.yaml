@@ -1,4 +1,4 @@
 interface:
-  display_name: "Codex Video Workflow Local Latest"
-  short_description: "Project-local latest video workflow for videocreat"
-  default_prompt: "Use $codex-video-workflow-local to create a rights-safe local video workflow package and final MP4 from the latest project-local Skill."
+  display_name: "Codex Video Workflow"
+  short_description: "Research, plan, render, QC local videos"
+  default_prompt: "Use $codex-video-workflow to create a rights-safe local video workflow package and final MP4."

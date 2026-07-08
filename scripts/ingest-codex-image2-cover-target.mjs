@@ -19,7 +19,10 @@ function writeJson(path, value) {
 
 function targetKey(id = "") {
   const aliases = {
+    "video-opening": "video-opening",
     "master-16x9-3840x2160": "master-16x9-4k",
+    "youtube-1280x720": "horizontal-16x9-1280x720",
+    "bilibili-1920x1080": "horizontal-16x9-1920x1080",
     "bilibili-1146x717": "bilibili-common-1146x717",
     "instagram-reels-420x654": "instagram-reels-cover",
   };
@@ -29,6 +32,7 @@ function targetKey(id = "") {
 function standardCoverFileForTarget(targetId) {
   const files = {
     "master-16x9-4k": "cover/cover-master-16x9-3840x2160.png",
+    "video-opening": "cover/cover-video-opening-16x9.png",
     "horizontal-16x9-1920x1080": "cover/cover-16x9-1920x1080.png",
     "horizontal-16x9-1280x720": "cover/cover-16x9-1280x720.png",
     "horizontal-4x3-1600x1200": "cover/cover-horizontal-4x3-1600x1200.png",

@@ -22,6 +22,7 @@ function main() {
   const batchSizeIndexScript = read("scripts/build-cover-size-selection-index.mjs");
   const targetImage2Script = read("scripts/generate-cover-targets-image2.mjs");
   const codexImage2IngestScript = read("scripts/ingest-codex-image2-cover-target.mjs");
+  const nativeFinalRendererScript = read("scripts/render-ip-diagram-native-pages.mjs");
   const semiAutoConfigBuilder = read("scripts/build-semi-auto-config-html.mjs");
   const skill = read("SKILL.md");
   const coverDesign = read("references/cover-design.md");
@@ -56,6 +57,7 @@ function main() {
     ["cover Image 2 platform prompt contract", /targetId:\s*`\$\{target\.id\}-image2-integrated-cover`[\s\S]*?image2CoverPrompt[\s\S]*?platformStrategy[\s\S]*?contentCategoryStrategy[\s\S]*?cover-image2-prompts\.json[\s\S]*?gpt-image-2/],
     ["high-click knowledge cover prompt contract", /function highClickKnowledgeCoverPromptContract[\s\S]*?methodologyVersion:\s*"high-click-knowledge-cover-v1"[\s\S]*?High-click knowledge cover prompt contract[\s\S]*?改前[\s\S]*?改后[\s\S]*?strict visible-text whitelist|function highClickKnowledgeCoverPromptContract[\s\S]*?high-click-knowledge-cover-v1[\s\S]*?高点击知识封面提示词契约[\s\S]*?白名单/],
     ["cover Image 2 QC gate", /function coverImage2QualityGate[\s\S]*?promptQualityPass[\s\S]*?bitmapSubjectPresent[\s\S]*?integratedTypographyAssetPresent[\s\S]*?finalCoverQualityEligible[\s\S]*?reviewFallbackOnly[\s\S]*?cover-image2-qc\.json/],
+    ["Context Image2 cover request artifact", /function writeContextImage2CoverRequests[\s\S]*?context-image2-cover-requests\.json[\s\S]*?prompts[\s\S]*?context-image2-covers[\s\S]*?codex-context-image2[\s\S]*?image_gen/],
     ["Image 2 integrated typography default cover engine", /defaultCoverEngine:\s*"image2-integrated-typography-cover"[\s\S]*?legacyCoverEngine:\s*"discarded-as-default"/],
     ["Image 2 native target-ratio status helper", /function coverAssetTargetRatioStatus[\s\S]*?targetRatioNativeMatch[\s\S]*?needs-native-target-ratio-image2/],
     ["Image 2 native target-ratio QC blocker", /targetRatioNativeFailures[\s\S]*?allIntegratedAssetsNativeTargetRatio[\s\S]*?regenerate native Image 2 assets for those target ratios before upload/],
@@ -119,6 +121,8 @@ function main() {
   expect(/review-only-local-target-ratio-recomposition/.test(skill) && /封面预览-非上传终版/.test(skill) && /must remain excluded from `最终成品\/`/.test(skill), "SKILL.md must make local target-ratio recomposition preview-only and exclude it from final delivery", failures);
   expect(/review-only-local-target-ratio-recomposition/.test(coverDesign) && /uploadReady: false/.test(coverDesign) && /must not appear in `最终成品\/`/.test(coverDesign), "cover-design.md must make local target-ratio recomposition non-upload-ready", failures);
   expect(/review-only-local-target-ratio-recomposition/.test(qualityGates) && /saved only under `封面预览-非上传终版\/`/.test(qualityGates), "quality-gates.md must keep local target-ratio previews outside final delivery", failures);
+  expect(/reviewGradeDraftAllowed/.test(script) && /reviewGradeSuppressedUntilNativeImage2/.test(script) && /nonNativeTargetRatioReviewDraftsSuppressed/.test(script), "single output selection must suppress target-size review drafts for missing non-16:9 native Image2 targets", failures);
+  expect(/4:3[\s\S]*3:4[\s\S]*target-size review-grade drafts/.test(skill) && /do not write target-size review-grade drafts/.test(coverDesign) && /must not write target-size review-grade local files/.test(qualityGates), "skill/docs must forbid 4:3/3:4 target-size local review drafts when native Image2 is missing", failures);
   expect(/const uploadReady = Boolean\(asset\?\.uploadReady && asset\?\.targetRatioNativeMatch\)/.test(script) && /reviewOnlyPreviewDirectory/.test(script) && /localTargetRatioRecompositionPreviewOnly/.test(script) && /previewFiles/.test(script), "single output selection must only copy native upload-ready covers and route local recompositions to preview files", failures);
   expect(/function pruneRootCoverCopiesAfterFinalDelivery/.test(script) && /rootCopyPruning/.test(script), "root-level topic cover copies must be pruned after final delivery consolidation", failures);
   expect(/humanSelectionContainsOnlyUploadReady/.test(batchSizeIndexScript) && /nonUploadReadyVisualFilesCopied:\s*false/.test(batchSizeIndexScript) && /review-only-local-target-ratio-recomposition/.test(batchSizeIndexScript) && /封面预览-非上传终版/.test(batchSizeIndexScript), "batch selection rebuild must only copy native upload-ready target-ratio covers into each topic final directory and route local recompositions to preview", failures);
@@ -128,6 +132,9 @@ function main() {
   expect(/COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(skill) && /COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(coverDesign) && /COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(qualityGates), "skill/docs must require an explicit switch before local 4:3/3:4 recomposition previews are generated", failures);
   expect(/generate-cover-targets-image2\.mjs/.test(skill) && /generate-cover-targets-image2\.mjs/.test(coverDesign), "skill/docs must document the explicit Image2 target-ratio completion script", failures);
   expect(/ingest-codex-image2-cover-target\.mjs/.test(skill) && /ingest-codex-image2-cover-target\.mjs/.test(coverDesign), "skill/docs must document the Codex built-in Image2 cover ingest script", failures);
+  expect(/context-image2-cover-requests\.json/.test(skill) && /Context Image2/.test(skill) && /image_gen/.test(skill), "SKILL.md must require Context Image2 image_gen cover requests from core cover logic", failures);
+  expect(/context-image2-cover-requests\.json/.test(coverDesign) && /Context Image2 Handoff Contract/.test(coverDesign), "cover-design.md must document the Context Image2 cover handoff contract", failures);
+  expect(/context-image2-cover-requests\.json/.test(qualityGates) && /contextImage2Required/.test(qualityGates), "quality-gates.md must require Context Image2 request and QC evidence", failures);
   expect(/synthetic side panels/.test(skill) && /synthetic side panels/.test(coverDesign) && /synthetic side panels/.test(qualityGates), "skill/docs must reject synthetic side panels for missing native target ratios", failures);
   expect(!/需原生重生成-非上传终版/.test(script) && !/需原生重生成-非上传终版/.test(batchSizeIndexScript) && !/需原生重生成-非上传终版/.test(skill), "non-upload-ready visual cover suffix must not be used because those files should not enter selection galleries", failures);
   expect(!/stroke="#fff7e6"/.test(script), "integrated cover aspect-fit adaptation must not add a visible cream frame stroke", failures);
@@ -144,6 +151,7 @@ function main() {
 	  expect(/currentEntryIds/.test(batchSizeIndexScript) && /selection\.needsRegeneration/.test(batchSizeIndexScript), "batch index script must not let stale selection.needsRegeneration override current upload-ready entries", failures);
 	  expect(/function cleanupFileName/.test(batchSizeIndexScript), "batch index script must handle structured root output copy entries while pruning old root-level cover files", failures);
   expect(/OPENAI_API_KEY is missing\. Refusing to fake Image2 cover generation\./.test(targetImage2Script), "native target-ratio cover generator must refuse to fake Image2 output when credentials are missing", failures);
+  expect(/function topicDirsForRoot[\s\S]*?workflow[\s\S]*?cover-size-selection\.json[\s\S]*?cover-image2-prompts\.json/.test(targetImage2Script), "native target-ratio cover generator must support a single topic root as well as a batch root", failures);
   expect(/gpt-image-2-api-explicit-opt-in/.test(targetImage2Script) && /model:\s*process\.env\.OPENAI_IMAGE_MODEL\s*\|\|\s*"gpt-image-2"/.test(targetImage2Script), "native target-ratio cover generator must use the explicit GPT Image 2 API path", failures);
   expect(/function pendingEntries/.test(targetImage2Script) && /design\.resolutionPresets/.test(targetImage2Script) && /prompts\.pendingNativeTargetRatioPrompts/.test(targetImage2Script), "native target-ratio generator must derive missing-only scope from selection entries, cover resolutionPresets, and pending prompt targets", failures);
   expect(/function targetPromptSuffix/.test(targetImage2Script) && /Target-ratio completion guard/.test(targetImage2Script), "native target-ratio generator must append target-specific native composition guards when reusing a master prompt", failures);
@@ -151,8 +159,15 @@ function main() {
   expect(/upload-ready-native-target-ratio/.test(targetImage2Script) && /image2NativeTargetRatioReady\s*=\s*true/.test(targetImage2Script) && /localTargetRatioRecomposition\s*=\s*false/.test(targetImage2Script), "native target-ratio cover generator must mark upload readiness only for real target-ratio Image2 output", failures);
   expect(/chooseImage2Size/.test(targetImage2Script) && /sips/.test(targetImage2Script) && /exactPlatformSize/.test(targetImage2Script), "native target-ratio cover generator must request a legal Image2 canvas and resize to the exact platform target without crop/letterbox fallback", failures);
   expect(/provider:\s*"codex-built-in-imagegen"/.test(codexImage2IngestScript) && /requestedCodexImageSize/.test(codexImage2IngestScript), "Codex Image2 ingest script must record the Codex built-in provider and source dimensions", failures);
+  expect(/"youtube-1280x720":\s*"horizontal-16x9-1280x720"/.test(codexImage2IngestScript) && /"bilibili-1920x1080":\s*"horizontal-16x9-1920x1080"/.test(codexImage2IngestScript), "Codex Image2 ingest script must accept standard cover target ids emitted by the core cover engine", failures);
   expect(/refusing to distort\/crop/.test(codexImage2IngestScript) && /Math\.abs\(expectedRatio - imageRatio\)/.test(codexImage2IngestScript), "Codex Image2 ingest script must reject source bitmaps that do not match the target ratio", failures);
   expect(/pendingNativeTargetRatioPrompts/.test(codexImage2IngestScript) && /fulfilledNativeTargetRatioExports/.test(codexImage2IngestScript), "Codex Image2 ingest script must move native target prompts from pending to fulfilled", failures);
+  expect(/coreCoverLogicPresent[\s\S]*defaultCoverEngine[\s\S]*image2-integrated-typography-cover[\s\S]*provider[\s\S]*codex-context-image2/.test(nativeFinalRendererScript), "native-final renderer must detect existing core Image2 cover logic before writing review covers", failures);
+  expect(/native-final-cover-review\.json/.test(nativeFinalRendererScript) && /if \(!coreCoverLogicPresent\)[\s\S]*writeJson\(coverDesignPath[\s\S]*writeJson\(coverSizeSelectionPath[\s\S]*writeJson\(contextImage2RequestsPath/.test(nativeFinalRendererScript), "native-final renderer must preserve existing core cover-design/context Image2 artifacts instead of overwriting them", failures);
+  expect(/const coverArtifactsPromise = writeCoverArtifacts[\s\S]*const finalRenderRequested =/.test(script), "core cover design lane must start before personal-IP native-final pre-render blocking checks", failures);
+  expect(/stage:\s*"pre-cover-full-render"[\s\S]*await coverArtifactsPromise[\s\S]*fail\(error\.message\)/.test(script), "personal-IP pre-cover native-final blocker must wait for core cover artifacts before failing the video lane", failures);
+  expect(/stage:\s*"pre-audio-full-render"[\s\S]*await coverArtifactsPromise[\s\S]*fail\(error\.message\)/.test(script), "personal-IP pre-audio native-final blocker must wait for the parallel cover lane before failing the video lane", failures);
+  expect(/personal-ip-native-final-blocked\.json/.test(script) && /coreCoverArtifacts[\s\S]*workflow\/cover-design\.json[\s\S]*workflow\/context-image2-cover-requests\.json/.test(script), "personal-IP native-final blocker manifest must expose the independent core cover artifacts", failures);
 
 	  mkdirSync(outDir, { recursive: true });
   const report = {
@@ -179,6 +194,8 @@ function main() {
       coverMustExposeClickLogic: true,
       coverImage2PromptsRequired: true,
       coverImage2QcRequired: true,
+      contextImage2CoverRequestsRequired: true,
+      contextImage2UsesCoreCoverLogic: true,
       highClickKnowledgeCoverPromptContractRequired: true,
       image2IntegratedTypographyIsDefault: true,
       integratedTypographyHardCropRejected: true,

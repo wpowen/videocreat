@@ -14,6 +14,9 @@ const HORIZONTAL_HEIGHT = 1080;
 const DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT = 4;
 const DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT = 48;
 const DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE = 140;
+const DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE = 30;
+const DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE = 4;
+const DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND = 4.5;
 const DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET = 4;
 const DEFAULT_VERTICAL_TOP_SAFE_PX = 220;
 const DEFAULT_VERTICAL_BOTTOM_SUBTITLE_SAFE_PX = 320;
@@ -38,7 +41,11 @@ function parseArgs(argv) {
     agentJobs: "搬运卡片;标记风险;递交结果",
     outputName: "",
     aspect: "9:16",
-    personaGender: "male",
+    personaGender: "auto",
+    audioGender: "",
+    voiceGender: "",
+    audioSpeaker: "",
+    voiceSpeaker: "",
     personaManifest: "",
     content: "",
     contentFile: "",
@@ -48,8 +55,17 @@ function parseArgs(argv) {
     maxImageCount: String(DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT),
     targetImageCount: "",
     imageGrowthStepChars: "160",
+    durationSeconds: "",
+    audioDurationSeconds: "",
+    videoDurationSeconds: "",
+    subtitleCueCount: "",
+    cueCount: "",
+    imageSecondsPerPage: String(DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE),
+    subtitleCuesPerImage: String(DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE),
+    speechCharsPerSecond: String(DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND),
     allowSingleImage: "false",
     sourceImages: "",
+    personaReferenceBound: "false",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const item = argv[i];
@@ -72,15 +88,17 @@ function usage() {
     "Usage:",
     "  node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image.mjs \\",
     "    --out <dir> [--title <text>] [--persona <description>] [--core-idea <text>] \\",
-    "    [--aspect 9:16|16:9] [--persona-manifest <manifest.json>] [--persona-gender male|female] \\",
+    "    [--aspect 9:16|16:9] [--persona-manifest <manifest.json>] [--persona-gender auto|male|female] \\",
+    "    [--audio-gender male|female] [--voice-gender male|female] [--audio-speaker <speaker>] \\",
     "    [--content-file <script.txt>] [--content <text>] [--required-text <a;b;c>] \\",
     "    [--min-image-count 4] [--max-image-count 48] [--target-image-count n] \\",
+    "    [--duration-seconds n] [--subtitle-cue-count n] [--image-seconds-per-page 30] \\",
     "    [--agent-jobs <a;b;c>] [--source-images <page1.png;page2.png;...>]",
     "",
     "Writes a vertical 9:16 or horizontal 16:9 personal-IP diagram multi-page contract and page prompts.",
     "If --source-images or --source-image is provided, ingests generated bitmaps and verifies orientation/count.",
-    "Personal-IP output always resolves a fixed persona manifest. Without --persona-manifest, it uses",
-    "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json.",
+    "Personal-IP output always resolves a fixed persona manifest. Without --persona-manifest, it chooses",
+    "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json from audio/voice gender.",
   ].join("\n");
 }
 
@@ -112,10 +130,54 @@ function isInside(childPath, parentPath) {
   return Boolean(rel) && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
+function normalizePersonaGenderCandidate(value = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw || raw === "auto" || raw === "default") return null;
+  if (["female", "woman", "women", "女", "女士", "女声", "女生", "girl"].includes(raw) || /female|woman|girl|女/.test(raw)) return "female";
+  if (["male", "man", "men", "男", "男士", "男声", "男生", "boy"].includes(raw) || /male|man|boy|男/.test(raw)) return "male";
+  return null;
+}
+
 function normalizePersonaGender(value = "male") {
-  const raw = String(value || "male").trim().toLowerCase();
-  if (["female", "woman", "women", "女", "女士", "girl"].includes(raw)) return "female";
-  return "male";
+  return normalizePersonaGenderCandidate(value) || "male";
+}
+
+function resolveAudioPersonaGender(args = {}) {
+  const explicitPersonaGender = normalizePersonaGenderCandidate(args.personaGender);
+  if (explicitPersonaGender) {
+    return {
+      gender: explicitPersonaGender,
+      source: "persona-gender",
+      matchedValue: args.personaGender,
+      audioGender: normalizePersonaGenderCandidate(args.audioGender || args.voiceGender || args.audioSpeaker || args.voiceSpeaker),
+      explicitPersonaGender: true,
+    };
+  }
+  const audioCandidates = [
+    ["audio-gender", args.audioGender],
+    ["voice-gender", args.voiceGender],
+    ["audio-speaker", args.audioSpeaker],
+    ["voice-speaker", args.voiceSpeaker],
+  ];
+  for (const [source, value] of audioCandidates) {
+    const gender = normalizePersonaGenderCandidate(value);
+    if (gender) {
+      return {
+        gender,
+        source,
+        matchedValue: value,
+        audioGender: gender,
+        explicitPersonaGender: false,
+      };
+    }
+  }
+  return {
+    gender: "female",
+    source: "default-local-tts-speaker",
+    matchedValue: "中文女",
+    audioGender: "female",
+    explicitPersonaGender: false,
+  };
 }
 
 function defaultPersonaManifestPath(gender = "male") {
@@ -123,9 +185,10 @@ function defaultPersonaManifestPath(gender = "male") {
 }
 
 function resolvePersonaManifestPath(args = {}) {
+  const resolvedGender = resolveAudioPersonaGender(args);
   return args.personaManifest
     ? resolve(args.personaManifest)
-    : defaultPersonaManifestPath(args.personaGender);
+    : defaultPersonaManifestPath(resolvedGender.gender);
 }
 
 function collectPersonaAssetCandidates(manifest = {}, manifestPath = "") {
@@ -154,6 +217,7 @@ function firstExisting(candidates = []) {
 }
 
 function resolveFixedPersona(args = {}) {
+  const genderResolution = resolveAudioPersonaGender(args);
   const manifestPath = resolvePersonaManifestPath(args);
   if (!existsSync(manifestPath)) {
     throw new Error(`Fixed personal-IP persona manifest not found: ${manifestPath}`);
@@ -170,7 +234,13 @@ function resolveFixedPersona(args = {}) {
       : []),
   ].map((candidate) => resolveMaybeRelative(candidate, dirname(manifestPath))).filter(Boolean);
   const mainAnchorPath = firstExisting(mainAnchorCandidates) || firstExisting(collectPersonaAssetCandidates(manifest, manifestPath));
+  const specSheetPath = resolveMaybeRelative(activeVersion?.specSheet || manifest.assets?.specSheet, dirname(manifestPath));
+  const actionExpressionSmallScenePath = resolveMaybeRelative(
+    activeVersion?.actionExpressionSmallScene || manifest.assets?.actionExpressionSmallScene,
+    dirname(manifestPath),
+  );
   const sourceGeneratedImage = activeVersion?.sourceGeneratedImage || manifest.sourceGeneratedImage || null;
+  const completionNeeded = Array.isArray(manifest.completionNeeded) ? manifest.completionNeeded : [];
   const visualAnchors = Array.isArray(activeVersion?.visualAnchors)
     ? activeVersion.visualAnchors
     : Array.isArray(manifest.visualAnchors)
@@ -185,15 +255,27 @@ function resolveFixedPersona(args = {}) {
   const promptReference = [
     `Fixed persona manifest: ${manifestPath}`,
     mainAnchorPath ? `Main anchor image: ${mainAnchorPath}` : "Main anchor image: missing",
-    sourceGeneratedImage ? `Source generated image: ${sourceGeneratedImage}` : "Source generated image: not recorded",
+    sourceGeneratedImage
+      ? `Legacy source role sheet (provenance only, do not use as page composition or required context): ${sourceGeneratedImage}`
+      : "Legacy source role sheet: not recorded",
     `Visual anchors: ${visualAnchors.join(" / ") || "not recorded"}`,
     styleNote ? `Style note: ${styleNote}` : "",
-    "Do not redesign a new presenter. Preserve the manifest-backed adult creator identity: layered dark hair, round glasses, dark cropped jacket, white inner shirt, orange scarf/marker accent, calm teaching posture. If the image runtime cannot load the local image path directly, reconstruct this exact fixed character from the manifest visual anchors and record that limitation; do not claim exact user likeness.",
+    "Do not redesign a new presenter. Preserve the manifest-backed adult creator identity: layered dark hair, round glasses, dark cropped jacket, white inner shirt, orange scarf/marker accent, calm teaching posture. For final personal-IP native pages, the main anchor image must be passed as actual image/context input to the generation tool; text-only file paths or visual-anchor prose are not enough to prove character consistency. If the image runtime cannot bind the local image reference, stop at prompt-only or draft review instead of claiming final persona consistency.",
   ].filter(Boolean).join("\n");
 
   return {
     schemaVersion: 1,
     status,
+    resolvedPersonaGender: genderResolution.gender,
+    personaGenderSource: args.personaManifest ? "explicit-persona-manifest" : genderResolution.source,
+    audioGenderBinding: {
+      rule: "personal-IP default host gender follows the selected/provided audio gender unless an explicit persona manifest or persona-gender override is supplied",
+      audioGender: genderResolution.audioGender,
+      personaGender: genderResolution.gender,
+      source: args.personaManifest ? "explicit-persona-manifest" : genderResolution.source,
+      matchedValue: args.personaManifest ? args.personaManifest : genderResolution.matchedValue,
+      explicitPersonaGender: genderResolution.explicitPersonaGender,
+    },
     personaId: manifest.personaId || null,
     personaName: manifest.displayName || manifest.name || manifest.personaId || "fixed-personal-ip-persona",
     type: manifest.type || null,
@@ -201,6 +283,13 @@ function resolveFixedPersona(args = {}) {
     manifestSha256: sha256File(manifestPath),
     mainAnchorPath,
     mainAnchorSha256: mainAnchorPath ? sha256File(mainAnchorPath) : null,
+    specSheetPath: specSheetPath && existsSync(specSheetPath) ? specSheetPath : null,
+    actionExpressionSmallScenePath: actionExpressionSmallScenePath && existsSync(actionExpressionSmallScenePath) ? actionExpressionSmallScenePath : null,
+    completionNeeded,
+    templateSetComplete: completionNeeded.length === 0
+      && Boolean(mainAnchorPath)
+      && Boolean(specSheetPath && existsSync(specSheetPath))
+      && Boolean(actionExpressionSmallScenePath && existsSync(actionExpressionSmallScenePath)),
     sourceGeneratedImage,
     sourceSkill: manifest.sourceSkill || {
       name: "ip-diagram-creator",
@@ -221,6 +310,30 @@ function resolveFixedPersona(args = {}) {
     },
     promptReference,
   };
+}
+
+function personaReferenceImagesForGeneration(fixedPersona = {}) {
+  const candidates = [
+    ["main-anchor", fixedPersona.mainAnchorPath, true],
+    ["spec-sheet", fixedPersona.specSheetPath, false],
+    ["action-expression-small-scene", fixedPersona.actionExpressionSmallScenePath, false],
+  ];
+  const seen = new Set();
+  return candidates
+    .map(([role, path, required]) => ({ role, path, required }))
+    .filter((item) => {
+      if (!item.path || !existsSync(item.path)) return false;
+      const absolutePath = resolve(item.path);
+      if (seen.has(absolutePath)) return false;
+      seen.add(absolutePath);
+      return true;
+    })
+    .map((item) => ({
+      role: item.role,
+      path: resolve(item.path),
+      required: item.required,
+      sha256: sha256File(item.path),
+    }));
 }
 
 function safeStem(value = "vertical-personal-ip-page") {
@@ -246,6 +359,11 @@ function isEnabled(value) {
 
 function toPositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function toPositiveNumber(value, fallback = 0) {
+  const parsed = Number.parseFloat(String(value || ""));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
@@ -302,10 +420,28 @@ function buildImageQuantityPlan(args = {}, canvas) {
   const minImageCount = Math.max(allowSingleImage ? 1 : DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT, requestedMin);
   const maxImageCount = Math.max(minImageCount, toPositiveInt(args.maxImageCount, DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT));
   const growthStepChars = Math.max(80, toPositiveInt(args.imageGrowthStepChars, 160));
+  const secondsPerImage = Math.max(12, toPositiveNumber(args.imageSecondsPerPage || args.secondsPerImage, DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE));
+  const subtitleCuesPerImage = Math.max(1, toPositiveInt(args.subtitleCuesPerImage || args.cuesPerImage, DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE));
+  const speechCharsPerSecond = Math.max(2.5, toPositiveNumber(args.speechCharsPerSecond, DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND));
   const content = collectPlanningContent(args);
   const contentUnits = splitContentUnits(content);
   const charCount = Array.from(content.replace(/\s/g, "")).length;
   const unitCount = contentUnits.length;
+  const explicitDurationSeconds = Math.max(
+    toPositiveNumber(args.durationSeconds, 0),
+    toPositiveNumber(args.audioDurationSeconds, 0),
+    toPositiveNumber(args.videoDurationSeconds, 0),
+  );
+  const estimatedSpeechDurationSeconds = charCount > 0
+    ? Number((charCount / speechCharsPerSecond).toFixed(3))
+    : 0;
+  const effectiveDurationSeconds = explicitDurationSeconds || estimatedSpeechDurationSeconds;
+  const subtitleCueCount = Math.max(
+    0,
+    toPositiveInt(args.subtitleCueCount, 0),
+    toPositiveInt(args.cueCount, 0),
+    toPositiveInt(args.narrationCueCount, 0),
+  );
   const charGrowthBucket = Math.max(0, Math.ceil(charCount / growthStepChars) - 1);
   const unitGrowthBucket = Math.max(0, Math.ceil(unitCount / 4) - 1);
   const boundedCharGrowthBucket = Math.min(DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET, charGrowthBucket);
@@ -314,16 +450,36 @@ function buildImageQuantityPlan(args = {}, canvas) {
   const exponentialByUnits = minImageCount * (2 ** boundedUnitGrowthBucket);
   const semanticFloor = Math.ceil(unitCount / 1.5);
   const clarityByChars = Math.ceil(charCount / DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE);
+  const durationBasedTarget = effectiveDurationSeconds > 0 ? Math.ceil(effectiveDurationSeconds / secondsPerImage) : 0;
+  const subtitleCueBasedTarget = subtitleCueCount > 0 ? Math.ceil(subtitleCueCount / subtitleCuesPerImage) : 0;
   const contentClarityTarget = Math.max(minImageCount, semanticFloor, clarityByChars);
-  const contentMatchCeiling = Math.max(minImageCount, unitCount, clarityByChars);
-  const automaticTarget = Math.min(
-    Math.max(contentClarityTarget, exponentialByChars, exponentialByUnits),
-    contentMatchCeiling,
+  const contentMatchTarget = Math.max(minImageCount, unitCount, clarityByChars);
+  const contentGrowthTarget = Math.min(
+    Math.max(exponentialByChars, exponentialByUnits),
+    Math.max(contentMatchTarget, Math.ceil(contentMatchTarget * 1.5)),
+  );
+  const automaticTarget = Math.max(
+    contentClarityTarget,
+    contentMatchTarget,
+    durationBasedTarget,
+    subtitleCueBasedTarget,
+    contentGrowthTarget,
   );
   const explicitTarget = args.targetImageCount
     ? clamp(toPositiveInt(args.targetImageCount, minImageCount), minImageCount, maxImageCount)
     : null;
   const resolvedImageCount = explicitTarget || clamp(automaticTarget, minImageCount, maxImageCount);
+  const targetDrivers = [
+    ["explicitTarget", explicitTarget || 0],
+    ["durationBasedTarget", durationBasedTarget],
+    ["subtitleCueBasedTarget", subtitleCueBasedTarget],
+    ["contentClarityTarget", contentClarityTarget],
+    ["contentMatchTarget", contentMatchTarget],
+    ["contentGrowthTarget", contentGrowthTarget],
+  ].filter(([, value]) => Number(value || 0) > 0);
+  const strongestAutomaticDriver = targetDrivers
+    .filter(([name]) => name !== "explicitTarget")
+    .sort((a, b) => Number(b[1]) - Number(a[1]))[0] || ["minImageCount", minImageCount];
   const requiredText = splitList(args.requiredText);
   const agentJobs = splitList(args.agentJobs);
   const roles = [
@@ -379,19 +535,39 @@ function buildImageQuantityPlan(args = {}, canvas) {
       boundedUnitGrowthBucket,
       semanticFloor,
       clarityByChars,
+      durationSeconds: explicitDurationSeconds || null,
+      durationSecondsSource: explicitDurationSeconds ? "explicit-duration/audio/video" : "estimated-from-content-chars",
+      estimatedSpeechDurationSeconds,
+      effectiveDurationSeconds,
+      secondsPerImage,
+      subtitleCueCount,
+      subtitleCuesPerImage,
+      durationBasedTarget,
+      subtitleCueBasedTarget,
       contentClarityTarget,
-      contentMatchCeiling,
+      contentMatchTarget,
+      contentMatchCeiling: maxImageCount,
+      contentGrowthTarget,
       exponentialByChars,
       exponentialByUnits,
       automaticTarget,
+      strongestAutomaticDriver: strongestAutomaticDriver[0],
+    },
+    durationDensityRule: {
+      targetSecondsPerImage: secondsPerImage,
+      subtitleCuesPerImage,
+      speechCharsPerSecond,
+      durationBasedTarget,
+      subtitleCueBasedTarget,
+      reason: "Personal-IP video source pages must scale with the actual voice/video duration, so long videos cannot collapse to a few pages when the planner receives only a summarized core idea.",
     },
     growthRule: {
-      formula: "clamp(min(max(contentClarityTarget, minImageCount*2^boundedCharGrowthBucket, minImageCount*2^boundedUnitGrowthBucket), contentMatchCeiling), minImageCount, maxImageCount)",
+      formula: "clamp(max(contentClarityTarget, contentMatchTarget, durationBasedTarget, subtitleCueBasedTarget, contentGrowthTarget), minImageCount, maxImageCount)",
       charGrowthBucket: `ceil(nonSpaceChineseOrLatinChars/${growthStepChars}) - 1`,
       unitGrowthBucket: "ceil(contentUnits/4) - 1",
       boundedGrowthBucketMax: DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET,
       clarityCharsPerImage: DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE,
-      reason: "Short content still gets a multi-page visual set; longer scripts grow by content clarity, but page count is capped by matchable voiceover beats so the package does not create decorative extra pages.",
+      reason: "Short content still gets a multi-page visual set; longer scripts grow by content clarity, subtitle cue count, and actual/estimated duration. Exponential tiers are bounded by matchable content growth so long text does not blindly fill maxImageCount.",
     },
     matchingRule: {
       sourcePriority: ["content-file/script/narration", "content", "coreIdea", "requiredText"],
@@ -414,6 +590,52 @@ function parseSourceImageList(args = {}) {
     .map((item) => item.trim())
     .filter(Boolean)
     .map((item) => resolve(item));
+}
+
+function safeSha256File(path) {
+  try {
+    return path && existsSync(path) ? sha256File(path) : null;
+  } catch {
+    return null;
+  }
+}
+
+function collectForbiddenSourceImageAssets(fixedPersona = {}, personaReferenceImages = []) {
+  const manifestDir = fixedPersona.manifestPath ? dirname(fixedPersona.manifestPath) : process.cwd();
+  const assets = [];
+  const pushAsset = (role, path, required = false) => {
+    const resolvedPath = resolveMaybeRelative(path, manifestDir);
+    if (!resolvedPath || !existsSync(resolvedPath)) return;
+    assets.push({
+      role,
+      path: resolve(resolvedPath),
+      required,
+      sha256: safeSha256File(resolvedPath),
+    });
+  };
+
+  pushAsset("fixed-persona-main-anchor", fixedPersona.mainAnchorPath, true);
+  pushAsset("legacy-source-generated-role-sheet", fixedPersona.sourceGeneratedImage, false);
+  pushAsset("fixed-persona-spec-sheet", fixedPersona.specSheetPath, false);
+  pushAsset("fixed-persona-action-expression-small-scene", fixedPersona.actionExpressionSmallScenePath, false);
+  personaReferenceImages.forEach((image) => pushAsset(`context-image-${image.role}`, image.path, image.required));
+
+  const seen = new Set();
+  return assets.filter((asset) => {
+    const key = `${asset.path}:${asset.sha256 || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function findForbiddenSourceImageConflict(source, forbiddenAssets = []) {
+  const resolvedSource = resolve(source);
+  const sourceSha256 = safeSha256File(resolvedSource);
+  return forbiddenAssets.find((asset) => {
+    if (asset.path && resolve(asset.path) === resolvedSource) return true;
+    return Boolean(asset.sha256 && sourceSha256 && asset.sha256 === sourceSha256);
+  }) || null;
 }
 
 function readImageDimensions(path) {
@@ -542,12 +764,67 @@ function main() {
     writeFileSync(promptPath, `${prompt}\n`, "utf8");
     return { slot, prompt, promptPath };
   });
+  const sourceImages = parseSourceImageList(args);
+  const personaReferenceBound = isEnabled(args.personaReferenceBound);
+  const personaReferenceImages = personaReferenceImagesForGeneration(fixedPersona);
+  const forbiddenSourceImageAssets = collectForbiddenSourceImageAssets(fixedPersona, personaReferenceImages);
+  const contextImage2PersonaPageRequests = {
+    schemaVersion: 1,
+    stage: "context-image2-persona-page-requests",
+    status: sourceImages.length > 0 && personaReferenceBound
+      ? "satisfied-by-ingested-source-images"
+      : "required-pending",
+    provider: "codex-context-image2",
+    tool: "image_gen",
+    requiredForFinalNativePages: true,
+    route: `ip-diagram-creator-${canvas.orientation}-source-pages`,
+    promptDirectory: `prompts/${filePrefix}-pages`,
+    generationRule: "Generate each page with the same fixed persona reference images attached as context input. Text-only paths or visual-anchor prose do not prove character consistency.",
+    referenceBindingRule: "Every final page must later be ingested with --persona-reference-bound true so source_generated_images[].personaReferenceBoundToGeneration is true.",
+    parallelGenerationPolicy: {
+      allowed: true,
+      defaultMaxConcurrency: 2,
+      maxConcurrency: 3,
+      concurrencyEnv: "CODEX_VIDEO_IMAGE2_CONCURRENCY",
+      consistencyGroup: "fixed-persona-main-anchor-page-set",
+      rule: "Page requests may be generated concurrently only when every request attaches the same required main-anchor context image set from this manifest. Preserve request order and expectedOutput names, then ingest the complete set together with --persona-reference-bound true.",
+      notAllowedWhen: [
+        "any page uses a different persona context image set",
+        "a page tries to use another newly generated page as its identity reference",
+        "the tool cannot bind the required main-anchor image as context input for every request",
+      ],
+    },
+    fixedPersonaManifest: fixedPersona.manifestPath,
+    resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+    audioGenderBinding: fixedPersona.audioGenderBinding,
+    contextImages: personaReferenceImages,
+    requests: imagePlan.slots.map((slot) => ({
+      id: slot.id,
+      order: slot.order,
+      provider: "codex-context-image2",
+      tool: "image_gen",
+      parallelSafe: true,
+      consistencyGroup: "fixed-persona-main-anchor-page-set",
+      requiredForFinalNativePages: true,
+      width: canvas.width,
+      height: canvas.height,
+      aspectRatio: canvas.aspectRatio,
+      promptPath: slot.promptFile,
+      expectedOutput: `images/${slot.expectedImageName}`,
+      fixedPersonaManifest: fixedPersona.manifestPath,
+      contextImages: personaReferenceImages,
+      requiredContextImageRoles: personaReferenceImages
+        .filter((image) => image.required)
+        .map((image) => image.role),
+      ingestCommand: `node scripts/plan-vertical-personal-ip-image.mjs --out ${out} --aspect ${canvas.aspectRatio} --title "${args.title}" --content-file <same-content-file-or-content> --source-images "<page-01.png>;...;<page-${String(imagePlan.resolvedImageCount).padStart(2, "0")}.png>" --persona-reference-bound true`,
+    })),
+  };
   const promptIndexPath = join(promptsDir, `${filePrefix}-prompt-index.md`);
   writeFileSync(promptIndexPath, [
     `# ${args.title}`,
     "",
     `This personal-IP source set requires ${imagePlan.resolvedImageCount} generated images.`,
-    `Do not generate a single combined image. Generate every page prompt under \`prompts/${filePrefix}-pages/\`, then ingest all images with \`--source-images\`.`,
+    `Do not generate a single combined image. Use \`workflow/context-image2-persona-page-requests.json\` so every page is generated with the same fixed persona context images, then ingest all images with \`--source-images\` and \`--persona-reference-bound true\`.`,
     "",
     ...pagePrompts.map(({ slot }) => `- ${slot.id}: ${slot.promptFile} -> ${slot.expectedImageName} (${slot.role})`),
     "",
@@ -582,6 +859,10 @@ function main() {
       fixedPersonaManifestRequiredForPersonalIpFinal: true,
       fixedPersonaManifestPath: fixedPersona.manifestPath,
       fixedPersonaStatus: fixedPersona.status,
+      resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+      personaGenderSource: fixedPersona.personaGenderSource,
+      audioGenderBinding: fixedPersona.audioGenderBinding,
+      defaultHostGenderMustFollowAudioGender: true,
       fixedPersonaAssetRequiredForFinalPersonalIp: true,
       reuseSavedManifestBeforeRegenerate: true,
       genericPersonaAllowedOnlyFromFixedDefaultManifest: fixedPersona.status === "ready-default-persona",
@@ -600,6 +881,7 @@ function main() {
       `workflow/${filePrefix}-contract.json`,
       "workflow/personal-ip-image-count-plan.json",
       `workflow/${filePrefix}-image-jobs.json`,
+      "workflow/context-image2-persona-page-requests.json",
       "workflow/personal-ip-asset-registry.json",
       `prompts/${filePrefix}-prompt-index.md`,
       `workflow/${filePrefix}-qc.json`,
@@ -619,8 +901,8 @@ function main() {
     ],
   };
 
-  const sourceImages = parseSourceImageList(args);
   const ingestedImages = [];
+  const sourceImagePersonaReferenceConflicts = [];
   if (sourceImages.length > 0) {
     if (sourceImages.length !== imagePlan.resolvedImageCount) {
       throw new Error(`Personal-IP source image count mismatch: planned ${imagePlan.resolvedImageCount}, received ${sourceImages.length}. Generate every page prompt before ingesting.`);
@@ -629,6 +911,17 @@ function main() {
       const source = sourceImages[index];
       const slot = imagePlan.slots[index];
       if (!existsSync(source)) throw new Error(`--source-image not found: ${source}`);
+      const conflict = findForbiddenSourceImageConflict(source, forbiddenSourceImageAssets);
+      if (conflict) {
+        sourceImagePersonaReferenceConflicts.push({
+          slotId: slot.id,
+          source,
+          role: conflict.role,
+          path: conflict.path,
+          sha256: conflict.sha256,
+        });
+        throw new Error(`Personal-IP source image cannot be a fixed persona reference asset: ${source} matches ${conflict.role} (${conflict.path}). Generate final page images from workflow/context-image2-persona-page-requests.json and pass those page outputs via --source-images; do not ingest main-anchor, sourceGeneratedImage, role/spec sheet, or style-board assets.`);
+      }
       const ext = extname(source).toLowerCase() || ".png";
       const outputName = slot.expectedImageName.replace(/\.[^.]+$/, ext);
       const target = join(imagesDir, outputName);
@@ -642,6 +935,7 @@ function main() {
         width: dimensions.width,
         height: dimensions.height,
         aspectRatioOk: imageRatioOk(dimensions.width, dimensions.height, canvas.aspectRatio),
+        personaReferenceAssetConflict: null,
         contentBeat: slot.contentBeat,
         prompt: slot.promptFile,
       });
@@ -660,6 +954,22 @@ function main() {
     fixedPersonaMainAnchorPresent: Boolean(fixedPersona.mainAnchorPath && existsSync(fixedPersona.mainAnchorPath)),
     fixedPersonaSourceGeneratedOrAnchorPresent: Boolean(fixedPersona.sourceGeneratedImage || fixedPersona.mainAnchorPath),
     fixedPersonaStorageOutsidePublicSkill: !fixedPersona.storagePolicy.manifestInsidePublicSkillPackage && !fixedPersona.storagePolicy.mainAnchorInsidePublicSkillPackage,
+    contextImage2PersonaPageRequestsPresent: contextImage2PersonaPageRequests.requests.length === imagePlan.resolvedImageCount,
+    contextImage2RequestsUseFixedPersonaImages: personaReferenceImages.some((image) => image.required === true)
+      && contextImage2PersonaPageRequests.requests.every((request) => Array.isArray(request.contextImages)
+        && request.contextImages.some((image) => image.required === true)),
+    contextImage2RequiredImagesAreMainAnchorOnly: personaReferenceImages.filter((image) => image.required).every((image) => image.role === "main-anchor")
+      && contextImage2PersonaPageRequests.requests.every((request) => Array.isArray(request.requiredContextImageRoles)
+        && request.requiredContextImageRoles.length === 1
+        && request.requiredContextImageRoles[0] === "main-anchor"),
+    contextImage2NoSourceGeneratedPersonaContext: personaReferenceImages.every((image) => image.role !== "source-generated-persona")
+      && contextImage2PersonaPageRequests.requests.every((request) => Array.isArray(request.contextImages)
+        && request.contextImages.every((image) => image.role !== "source-generated-persona")),
+    defaultPersonaGenderMatchesAudioGender: fixedPersona.audioGenderBinding.source === "explicit-persona-manifest"
+      || fixedPersona.audioGenderBinding.explicitPersonaGender === true
+      || fixedPersona.audioGenderBinding.audioGender === fixedPersona.audioGenderBinding.personaGender,
+    fixedPersonaReferenceBindingConfirmed: sourceImages.length > 0 ? personaReferenceBound : false,
+    fixedPersonaTextOnlyReferenceRejectedForFinal: sourceImages.length > 0 ? personaReferenceBound : false,
     promptsIncludeFixedPersonaManifest: pagePrompts.every(({ prompt }) => prompt.includes(fixedPersona.manifestPath)),
     promptsIncludeFixedPersonaAnchors: fixedPersona.visualAnchors.length === 0 || pagePrompts.some(({ prompt }) => fixedPersona.visualAnchors.some((anchor) => prompt.includes(anchor))),
     verticalTopSafeAreaPrompted: canvas.orientation !== "vertical" || pagePrompts.every(({ prompt }) => prompt.includes(`top ${DEFAULT_VERTICAL_TOP_SAFE_PX}px`) && prompt.includes("phone status/navigation bars")),
@@ -668,22 +978,45 @@ function main() {
     retiredTemplateFallbackRejected: true,
     sourceImageCountMatchesPlanWhenProvided: sourceImages.length > 0 ? ingestedImages.length === imagePlan.resolvedImageCount : true,
     sourceImagesMatchRequestedAspectWhenProvided: sourceImages.length > 0 ? ingestedImages.every((image) => image.aspectRatioOk === true) : true,
+    sourceImagesDoNotReusePersonaReferenceAssets: sourceImages.length > 0
+      ? sourceImagePersonaReferenceConflicts.length === 0 && ingestedImages.every((image) => !image.personaReferenceAssetConflict)
+      : true,
   };
   const qc = {
     schemaVersion: 1,
     stage: `${filePrefix}-qc`,
-    status: Object.values(checks).every(Boolean) ? "pass" : "fail",
-    pass: Object.values(checks).every(Boolean),
+    status: sourceImages.length > 0
+      ? Object.values(checks).every(Boolean) ? "pass" : "fail"
+      : "pending-context-image2-generation",
+    pass: sourceImages.length > 0 && Object.values(checks).every(Boolean),
     route: `ip-diagram-creator-${canvas.orientation}-image`,
     checks,
+    contextImage2PersonaPageRequests: "workflow/context-image2-persona-page-requests.json",
+    forbiddenSourceImageAssets: forbiddenSourceImageAssets.map((asset) => ({
+      role: asset.role,
+      path: asset.path,
+      required: asset.required,
+      sha256: asset.sha256,
+    })),
+    sourceImagePersonaReferenceConflicts,
     outputCanvas: contract.outputCanvas,
     mobileSafeAreas: contract.mobileSafeAreas,
     fixedPersona: {
       status: fixedPersona.status,
+      resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+      personaGenderSource: fixedPersona.personaGenderSource,
+      audioGenderBinding: fixedPersona.audioGenderBinding,
       personaId: fixedPersona.personaId,
       personaName: fixedPersona.personaName,
       manifestPath: fixedPersona.manifestPath,
       mainAnchorPath: fixedPersona.mainAnchorPath,
+      sourceGeneratedImage: fixedPersona.sourceGeneratedImage,
+      specSheetPath: fixedPersona.specSheetPath,
+      actionExpressionSmallScenePath: fixedPersona.actionExpressionSmallScenePath,
+      templateSetComplete: fixedPersona.templateSetComplete,
+      completionNeeded: fixedPersona.completionNeeded,
+      contextImagesPlannedForGeneration: personaReferenceImages,
+      personaReferenceBoundToGeneration: personaReferenceBound,
       doNotClaimUserLikeness: fixedPersona.doNotClaimUserLikeness,
     },
     imageQuantityPlan: {
@@ -701,6 +1034,11 @@ function main() {
     fixedPersonaManifest: fixedPersona.manifestPath,
     fixedPersonaMainAnchor: fixedPersona.mainAnchorPath,
     fixedPersonaStatus: fixedPersona.status,
+    resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+    audioGenderBinding: fixedPersona.audioGenderBinding,
+    personaReferenceBoundToGeneration: personaReferenceBound,
+    referenceImagesUsed: personaReferenceBound ? personaReferenceImages : [],
+    textOnlyReferenceRejectedForFinal: true,
     plannedPageId: image.id,
     prompt: image.prompt,
     contentBeat: image.contentBeat,
@@ -711,9 +1049,11 @@ function main() {
     generationRoute: sourceImages.length > 0 ? "Codex built-in image_gen or user-provided generated image page set ingested by contract" : "prompt-only-multi-page",
     source_generated_images: sourceGeneratedImages,
     fixedPersona,
+    audioGenderBinding: fixedPersona.audioGenderBinding,
     contract: `workflow/${filePrefix}-contract.json`,
     promptIndex: `prompts/${filePrefix}-prompt-index.md`,
     promptDirectory: `prompts/${filePrefix}-pages/`,
+    contextImage2PersonaPageRequests: "workflow/context-image2-persona-page-requests.json",
     imageCountPlan: "workflow/personal-ip-image-count-plan.json",
     imageJobs: `workflow/${filePrefix}-image-jobs.json`,
     images: ingestedImages.map((image) => image.path),
@@ -723,6 +1063,7 @@ function main() {
       file: `../${image.path}`,
       source_generated_image: sourceGeneratedImages[index],
       fixed_persona_manifest: fixedPersona.manifestPath,
+      resolved_persona_gender: fixedPersona.resolvedPersonaGender,
       prompt: image.prompt,
       contentBeat: image.contentBeat,
     })),
@@ -731,6 +1072,7 @@ function main() {
       file: `../${image.path}`,
       source_generated_image: sourceGeneratedImages[index],
       fixed_persona_manifest: fixedPersona.manifestPath,
+      resolved_persona_gender: fixedPersona.resolvedPersonaGender,
       prompt: image.prompt,
       contentBeat: image.contentBeat,
     })),
@@ -747,6 +1089,10 @@ function main() {
     mobileSafeAreas: contract.mobileSafeAreas,
     fixedPersonaManifest: fixedPersona.manifestPath,
     fixedPersonaStatus: fixedPersona.status,
+    fixedPersonaReferenceImages: personaReferenceImages,
+    contextImage2PersonaPageRequests: "workflow/context-image2-persona-page-requests.json",
+    resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+    audioGenderBinding: fixedPersona.audioGenderBinding,
     imageQuantityPlan: {
       artifact: "workflow/personal-ip-image-count-plan.json",
       minImageCount: imagePlan.minImageCount,
@@ -764,6 +1110,14 @@ function main() {
       agentJobs: slot.agentJobs,
       matchingRule: slot.matchingRule,
       fixedPersonaManifest: fixedPersona.manifestPath,
+      fixedPersonaMainAnchor: fixedPersona.mainAnchorPath,
+      fixedPersonaSourceGeneratedImage: fixedPersona.sourceGeneratedImage,
+      personaReferenceBoundRequired: true,
+      contextImages: personaReferenceImages,
+      requiredContextImageRoles: personaReferenceImages
+        .filter((image) => image.required)
+        .map((image) => image.role),
+      resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
     })),
   };
   const assetRegistry = {
@@ -777,6 +1131,10 @@ function main() {
     manifestPath: fixedPersona.manifestPath,
     personaId: fixedPersona.personaId,
     personaName: fixedPersona.personaName,
+    resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
+    personaGenderSource: fixedPersona.personaGenderSource,
+    activeVersion: fixedPersona.activeVersion,
+    audioGenderBinding: fixedPersona.audioGenderBinding,
     type: fixedPersona.type,
     doNotClaimUserLikeness: fixedPersona.doNotClaimUserLikeness,
     mainAnchorPath: fixedPersona.mainAnchorPath,
@@ -795,6 +1153,7 @@ function main() {
   writeJson(join(workflow, `${filePrefix}-contract.json`), contract);
   writeJson(join(workflow, "personal-ip-image-count-plan.json"), imagePlan);
   writeJson(join(workflow, `${filePrefix}-image-jobs.json`), imageJobs);
+  writeJson(join(workflow, "context-image2-persona-page-requests.json"), contextImage2PersonaPageRequests);
   writeJson(join(workflow, "personal-ip-asset-registry.json"), assetRegistry);
   writeJson(join(workflow, `${filePrefix}-qc.json`), qc);
   writeJson(join(workflow, `${filePrefix}-manifest.json`), manifest);
@@ -804,6 +1163,7 @@ function main() {
     out,
     promptIndex: promptIndexPath,
     promptDirectory: pagePromptsDir,
+    contextImage2PersonaPageRequests: join(workflow, "context-image2-persona-page-requests.json"),
     imageCount: imagePlan.resolvedImageCount,
     images: ingestedImages.map((image) => image.path),
     qc: join(workflow, `${filePrefix}-qc.json`),

@@ -5,7 +5,7 @@
   "sourceCommit": "dd64ab5d972893f7ca271d9c560362d7788eb2d6",
   "sourceRelease": "v0.2.0",
   "license": "MIT",
-  "vendoredFor": "codex-video-workflow-local",
+  "vendoredFor": "codex-video-workflow",
   "usageBoundary": "Read and reuse the original Skill instructions, references, prompt templates, visual-language rules, QA rules, and example assets as the native personal-IP diagram generation logic. The video workflow still owns voice, subtitles, timing, export, delivery, and QC.",
   "entrypoint": "SKILL.md",
   "requiredReferences": [

@@ -8,6 +8,15 @@ function argValue(name, fallback = "") {
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
 }
 
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function boundedConcurrency(value, fallback = 2) {
+  return Math.max(1, Math.min(6, positiveInt(value, fallback)));
+}
+
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
@@ -25,6 +34,30 @@ function loadEnvFile(path) {
     if (!match || process.env[match[1]]) continue;
     process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
   }
+}
+
+async function runLimited(tasks, { limit = 2 } = {}) {
+  const results = new Array(tasks.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < tasks.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await tasks[index]();
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), tasks.length) }, () => worker()));
+  return results;
+}
+
+function topicDirsForRoot(root) {
+  const selectionPath = join(root, "workflow", "cover-size-selection.json");
+  const promptsPath = join(root, "workflow", "cover-image2-prompts.json");
+  if (existsSync(selectionPath) && existsSync(promptsPath)) return [root];
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d\d-/.test(entry.name))
+    .map((entry) => join(root, entry.name))
+    .sort();
 }
 
 function standardCoverFileForTarget(targetId) {
@@ -311,13 +344,12 @@ function updateArtifacts({ topicDir, entry, promptItem, pngFile, jpgFile, apiSiz
 async function main() {
   const root = resolve(argValue("--root", process.cwd()));
   const quality = argValue("--quality", "high");
-  const limit = Number(argValue("--limit", "0"));
+  const generationLimit = positiveInt(argValue("--limit", "0"), 0);
+  const concurrency = boundedConcurrency(argValue("--concurrency", process.env.CODEX_VIDEO_IMAGE2_CONCURRENCY || "2"), 2);
   loadEnvFile(resolve(".env.local"));
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is missing. Refusing to fake Image2 cover generation.");
-  const topicDirs = readdirSync(root, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && /^\d\d-/.test(entry.name))
-    .map((entry) => join(root, entry.name))
-    .sort();
+  const topicDirs = topicDirsForRoot(root);
+  const generationJobs = [];
   const generated = [];
   for (const topicDir of topicDirs) {
     const selectionPath = join(topicDir, "workflow", "cover-size-selection.json");
@@ -334,7 +366,7 @@ async function main() {
       fallbackTitle: design.coverTitle || selection.title || topicDir.split(/[\\/]/).pop(),
     });
     for (const entry of pending) {
-      if (limit && generated.length >= limit) break;
+      if (generationLimit && generationJobs.length >= generationLimit) break;
       const promptItem = matchingPrompt(prompts, entry.targetId);
       if (!promptItem?.prompt) throw new Error(`Missing Image2 prompt for ${topicDir} ${entry.targetId}`);
       const apiSize = chooseImage2Size(Number(entry.width), Number(entry.height));
@@ -344,28 +376,59 @@ async function main() {
       const rawPath = join(topicDir, "cover", `image2-native-${entry.targetId}-${apiSize.width}x${apiSize.height}.png`);
       mkdirSync(dirname(rawPath), { recursive: true });
       const prompt = `${promptItem.prompt}\n\n${targetPromptSuffix(entry)}\n\nAPI canvas: generate natively for ${apiSize.width}x${apiSize.height}. Final platform export: ${entry.width}x${entry.height}. Preserve the target composition and safe areas; do not create letterbox, matte, crop marks, or side extensions.`;
-      await generateImage2Png({ prompt, outputPath: rawPath, size: `${apiSize.width}x${apiSize.height}`, quality });
-      resizeToFinal({
-        source: apiSize.exact ? rawPath : rawPath,
-        png: pngPath,
-        jpg: jpgPath,
-        finalWidth: Number(entry.width),
-        finalHeight: Number(entry.height),
-      });
-      updateArtifacts({ topicDir, entry, promptItem, pngFile: output, jpgFile: jpgForPng(output), apiSize, quality });
-      generated.push({ topic: topicDir, targetId: entry.targetId, apiSize, exactPlatformSize: `${entry.width}x${entry.height}`, file: output });
+      generationJobs.push({ topicDir, entry, promptItem, apiSize, output, pngPath, jpgPath, rawPath, prompt });
     }
-    if (limit && generated.length >= limit) break;
+    if (generationLimit && generationJobs.length >= generationLimit) break;
   }
-  writeJson(join(root, "_封面总索引", "image2-target-generation-log.json"), {
+
+  const completedJobs = await runLimited(generationJobs.map((job) => async () => {
+    console.error(`[image2] generating ${job.entry.targetId} (${job.apiSize.width}x${job.apiSize.height})`);
+    await generateImage2Png({
+      prompt: job.prompt,
+      outputPath: job.rawPath,
+      size: `${job.apiSize.width}x${job.apiSize.height}`,
+      quality,
+    });
+    return job;
+  }), { limit: concurrency });
+
+  for (const job of completedJobs) {
+    resizeToFinal({
+      source: job.rawPath,
+      png: job.pngPath,
+      jpg: job.jpgPath,
+      finalWidth: Number(job.entry.width),
+      finalHeight: Number(job.entry.height),
+    });
+    updateArtifacts({
+      topicDir: job.topicDir,
+      entry: job.entry,
+      promptItem: job.promptItem,
+      pngFile: job.output,
+      jpgFile: jpgForPng(job.output),
+      apiSize: job.apiSize,
+      quality,
+    });
+    generated.push({
+      topic: job.topicDir,
+      targetId: job.entry.targetId,
+      apiSize: job.apiSize,
+      exactPlatformSize: `${job.entry.width}x${job.entry.height}`,
+      file: job.output,
+    });
+  }
+
+  const logRoot = topicDirs.length === 1 && topicDirs[0] === root ? join(root, "workflow") : join(root, "_封面总索引");
+  writeJson(join(logRoot, "image2-target-generation-log.json"), {
     generatedAt: new Date().toISOString(),
     generator: "scripts/generate-cover-targets-image2.mjs",
     provider: "gpt-image-2-api-explicit-opt-in",
     quality,
+    concurrency,
     generatedCount: generated.length,
     generated,
   });
-  console.log(JSON.stringify({ ok: true, root, generatedCount: generated.length }, null, 2));
+  console.log(JSON.stringify({ ok: true, root, concurrency, generatedCount: generated.length }, null, 2));
 }
 
 main().catch((error) => {

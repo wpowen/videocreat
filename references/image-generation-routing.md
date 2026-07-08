@@ -37,7 +37,7 @@ The ip-diagram-creator repository is used as a planner/prompt/native-source/QC r
 
 ## Default Routing Rule
 
-1. Cover generation is Image 2-first by default through a project-bound Codex/Cos X built-in `image_gen` bitmap whenever available. Use that bitmap as the complete cover, with the main Chinese title, subtitle/method line, badge, visual subject, lighting, texture, and depth integrated in the same image. Deterministic SVG/HTML overlays are fallback/text-repair only after review. Export the approved cover design to resolution presets; when platform click logic requires a different composition, generate a platform-specific integrated cover rather than blindly cropping. If no integrated bitmap is present, record the cover as prompt-pending and render only a degraded professional review fallback, not the old title-card cover. The OpenAI Images API route is only `--image-source image2` explicit opt-in, not the default cover path.
+1. Cover generation is Image 2-first by default through Context Image2 / Codex built-in `image_gen` in Codex App sessions. The workflow must first run the core cover engine and write `workflow/cover-design.json`, `workflow/cover-image2-prompts.json`, `workflow/cover-size-selection.json`, and `workflow/context-image2-cover-requests.json`; then Context Image2 renders each requested native-ratio bitmap from that package-bound request file. Use that bitmap as the complete cover, with the main Chinese title, subtitle/method line, badge, visual subject, lighting, texture, and depth integrated in the same image. Deterministic SVG/HTML overlays are fallback/text-repair only after review. Export the approved cover design to resolution presets; when platform click logic requires a different composition, generate a platform-specific integrated cover rather than blindly cropping. If no integrated bitmap is present, record the cover as prompt-pending and render only a degraded professional review fallback, not the old title-card cover. The OpenAI Images API route is only `--image-source image2` explicit opt-in, not the default cover path.
 2. Scene image generation is optional. Do not insert a generated scene image merely because a provider, prompt, or asset file exists.
 3. Write a per-scene `visualAssetDecision` before rendering. It must state whether a generated image is used, where it goes, why it helps, and what deterministic fallback owns the scene when it is not used.
 4. Use Codex built-in `image_gen` for project-bound image assets when the scene has a concrete subject, visual metaphor, or approved explainer-board job that benefits from bitmap treatment.
@@ -45,6 +45,16 @@ The ip-diagram-creator repository is used as a planner/prompt/native-source/QC r
 6. Copy selected outputs into the workspace before they are referenced by video artifacts.
 7. Keep scene captions, numeric claims, UI labels, and logos in deterministic HTML/SVG/CSS layers. For covers only, approved title/subtitle/badge text should be integrated into the Image 2 bitmap because thumbnail typography is part of the visual hook.
 8. Treat OpenAI Images API, Firefly, Gemini, Stability, Canva, and Figma as explicit opt-in routes unless the user asks for that provider.
+
+## Bounded Parallel Generation
+
+Image generation may run concurrently only when the request artifact explicitly says it is safe:
+
+- Valid manifests use `parallelGenerationPolicy.allowed: true`, a default concurrency, a maximum concurrency, and a request-level stable id plus expected output path.
+- Default concurrency is 2. Use `CODEX_VIDEO_IMAGE2_CONCURRENCY` or a script flag such as `--concurrency 2` to tune it; do not use unbounded `Promise.all` against provider calls.
+- Parallelism applies to independent generation calls only. Artifact mutation, resize/export, ingestion, and final QC should run after outputs are saved, or otherwise preserve deterministic request-to-output mapping.
+- Do not parallelize a page that depends on another freshly generated page as its reference. If identity or style consistency is needed, every request must attach the same fixed context image set or style lock from the manifest.
+- If any output cannot be matched back to its request id, prompt path, target id, and expected dimensions, treat the batch as incomplete and regenerate or ingest manually.
 
 ## Image2 Explainer-Board Route
 
@@ -67,6 +77,7 @@ Use this route when the planner selects a series from `assets/gpt-image-2-visual
 
 - The route generalizes the personal-IP native-page design philosophy (native full-screen pages, fixed style DNA, series continuity, multi-page coverage, provenance + QC) to non-persona series. The personal-IP route itself is untouched and keeps its own contract.
 - Plan page sets with `scripts/plan-image2-series-pages.mjs`; it writes per-page prompts, an image-count plan, a series style lock, QC, and a provenance manifest shaped like the native-page manifest.
+- `workflow/image2-series-image-jobs.json` records `parallelGenerationPolicy`; jobs may be generated concurrently only while preserving the shared style lock and slot order.
 - Text policy is per-series: `text-safe` follows the standard deterministic-text rules; `integrated-chinese` is a per-series opt-in that follows the cover-typography and personal-IP precedents and requires an exact whitelist plus a proofread gate before final use.
 - Series selection is a planner decision recorded in the scene's `visualAssetDecision` with the chosen `seriesId`; series pages must still bind to scene narration through `workflow/visual-relevance-audit.json`.
 - Mechanism/teaching scenes still evaluate the approved `image2-explainer-board-v1` route first; personal-IP briefs still route to the IP Diagram Creator route below.
@@ -106,6 +117,16 @@ Every cover prompt must additionally include:
 - Platform canvas and safe-zone requirements.
 - Integrated Chinese thumbnail typography: exact main title, subtitle/method line, badge text, and any approved supporting microcopy generated from the title/script.
 - Avoid list: no unapproved generated text, no random letters or numbers, no platform labels, no logos, no watermarks, no copied creator style.
+
+## Context Image2 Cover Handoff
+
+Final upload-ready covers in Codex App must use Context Image2 / Codex built-in `image_gen`, not a local SVG substitute.
+
+- Core logic first: `workflow/cover-design.json` owns click strategy, category, title/script truth, platform variants, target dimensions, exact visible-text whitelist, and QC. `workflow/cover-image2-prompts.json` owns the GPT Image 2 prompt text.
+- Handoff second: `workflow/context-image2-cover-requests.json` lists the current missing or non-upload-ready targets, provider `codex-context-image2`, tool `image_gen`, prompt file paths under `prompts/context-image2-covers/`, expected dimensions, and ingest commands.
+- Generation third: the agent calls Context Image2 / `image_gen` for each request, using the manifest's bounded `parallelGenerationPolicy` when present, saves each PNG to the request's expected output, and runs `scripts/ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>`.
+- Validation last: ingest may mark `uploadReady: true` only when the source bitmap matches the target ratio and is recorded as a real Codex/Image2 asset. Review SVG/HTML covers stay review-only.
+- Missing non-16:9 target covers such as `4:3`, `3:4`, square, Reels, and Bilibili common must not be backfilled with target-size local review drafts. Leave them pending for Context Image2/Image2 and list them in the regeneration manifest so users do not receive a cropped or locally recomposed file as the apparent 4:3 result.
 
 ## Do Not Generate / Do Not Insert
 
