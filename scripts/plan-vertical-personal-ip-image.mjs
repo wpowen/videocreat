@@ -64,6 +64,7 @@ function parseArgs(argv) {
     subtitleCuesPerImage: String(DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE),
     speechCharsPerSecond: String(DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND),
     allowSingleImage: "false",
+    allowUnderCount: "false",
     sourceImages: "",
     personaReferenceBound: "false",
   };
@@ -93,6 +94,7 @@ function usage() {
     "    [--content-file <script.txt>] [--content <text>] [--required-text <a;b;c>] \\",
     "    [--min-image-count 4] [--max-image-count 48] [--target-image-count n] \\",
     "    [--duration-seconds n] [--subtitle-cue-count n] [--image-seconds-per-page 30] \\",
+    "    [--allow-under-count true] \\",
     "    [--agent-jobs <a;b;c>] [--source-images <page1.png;page2.png;...>]",
     "",
     "Writes a vertical 9:16 or horizontal 16:9 personal-IP diagram multi-page contract and page prompts.",
@@ -465,10 +467,18 @@ function buildImageQuantityPlan(args = {}, canvas) {
     subtitleCueBasedTarget,
     contentGrowthTarget,
   );
-  const explicitTarget = args.targetImageCount
+  const automaticResolvedTarget = clamp(automaticTarget, minImageCount, maxImageCount);
+  const allowUnderCount = isEnabled(args.allowUnderCount);
+  const explicitRequestedTarget = args.targetImageCount
     ? clamp(toPositiveInt(args.targetImageCount, minImageCount), minImageCount, maxImageCount)
     : null;
-  const resolvedImageCount = explicitTarget || clamp(automaticTarget, minImageCount, maxImageCount);
+  const explicitTarget = args.targetImageCount
+    ? allowUnderCount
+      ? explicitRequestedTarget
+      : Math.max(explicitRequestedTarget, automaticResolvedTarget)
+    : null;
+  const explicitTargetUnderAutomatic = Boolean(explicitRequestedTarget && explicitRequestedTarget < automaticResolvedTarget);
+  const resolvedImageCount = explicitTarget || automaticResolvedTarget;
   const targetDrivers = [
     ["explicitTarget", explicitTarget || 0],
     ["durationBasedTarget", durationBasedTarget],
@@ -522,7 +532,13 @@ function buildImageQuantityPlan(args = {}, canvas) {
     minImageCount,
     maxImageCount,
     resolvedImageCount,
+    automaticResolvedTarget,
+    explicitRequestedTarget,
     explicitTarget,
+    explicitTargetUnderAutomatic,
+    explicitTargetRaisedToAutomatic: explicitTargetUnderAutomatic && !allowUnderCount,
+    allowUnderCount,
+    underCountRejectedByDefault: explicitTargetUnderAutomatic && !allowUnderCount,
     allowSingleImage,
     singleImageRejectedByDefault: !allowSingleImage,
     contentMetrics: {
@@ -551,6 +567,7 @@ function buildImageQuantityPlan(args = {}, canvas) {
       exponentialByChars,
       exponentialByUnits,
       automaticTarget,
+      automaticResolvedTarget,
       strongestAutomaticDriver: strongestAutomaticDriver[0],
     },
     durationDensityRule: {
@@ -981,6 +998,7 @@ function main() {
     sourceImagesDoNotReusePersonaReferenceAssets: sourceImages.length > 0
       ? sourceImagePersonaReferenceConflicts.length === 0 && ingestedImages.every((image) => !image.personaReferenceAssetConflict)
       : true,
+    imageCountSatisfiesAutomaticPolicy: imagePlan.resolvedImageCount >= imagePlan.automaticResolvedTarget,
   };
   const qc = {
     schemaVersion: 1,

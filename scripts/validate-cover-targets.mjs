@@ -23,6 +23,7 @@ function main() {
   const targetImage2Script = read("scripts/generate-cover-targets-image2.mjs");
   const codexImage2IngestScript = read("scripts/ingest-codex-image2-cover-target.mjs");
   const nativeFinalRendererScript = read("scripts/render-ip-diagram-native-pages.mjs");
+  const personalIpImagePlannerScript = read("scripts/plan-vertical-personal-ip-image.mjs");
   const semiAutoConfigBuilder = read("scripts/build-semi-auto-config-html.mjs");
   const skill = read("SKILL.md");
   const coverDesign = read("references/cover-design.md");
@@ -164,6 +165,10 @@ function main() {
   expect(/pendingNativeTargetRatioPrompts/.test(codexImage2IngestScript) && /fulfilledNativeTargetRatioExports/.test(codexImage2IngestScript), "Codex Image2 ingest script must move native target prompts from pending to fulfilled", failures);
   expect(/coreCoverLogicPresent[\s\S]*defaultCoverEngine[\s\S]*image2-integrated-typography-cover[\s\S]*provider[\s\S]*codex-context-image2/.test(nativeFinalRendererScript), "native-final renderer must detect existing core Image2 cover logic before writing review covers", failures);
   expect(/native-final-cover-review\.json/.test(nativeFinalRendererScript) && /if \(!coreCoverLogicPresent\)[\s\S]*writeJson\(coverDesignPath[\s\S]*writeJson\(coverSizeSelectionPath[\s\S]*writeJson\(contextImage2RequestsPath/.test(nativeFinalRendererScript), "native-final renderer must preserve existing core cover-design/context Image2 artifacts instead of overwriting them", failures);
+  expect(/coverNativeImage2Ready/.test(nativeFinalRendererScript) && /native-image2-ready/.test(nativeFinalRendererScript) && /review-grade-pending-context-image2/.test(nativeFinalRendererScript), "native-final renderer must fail final cover readiness until a real native Image2 cover target is ingested", failures);
+  expect(/sourceImageCountPlanRequiredCount/.test(nativeFinalRendererScript) && /nativePageCountSatisfiesSourceImageCountPlan/.test(nativeFinalRendererScript), "native-final renderer must enforce the source personal-IP automatic image-count policy", failures);
+  expect(/explicitTargetRaisedToAutomatic/.test(personalIpImagePlannerScript) && /allowUnderCount/.test(personalIpImagePlannerScript) && /automaticResolvedTarget/.test(personalIpImagePlannerScript), "personal-IP image planner must not let target-image-count undercut the automatic duration/content/cue policy by default", failures);
+  expect(/coverNativeImage2Ready/.test(skill) && /coverNativeImage2Ready/.test(qualityGates), "skill/docs must require native-final coverNativeImage2Ready before claiming final personal-IP delivery", failures);
   expect(/const coverArtifactsPromise = writeCoverArtifacts[\s\S]*const finalRenderRequested =/.test(script), "core cover design lane must start before personal-IP native-final pre-render blocking checks", failures);
   expect(/stage:\s*"pre-cover-full-render"[\s\S]*await coverArtifactsPromise[\s\S]*fail\(error\.message\)/.test(script), "personal-IP pre-cover native-final blocker must wait for core cover artifacts before failing the video lane", failures);
   expect(/stage:\s*"pre-audio-full-render"[\s\S]*await coverArtifactsPromise[\s\S]*fail\(error\.message\)/.test(script), "personal-IP pre-audio native-final blocker must wait for the parallel cover lane before failing the video lane", failures);

@@ -89,7 +89,7 @@ node .agents/skills/codex-video-workflow/scripts/render-ip-diagram-native-pages.
 ```
 
 The executor rejects unverified native pages by default. `--allow-unverified-native-pages true` is allowed only for local draft/degraded review packages and must not be used for a claimed final delivery.
-For personal-IP native-final delivery, the executor also rejects a page set outside the native-page count range. The default range is 4-48 pages for video assembly. A higher explicit max is allowed only when the script has enough clear narration beats to justify it. One static page may be rendered only as an explicitly degraded draft and will fail final QC.
+For personal-IP native-final delivery, the executor also rejects a page set outside the native-page count range and below the source package's automatic duration/content/cue policy. The default range is 4-48 pages for video assembly. A higher explicit max is allowed only when the script has enough clear narration beats to justify it. One static page may be rendered only as an explicitly degraded draft and will fail final QC.
 
 ## Standalone Personal-IP Image Contract
 
@@ -99,7 +99,7 @@ The route must never default to one image for personal-IP video source material.
 - Default minimum image count: 4.
 - Default reasonable maximum image count: 48 for planning/package generation; this is a guardrail, not a target.
 - Growth rule: split口播稿/内容 into sentence units, estimate the number of pages needed for clear explanation, apply bounded growth tiers for longer content, and apply duration/cue density floors before the max-image guardrail.
-- Duration density rule: pass the actual `--duration-seconds` / `--audio-duration-seconds` / `--video-duration-seconds` and `--subtitle-cue-count` whenever the page set belongs to a video. Default target is one source page about every 30 seconds, plus one page per 4 subtitle cues. A 10-12 minute personal-IP video should normally resolve around 20-24 source pages, not the 4-page minimum, even if the planning brief only contains a compact core idea.
+- Duration density rule: pass the actual `--duration-seconds` / `--audio-duration-seconds` / `--video-duration-seconds` and `--subtitle-cue-count` whenever the page set belongs to a video. Default target is one source page about every 30 seconds, plus one page per 4 subtitle cues. A 10-12 minute personal-IP video should normally resolve around 20-24 source pages or higher when the content has enough beats, not the 4-page minimum, even if the planning brief only contains a compact core idea. `--target-image-count` is an upper-level intent only; by default it is raised to the automatic target when it is too low and records `explicitTargetRaisedToAutomatic:true`. `--allow-under-count true` is a draft/degraded escape hatch and cannot feed a final native-page video.
 - Matching rule: each generated image owns one contiguous口播/内容 beat, its own required text subset, and its own execution-Agent jobs. Do not compress the whole script into one all-purpose card.
 
 Always create the package contract first:
@@ -180,7 +180,7 @@ cover/*
 最终成品/评审级封面-非上传终版/*
 ```
 
-The native-final route may derive review-grade cover drafts from the first native page, but it must still hand off missing upload-ready targets to Context Image2 through `workflow/context-image2-cover-requests.json`. A video-only native-final output is incomplete.
+The native-final route may derive review-grade cover drafts from the first native page, but it must still hand off missing upload-ready targets to Context Image2 through `workflow/context-image2-cover-requests.json`. A video-only native-final output is incomplete. Review covers plus pending Context Image2 requests are not final cover evidence; final QC must expose `coverNativeImage2Ready:true` only after at least one real native Image2/Codex cover target has been ingested as upload-ready.
 When the main workflow has already written the core cover contract (`workflow/cover-design.json` with `defaultCoverEngine: "image2-integrated-typography-cover"` plus `workflow/context-image2-cover-requests.json` with provider `codex-context-image2` and tool `image_gen`), the native-final renderer must preserve those files. It may add `workflow/native-final-cover-review.json` and review-grade first-page cover images, but it must not overwrite the core cover design, Image2 prompt/QC chain, size selection, or Context Image2 request manifest.
 The cover lane must start before native-final video assembly and before personal-IP missing-page blockers stop the video lane. A blocked personal-IP video package should still contain the core cover artifacts plus `workflow/cover-parallel-execution.json`; native-page review covers are additive continuity previews, not a replacement for the Skill cover design logic.
 

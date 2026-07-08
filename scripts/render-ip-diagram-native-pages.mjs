@@ -174,6 +174,85 @@ function resolveNativePageCountPolicy(args = {}, pageCount = 0) {
   };
 }
 
+function sourcePackageRootFromManifest(manifestPath = "") {
+  return manifestPath ? dirname(dirname(manifestPath)) : "";
+}
+
+function resolveManifestRelativePath(manifestPath = "", rawPath = "") {
+  if (!manifestPath || !rawPath) return null;
+  if (rawPath.startsWith("/")) return rawPath;
+  const packageRoot = sourcePackageRootFromManifest(manifestPath);
+  return resolve(packageRoot, rawPath);
+}
+
+function loadSourceImageCountPlan(pageProvenance = {}) {
+  const manifestPath = pageProvenance.manifestPath || "";
+  if (!manifestPath || !existsSync(manifestPath)) return null;
+  const manifest = readJsonIfExists(manifestPath);
+  const imageCountPlanPath = resolveManifestRelativePath(manifestPath, manifest?.imageCountPlan || "workflow/personal-ip-image-count-plan.json");
+  const imageCountPlan = imageCountPlanPath && existsSync(imageCountPlanPath)
+    ? readJsonIfExists(imageCountPlanPath)
+    : null;
+  if (!imageCountPlan) return null;
+  return {
+    manifestPath,
+    imageCountPlanPath,
+    plan: imageCountPlan,
+  };
+}
+
+function enrichNativePageCountPolicyWithSourcePlan(pageCountPolicy, pageProvenance = {}) {
+  const sourceCountPlan = loadSourceImageCountPlan(pageProvenance);
+  if (!sourceCountPlan) {
+    return {
+      ...pageCountPolicy,
+      sourceImageCountPlanPresent: false,
+      sourceImageCountPlanPath: null,
+      sourceImageCountPlanRequiredCount: pageCountPolicy.minPageCount,
+      satisfiesSourceImageCountPlan: !pageCountPolicy.personalIpActive,
+      withinRequiredCount: pageCountPolicy.withinRange && !pageCountPolicy.personalIpActive,
+      sourceImageCountPlanIssue: pageCountPolicy.personalIpActive
+        ? "Missing source workflow/personal-ip-image-count-plan.json; cannot prove duration/content-aware personal-IP page count."
+        : null,
+    };
+  }
+  const plan = sourceCountPlan.plan || {};
+  const minImageCount = toPositiveInt(plan.minImageCount, pageCountPolicy.minPageCount);
+  const maxImageCount = toPositiveInt(plan.maxImageCount, pageCountPolicy.maxPageCount);
+  const automaticTarget = toPositiveInt(plan.contentMetrics?.automaticTarget, 0);
+  const automaticResolvedTarget = toPositiveInt(plan.automaticResolvedTarget, automaticTarget
+    ? Math.max(minImageCount, Math.min(maxImageCount, automaticTarget))
+    : 0);
+  const plannedResolvedImageCount = toPositiveInt(plan.resolvedImageCount, 0);
+  const requiredFromPlan = Math.max(minImageCount, automaticResolvedTarget || plannedResolvedImageCount || pageCountPolicy.minPageCount);
+  const satisfiesSourceImageCountPlan = pageCountPolicy.actualPageCount >= requiredFromPlan
+    && (plannedResolvedImageCount === 0 || pageCountPolicy.actualPageCount >= plannedResolvedImageCount);
+  return {
+    ...pageCountPolicy,
+    sourceImageCountPlanPresent: true,
+    sourceImageCountPlanPath: sourceCountPlan.imageCountPlanPath,
+    sourceImageCountPlan: {
+      resolvedImageCount: plannedResolvedImageCount,
+      automaticResolvedTarget,
+      automaticTarget: plan.contentMetrics?.automaticTarget || null,
+      explicitRequestedTarget: plan.explicitRequestedTarget || null,
+      explicitTargetUnderAutomatic: plan.explicitTargetUnderAutomatic === true,
+      explicitTargetRaisedToAutomatic: plan.explicitTargetRaisedToAutomatic === true,
+      durationBasedTarget: plan.contentMetrics?.durationBasedTarget || null,
+      subtitleCueBasedTarget: plan.contentMetrics?.subtitleCueBasedTarget || null,
+      contentClarityTarget: plan.contentMetrics?.contentClarityTarget || null,
+      contentMatchTarget: plan.contentMetrics?.contentMatchTarget || null,
+      strongestAutomaticDriver: plan.contentMetrics?.strongestAutomaticDriver || null,
+    },
+    sourceImageCountPlanRequiredCount: requiredFromPlan,
+    satisfiesSourceImageCountPlan,
+    withinRequiredCount: pageCountPolicy.withinRange && satisfiesSourceImageCountPlan,
+    sourceImageCountPlanIssue: satisfiesSourceImageCountPlan
+      ? null
+      : `Native-final page count ${pageCountPolicy.actualPageCount} is below source image count policy requirement ${requiredFromPlan}.`,
+  };
+}
+
 function resolveCanvas(args = {}) {
   const rawAspect = String(args.aspect || args.canvasAspect || args.orientation || "16:9").trim().toLowerCase();
   const verticalAliases = new Set(["9:16", "vertical", "portrait", "竖屏", "short"]);
@@ -792,6 +871,10 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       minNativePageCount: pageCountPolicy.minPageCount,
       maxNativePageCount: pageCountPolicy.maxPageCount,
       pageCountWithinRange: pageCountPolicy.withinRange,
+      sourceImageCountPlanPresent: pageCountPolicy.sourceImageCountPlanPresent,
+      sourceImageCountPlanRequiredCount: pageCountPolicy.sourceImageCountPlanRequiredCount,
+      satisfiesSourceImageCountPlan: pageCountPolicy.satisfiesSourceImageCountPlan,
+      pageCountWithinRequiredPolicy: pageCountPolicy.withinRequiredCount,
       subtitleCueCount: cues.length,
       aspectRatio: canvas.aspectRatio,
       orientation: canvas.orientation,
@@ -860,7 +943,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
   const layoutAudit = {
     schemaVersion: 1,
     stage: "pre-render-ip-diagram-layout-audit",
-    status: pageProvenance.status === "pass" && pageCountPolicy.withinRange ? "pass" : "fail",
+    status: pageProvenance.status === "pass" && pageCountPolicy.withinRequiredCount ? "pass" : "fail",
     layoutModel: "native-full-screen-page-fixed-transform",
     canvas: stableFullScreenContract.outputCanvas,
     sourcePageProvenance: pageProvenance,
@@ -881,6 +964,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
     issues: [
       ...(pageProvenance.issues || []),
       ...(!pageCountPolicy.withinRange ? [`Native page count ${pageCountPolicy.actualPageCount} is outside required range ${pageCountPolicy.minPageCount}-${pageCountPolicy.maxPageCount}.`] : []),
+      ...(!pageCountPolicy.satisfiesSourceImageCountPlan ? [pageCountPolicy.sourceImageCountPlanIssue || "Native page count does not satisfy source image count plan."] : []),
     ],
   };
   const whiteboardPlan = {
@@ -937,6 +1021,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       "ipDiagramBaseImageStable",
       "ipDiagramNoPerCueCropPanZoom",
       "nativePageCountWithinPersonalIpRange",
+      "nativePageCountSatisfiesSourceImageCountPlan",
       "nativePageProvenanceVerified",
       "visualRhythmPlanPresent",
       "visualSubtitleSingleLine",
@@ -944,6 +1029,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       "screenshotsPresent",
       "coverArtifactsPresent",
       "coverContextImage2HandoffPresent",
+      "coverNativeImage2Ready",
       ...(canvas.vertical ? ["verticalPersonalIpDesignContractPresent", "nativePagesGeneratedForVerticalCanvas", "topSafeAreaAuditPresent", "topSafeAreaReservedForMobileChrome"] : []),
     ],
     requiredArtifacts: [
@@ -1251,7 +1337,7 @@ function createDeliveryPage(out, title, videoPath, qc, canvas) {
       <div class="item"><strong>画布</strong><br>${canvas.width}x${canvas.height} · ${escapeHtml(canvas.aspectRatio)}</div>
       <div class="item"><strong>画面策略</strong><br>官方页面全屏固定，前景手绘动效</div>
       <div class="item"><strong>跳动防护</strong><br>无逐字幕裁切/缩放/纵向偏移</div>
-      <div class="item"><strong>封面</strong><br>${qc.checks?.coverArtifactsPresent ? "已生成" : "缺失"}</div>
+      <div class="item"><strong>封面</strong><br>${qc.checks?.coverNativeImage2Ready ? "原生 Image2 已完成" : qc.checks?.coverArtifactsPresent ? "评审稿，待 Context Image2" : "缺失"}</div>
       <div class="item"><strong>文件</strong><br><code>${escapeHtml(videoPath)}</code></div>
     </section>
     ${coverHtml}
@@ -1456,6 +1542,20 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
   };
 }
 
+function coverNativeImage2Ready(out) {
+  const selection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json"));
+  const cover = readJsonIfExists(join(out, "workflow", "cover-design.json"));
+  if (cover?.finalCoverQualityEligible === true) return true;
+  if (selection?.allEntriesUploadReady === true) return true;
+  const entries = Array.isArray(selection?.entries)
+    ? selection.entries
+    : Array.isArray(selection?.targets)
+      ? selection.targets
+      : [];
+  return entries.some((entry) => entry.uploadReady === true
+    && (entry.image2NativeTargetRatioReady === true || /image2|codex|native/i.test(String(entry.qualityStatus || entry.status || ""))));
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const commands = [];
@@ -1497,16 +1597,20 @@ function main() {
   const pages = collectPages(pagesDir);
   if (pages.length === 0) throw new Error(`No page images found under ${pagesDir}`);
   const allowUnverifiedNativePages = isEnabled(args.allowUnverifiedNativePages);
-  const pageCountPolicy = resolveNativePageCountPolicy(args, pages.length);
-  if (!pageCountPolicy.withinRange && pageCountPolicy.hardGate && !allowUnverifiedNativePages) {
+  const pageProvenance = loadNativePageProvenance(pagesDir, pages);
+  const pageCountPolicy = enrichNativePageCountPolicyWithSourcePlan(
+    resolveNativePageCountPolicy(args, pages.length),
+    pageProvenance,
+  );
+  if (!pageCountPolicy.withinRequiredCount && pageCountPolicy.hardGate && !allowUnverifiedNativePages) {
     throw new Error([
       "Native-final personal-IP page count failed.",
       `- Found ${pageCountPolicy.actualPageCount} page(s); required ${pageCountPolicy.minPageCount}-${pageCountPolicy.maxPageCount}.`,
+      pageCountPolicy.sourceImageCountPlanIssue ? `- ${pageCountPolicy.sourceImageCountPlanIssue}` : null,
       "- Generate the full personal-IP source page set first; do not render a final personal-IP MP4 from one static background.",
       NATIVE_PAGE_PROVENANCE_HINT,
-    ].join("\n"));
+    ].filter(Boolean).join("\n"));
   }
-  const pageProvenance = loadNativePageProvenance(pagesDir, pages);
   if (pageProvenance.status !== "pass" && !allowUnverifiedNativePages) {
     throw new Error([
       "Native-final page provenance failed.",
@@ -1605,6 +1709,7 @@ function main() {
     ], { log: commands });
   }
   const coverArtifacts = createCoverArtifacts({ out, title: args.title, pages, canvas, commands });
+  const nativeImage2CoverReady = coverNativeImage2Ready(out);
 
   const probe = ffprobeJson(finalPath, commands);
   writeJson(join(out, "logs", "ffprobe.json"), probe);
@@ -1642,6 +1747,7 @@ function main() {
       && existsSync(join(out, "cover", "native-final-cover-1920x1080.png"))
       && existsSync(join(out, "最终成品", "评审级封面-非上传终版", "01-横版16比9-评审级封面-1920x1080.png")),
     coverContextImage2HandoffPresent: existsSync(join(out, "prompts", "context-image2-covers", "cover-16x9-native-final-context-image2.txt")),
+    coverNativeImage2Ready: nativeImage2CoverReady,
     ipDiagramCreatorPlanPresent: existsSync(join(out, "workflow", "ip-diagram-creator-plan.json")),
     ipDiagramCreatorVendorUsagePresent: existsSync(join(out, "workflow", "ip-diagram-creator-vendor-usage.json")),
     ipDiagramCreatorNativeJobsPresent: existsSync(join(out, "workflow", "ip-diagram-creator-native-jobs.json")),
@@ -1654,6 +1760,7 @@ function main() {
     ipDiagramBaseImageStable: true,
     ipDiagramNoPerCueCropPanZoom: true,
     nativePageCountWithinPersonalIpRange: pageCountPolicy.withinRange,
+    nativePageCountSatisfiesSourceImageCountPlan: pageCountPolicy.satisfiesSourceImageCountPlan,
     noVerticalBackgroundJump: true,
     visualSubtitleSingleLine: true,
     handDrawnAnimationChoiceRecorded: ["off", "subtle", "draw-reveal"].includes(args.handDrawnAnimation),
@@ -1709,10 +1816,11 @@ function main() {
       note: "Source page pixels are rendered full-screen with a fixed cover transform. All animation is foreground-only.",
     },
     coverArtifacts: {
-      status: checks.coverArtifactsPresent ? "present" : "missing",
+      status: checks.coverNativeImage2Ready ? "native-image2-ready" : checks.coverArtifactsPresent ? "review-grade-pending-context-image2" : "missing",
       outputs: coverArtifacts.outputs,
-      uploadReady: false,
+      uploadReady: checks.coverNativeImage2Ready,
       reviewGrade: true,
+      contextImage2Pending: !checks.coverNativeImage2Ready,
     },
     checks,
   };

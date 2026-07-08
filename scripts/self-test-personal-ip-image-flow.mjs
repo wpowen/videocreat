@@ -180,6 +180,33 @@ function testDurationAwareCount(root) {
   return failures;
 }
 
+function testExplicitTargetCannotUndercutAutomaticPolicy(root) {
+  const out = join(root, "explicit-target-raised");
+  runNode([
+    SCRIPT,
+    "--out", out,
+    "--aspect", "16:9",
+    "--title", "显式数量不能压低规则",
+    "--core-idea", "这是一个十多分钟个人 IP 口播视频的摘要，不能因为手动传了 12 张就压过内容和时长规则。",
+    "--duration-seconds", "720",
+    "--subtitle-cue-count", "72",
+    "--target-image-count", "12",
+    "--required-text", "长视频;个人IP;自动页数;不能压低",
+    "--agent-jobs", "按规则拆页;拒绝低配;保证角色一致;生成完整页组",
+  ]);
+
+  const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
+  const failures = [];
+
+  assert(countPlan.explicitRequestedTarget === 12, "explicit requested target should be recorded as 12", failures);
+  assert(countPlan.explicitTargetUnderAutomatic === true, "explicit under-count should be detected", failures);
+  assert(countPlan.explicitTargetRaisedToAutomatic === true, "under-count should be raised by default", failures);
+  assert(countPlan.resolvedImageCount >= 24, "under-count target should not reduce a 12-minute video below duration-aware target", failures);
+  assert(countPlan.resolvedImageCount === countPlan.automaticResolvedTarget, "resolved count should follow automatic policy when explicit target is too low", failures);
+
+  return failures;
+}
+
 function testRejectReferenceAssetAsSourceImage(root) {
   const planOut = join(root, "reference-asset-source-plan");
   runNode([
@@ -222,6 +249,7 @@ function main() {
       ...testAspect(root, "9:16", "vertical"),
       ...testContentMatchedCount(root),
       ...testDurationAwareCount(root),
+      ...testExplicitTargetCannotUndercutAutomaticPolicy(root),
       ...testRejectReferenceAssetAsSourceImage(root),
     ];
     const mismatchError = runNodeExpectFailure([
