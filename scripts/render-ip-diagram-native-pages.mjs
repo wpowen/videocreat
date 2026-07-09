@@ -1836,6 +1836,9 @@ function main() {
     durationSeconds: finalDuration,
     durationDeltaSeconds: qc.durationDeltaSeconds,
   }, null, 2));
+  if (!qc.pass && !allowUnverifiedNativePages && !isEnabled(args.allowIncompleteNativeFinal)) {
+    process.exitCode = 2;
+  }
 }
 
 try {

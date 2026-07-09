@@ -65,6 +65,7 @@ function parseArgs(argv) {
     speechCharsPerSecond: String(DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND),
     allowSingleImage: "false",
     allowUnderCount: "false",
+    allowDraftOutput: "false",
     sourceImages: "",
     personaReferenceBound: "false",
   };
@@ -94,7 +95,7 @@ function usage() {
     "    [--content-file <script.txt>] [--content <text>] [--required-text <a;b;c>] \\",
     "    [--min-image-count 4] [--max-image-count 48] [--target-image-count n] \\",
     "    [--duration-seconds n] [--subtitle-cue-count n] [--image-seconds-per-page 30] \\",
-    "    [--allow-under-count true] \\",
+    "    [--allow-under-count true] [--allow-draft-output true] \\",
     "    [--agent-jobs <a;b;c>] [--source-images <page1.png;page2.png;...>]",
     "",
     "Writes a vertical 9:16 or horizontal 16:9 personal-IP diagram multi-page contract and page prompts.",
@@ -420,7 +421,8 @@ function buildImageQuantityPlan(args = {}, canvas) {
   const allowSingleImage = isEnabled(args.allowSingleImage);
   const requestedMin = toPositiveInt(args.minImageCount, DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT);
   const minImageCount = Math.max(allowSingleImage ? 1 : DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT, requestedMin);
-  const maxImageCount = Math.max(minImageCount, toPositiveInt(args.maxImageCount, DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT));
+  const requestedMaxImageCount = Math.max(minImageCount, toPositiveInt(args.maxImageCount, DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT));
+  const allowUnderCount = isEnabled(args.allowUnderCount);
   const growthStepChars = Math.max(80, toPositiveInt(args.imageGrowthStepChars, 160));
   const secondsPerImage = Math.max(12, toPositiveNumber(args.imageSecondsPerPage || args.secondsPerImage, DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE));
   const subtitleCuesPerImage = Math.max(1, toPositiveInt(args.subtitleCuesPerImage || args.cuesPerImage, DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE));
@@ -467,8 +469,15 @@ function buildImageQuantityPlan(args = {}, canvas) {
     subtitleCueBasedTarget,
     contentGrowthTarget,
   );
+  const automaticMaxPolicyFloor = Math.min(
+    DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT,
+    Math.max(minImageCount, automaticTarget),
+  );
+  const maxImageCountUnderAutomaticPolicy = requestedMaxImageCount < automaticMaxPolicyFloor;
+  const maxImageCount = allowUnderCount
+    ? requestedMaxImageCount
+    : Math.max(requestedMaxImageCount, automaticMaxPolicyFloor);
   const automaticResolvedTarget = clamp(automaticTarget, minImageCount, maxImageCount);
-  const allowUnderCount = isEnabled(args.allowUnderCount);
   const explicitRequestedTarget = args.targetImageCount
     ? clamp(toPositiveInt(args.targetImageCount, minImageCount), minImageCount, maxImageCount)
     : null;
@@ -531,6 +540,9 @@ function buildImageQuantityPlan(args = {}, canvas) {
     route: `ip-diagram-creator-${canvas.orientation}-source-pages`,
     minImageCount,
     maxImageCount,
+    requestedMaxImageCount,
+    maxImageCountUnderAutomaticPolicy,
+    maxImageCountRaisedToAutomaticPolicy: maxImageCountUnderAutomaticPolicy && !allowUnderCount,
     resolvedImageCount,
     automaticResolvedTarget,
     explicitRequestedTarget,
@@ -563,6 +575,8 @@ function buildImageQuantityPlan(args = {}, canvas) {
       contentClarityTarget,
       contentMatchTarget,
       contentMatchCeiling: maxImageCount,
+      requestedMaxImageCount,
+      automaticMaxPolicyFloor,
       contentGrowthTarget,
       exponentialByChars,
       exponentialByUnits,
@@ -999,6 +1013,7 @@ function main() {
       ? sourceImagePersonaReferenceConflicts.length === 0 && ingestedImages.every((image) => !image.personaReferenceAssetConflict)
       : true,
     imageCountSatisfiesAutomaticPolicy: imagePlan.resolvedImageCount >= imagePlan.automaticResolvedTarget,
+    maxImageCountDoesNotUndercutAutomaticPolicy: imagePlan.maxImageCount >= imagePlan.contentMetrics.automaticMaxPolicyFloor,
   };
   const qc = {
     schemaVersion: 1,
@@ -1192,6 +1207,9 @@ function main() {
     images: ingestedImages.map((image) => image.path),
     qc: join(workflow, `${filePrefix}-qc.json`),
   }, null, 2));
+  if (sourceImages.length > 0 && !qc.pass && !isEnabled(args.allowDraftOutput)) {
+    process.exitCode = 2;
+  }
 }
 
 main();

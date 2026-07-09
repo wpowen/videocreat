@@ -210,6 +210,33 @@ function testExplicitTargetCannotUndercutAutomaticPolicy(root) {
   return failures;
 }
 
+function testMaxImageCountCannotUndercutAutomaticPolicy(root) {
+  const out = join(root, "max-count-raised");
+  runNode([
+    SCRIPT,
+    "--out", out,
+    "--aspect", "9:16",
+    "--title", "最大数量不能压低规则",
+    "--core-idea", "这是一个十多分钟个人 IP 竖屏口播视频的摘要，不能因为手动传了最大 12 张就压过内容和时长规则。",
+    "--duration-seconds", "720",
+    "--subtitle-cue-count", "72",
+    "--max-image-count", "12",
+    "--required-text", "竖屏;个人IP;自动页数;最大值不能压低",
+    "--agent-jobs", "按规则拆页;拒绝低配;保证角色一致;生成完整页组",
+  ]);
+
+  const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
+  const failures = [];
+
+  assert(countPlan.requestedMaxImageCount === 12, "requested max image count should be recorded as 12", failures);
+  assert(countPlan.maxImageCountUnderAutomaticPolicy === true, "max under automatic policy should be detected", failures);
+  assert(countPlan.maxImageCountRaisedToAutomaticPolicy === true, "under-count max should be raised by default", failures);
+  assert(countPlan.resolvedImageCount >= 24, "max-image-count should not reduce a 12-minute video below duration-aware target", failures);
+  assert(countPlan.maxImageCount >= countPlan.automaticResolvedTarget, "effective max should not undercut automatic resolved target", failures);
+
+  return failures;
+}
+
 function testRejectReferenceAssetAsSourceImage(root) {
   const planOut = join(root, "reference-asset-source-plan");
   runNode([
@@ -253,6 +280,7 @@ function main() {
       ...testContentMatchedCount(root),
       ...testDurationAwareCount(root),
       ...testExplicitTargetCannotUndercutAutomaticPolicy(root),
+      ...testMaxImageCountCannotUndercutAutomaticPolicy(root),
       ...testRejectReferenceAssetAsSourceImage(root),
     ];
     const mismatchError = runNodeExpectFailure([

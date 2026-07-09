@@ -13982,7 +13982,7 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
   const requestedMinimum = requestedPersonalIpImageMinimum(brief);
   const minImageCount = Math.max(4, requestedMinimum || 0);
   const requestedMaximum = requestedPersonalIpImageMaximum(brief);
-  const maxImageCount = Math.max(minImageCount, requestedMaximum || 48);
+  const requestedMaxImageCount = Math.max(minImageCount, requestedMaximum || 48);
   const scriptUnits = Array.isArray(scriptMatchPlan.scriptUnits) ? scriptMatchPlan.scriptUnits : [];
   const charCount = scriptUnits.reduce((sum, unit) => sum + Array.from(String(unit.text || "").replace(/\s/g, "")).length, 0);
   const unitCount = Math.max(1, Number(scriptMatchPlan.scriptUnitCount || scriptUnits.length || 1));
@@ -14049,6 +14049,9 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
     subtitleCueBasedTarget,
     contentGrowthTarget,
   );
+  const automaticMaxPolicyFloor = Math.min(48, Math.max(minImageCount, automaticTarget));
+  const maxImageCountUnderAutomaticPolicy = requestedMaxImageCount < automaticMaxPolicyFloor;
+  const maxImageCount = Math.max(requestedMaxImageCount, automaticMaxPolicyFloor);
   const resolvedImageCount = clampPersonalIpCount(automaticTarget, minImageCount, maxImageCount);
   const strongestAutomaticDriver = [
     ["durationBasedTarget", durationBasedTarget],
@@ -14061,6 +14064,9 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
     mode: "duration-aware-min-max",
     minImageCount,
     maxImageCount,
+    requestedMaxImageCount,
+    maxImageCountUnderAutomaticPolicy,
+    maxImageCountRaisedToAutomaticPolicy: maxImageCountUnderAutomaticPolicy,
     resolvedImageCount,
     contentMetrics: {
       charCount,
@@ -14084,6 +14090,8 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
       contentClarityTarget,
       contentMatchTarget,
       contentMatchCeiling: maxImageCount,
+      requestedMaxImageCount,
+      automaticMaxPolicyFloor,
       contentGrowthTarget,
       exponentialByChars,
       exponentialByUnits,
