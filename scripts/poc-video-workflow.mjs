@@ -3859,17 +3859,17 @@ function coverTargetImage2DesignBrief({ target = {}, platformStrategy = {} } = {
   const height = Number(target.height || 0);
   const size = width && height ? `${width}x${height}` : "target-size";
   const commonNegative = "Do not crop from another aspect ratio, do not stretch, do not letterbox, do not use blurred/cream side extensions, and do not layer a partial old thumbnail inside the new canvas.";
-  const commonProof = "show a truthful before-vs-after proof module with approved texts 改前, 改后, 点击率 2.1%, 点击率 11.3%, plus one yellow growth arrow and one red warning/green check signal when the topic is cover/CTR methodology.";
+  const commonProof = "show a truthful before-vs-after proof module using only the approved text whitelist plus one clear directional arrow and warning/check signal. Never invent CTR, percentage, revenue, follower, or performance numbers; numeric proof is allowed only when the title or narration explicitly supplies it.";
   if (/bilibili-common-1146x717/i.test(id)) {
     return {
       id: "native-bilibili-1146x717-high-click-cover",
       platformMode: "bilibili-common-native",
       nativeInstruction: `native 1146x717 Bilibili common cover; generate directly at 1146x717, not as a 16:9 crop or scaled 4:3 card. ${commonNegative}`,
       decisionSurface: "Bilibili homepage/list/search cover where the Chinese hook carries most of the click decision.",
-      clickDriver: "B站小图先读超大中文钩子，再读人物/证明板，第三眼看到改前改后和点击率提升。",
+      clickDriver: "B站小图先读超大中文钩子，再读人物/证明板，第三眼看到与内容一致的改前改后结果。",
       composition: "B站 1146x717 原生构图：左 34% 放原创知识博主人物半身或主讲 IP，中间 42% 放两行以内超大中文标题，右侧 24% 放高点击证明板；底部只保留 2-3 个大颗粒证明符号，不堆小字。",
-      safeArea: "Keep the title, face, proof board, and CTR numbers inside a central 1020x620 safe area; leave at least 54px horizontal and 42px vertical breathing room.",
-      informationHierarchy: "first-read huge title, second-read presenter/proof board, third-read before/after CTR evidence.",
+      safeArea: "Keep the title, face, and proof board inside a central 1020x620 safe area; leave at least 54px horizontal and 42px vertical breathing room.",
+      informationHierarchy: "first-read huge title, second-read presenter/proof board, third-read truthful before/after evidence.",
       proofModule: commonProof,
       artDirection: "premium Bilibili knowledge thumbnail, dark navy/graphite base, white/yellow Chinese lettering, red warning accent, cyan/amber method proof board, strong depth and clean separation.",
       negativeAdditions: "no stacked duplicate cover, no incomplete title, no cropped proof card, no tiny UI/card labels.",
@@ -3897,8 +3897,8 @@ function coverTargetImage2DesignBrief({ target = {}, platformStrategy = {} } = {
       nativeInstruction: `native 1080x1440 3:4 Douyin/Kuaishou profile cover; generate directly at 1080x1440 for a profile-grid click surface. ${commonNegative}`,
       decisionSurface: "Douyin/Kuaishou/Xiaohongshu profile grid and search cover where users browse many covers quickly.",
       clickDriver: "3:4 版本必须有短视频主页点击欲望：标题在中部安全区强刺激，人物/主体居中，证明模块像可收藏干货卡。",
-      composition: "3:4 原生构图：中上部放超大标题「封面没人点?」，标题下贴副标题「3个方法直接改」；人物或核心主体居中偏下，左右围绕改前/改后卡片和增长箭头；底部只放系列角标，不放关键标题。",
-      safeArea: "Keep title, face, subtitle, proof cards, and CTR evidence inside the center 900x1120 safe area; avoid the top 90px and bottom 120px as critical text zones.",
+      composition: "3:4 原生构图：中上部放 prompt 白名单中的超大主标题，标题下贴批准的副标题；人物或核心主体居中偏下，左右围绕与主题一致的改前/改后卡片和方向箭头；底部只放批准的系列角标，不放额外文字。",
+      safeArea: "Keep title, face, subtitle, and proof cards inside the center 900x1120 safe area; avoid the top 90px and bottom 120px as critical text zones.",
       informationHierarchy: "first-read pain hook, second-read method promise, third-read before/after proof and profile-grid series identity.",
       proofModule: commonProof,
       artDirection: "premium short-video profile cover, dark clean background, yellow/red sticker contrast, centered creator subject, bold mobile-safe typography, high-save tutorial feel.",
@@ -3915,7 +3915,7 @@ function coverTargetImage2DesignBrief({ target = {}, platformStrategy = {} } = {
       composition: "Reels 原生构图：中心超大短标题，上下留干净呼吸区，人物/证明物居中，下半部只放一个简化改前/改后证明条。",
       safeArea: "Keep all readable text and face inside center 340x520; avoid text near all edges.",
       informationHierarchy: "first-read short hook, second-read centered subject, third-read one proof signal.",
-      proofModule: "use only a simplified before/after proof strip and one growth/check symbol; no dense CTR board unless it stays legible.",
+      proofModule: "use only a simplified truthful before/after proof strip and one direction/check symbol; never invent performance numbers.",
       artDirection: "clean premium editorial Reels profile cover, dark background, warm yellow/red sticker accents, fewer elements, strong series identity.",
       negativeAdditions: "no dense Bilibili-style proof board, no tiny numbers, no clutter.",
     };
@@ -4366,12 +4366,9 @@ function highClickKnowledgeCoverProofTextWhitelist({ coverTitle = "", coverTexts
     titleSystem.subtitle,
     titleSystem.methodPoint,
     titleSystem.actionBadge,
-    category.id,
-    category.label,
-    platform.family,
   ].filter(Boolean).join(" ");
   const proofTexts = ["改前", "改后"];
-  if (/封面|点击|点击率|CTR|完播|流量|运营|短视频|创作|YouTube|B站|Bilibili|抖音|TikTok|Reels|小红书|thumbnail/i.test(basis)) {
+  if (/高点击封面|封面设计|封面方法|封面公式|点击率|CTR|thumbnail methodology/i.test(basis)) {
     proofTexts.push("点击率 2.1%", "点击率 11.3%");
   }
   if (/方法论|教程|知识|AI|创作|运营|封面|工作流|Skill/i.test(basis)) {
@@ -4672,8 +4669,11 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
     return {
       targetId,
       promptTargetId: promptItem.targetId,
+      status: "pending",
       provider: "codex-context-image2",
       tool: "image_gen",
+      purpose: "platform-submission-cover",
+      videoInternalCover: false,
       parallelSafe: true,
       consistencyGroup: "context-image2-cover-targets",
       requiredForFinalCover: true,
@@ -4692,6 +4692,13 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
       ],
     };
   });
+  const openingEntry = entries.find((entry) => String(entry.targetId || entry.id || "") === "video-opening");
+  const preferredPrimaryTargetId = Number(openingEntry?.height || 0) > Number(openingEntry?.width || 0)
+    ? "vertical-1080x1920"
+    : "youtube-1280x720";
+  const primaryPlatformUploadCoverTargetId = requests.some((request) => request.targetId === preferredPrimaryTargetId)
+    ? preferredPrimaryTargetId
+    : requests[0]?.targetId || "";
   const requestManifest = {
     schemaVersion: 1,
     stage: "context-image2-cover-requests",
@@ -4699,6 +4706,23 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
     provider: "codex-context-image2",
     tool: "image_gen",
     requiredForFinalCover: true,
+    purpose: "platform-submission-cover",
+    generationContract: {
+      skill: "codex-video-workflow",
+      coverSkill: "imagegen",
+      provider: "codex-context-image2",
+      tool: "image_gen",
+      invocation: "The platform-cover agent must invoke the installed cover/image generation Skill with the package-bound prompt in parallel with video production.",
+      completion: "Only scripts/ingest-codex-image2-cover-target.mjs may move a request from pending to completed after native-ratio inspection.",
+    },
+    videoInternalCoverDoesNotSatisfyRequest: true,
+    primaryPlatformUploadCoverTargetId,
+    primaryPlatformUploadCoverReady: false,
+    allRequestedPlatformUploadCoversReady: requests.length === 0,
+    completedRequestCount: 0,
+    pendingRequestCount: requests.length,
+    completedTargetIds: [],
+    pendingTargetIds: requests.map((request) => request.targetId),
     coreLogicSource: [
       "workflow/cover-design.json",
       "workflow/cover-image2-prompts.json",
@@ -4724,6 +4748,52 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
   };
   writeJson(join(out, "workflow", "context-image2-cover-requests.json"), requestManifest);
   return requestManifest;
+}
+
+function readPlatformCoverSubmissionReadiness(out) {
+  const requestPath = join(out, "workflow", "context-image2-cover-requests.json");
+  const selectionPath = join(out, "workflow", "cover-size-selection.json");
+  const qcPath = join(out, "workflow", "cover-image2-qc.json");
+  const manifest = readJsonIfExists(requestPath) || {};
+  const selection = readJsonIfExists(selectionPath) || {};
+  const qc = readJsonIfExists(qcPath) || {};
+  const targetId = String(manifest.primaryPlatformUploadCoverTargetId || selection.primaryPlatformUploadCoverTargetId || "");
+  const request = (manifest.requests || []).find((item) => String(item.targetId || item.id || "") === targetId);
+  const entry = (selection.entries || []).find((item) => String(item.targetId || item.id || "") === targetId);
+  const actualOutput = String(request?.actualOutput || "");
+  const outputExists = Boolean(actualOutput && existsSync(join(out, actualOutput)));
+  const finalOutput = (entry?.files || []).find((item) => item?.format === "png")?.file || "";
+  const finalOutputExists = Boolean(finalOutput && finalOutput.startsWith("最终成品/") && existsSync(join(out, finalOutput)));
+  const ready = Boolean(
+    manifest.provider === "codex-context-image2"
+      && manifest.tool === "image_gen"
+      && manifest.purpose === "platform-submission-cover"
+      && manifest.videoInternalCoverDoesNotSatisfyRequest === true
+      && targetId
+      && request?.status === "completed"
+      && request?.provider === "codex-context-image2"
+      && request?.tool === "image_gen"
+      && request?.purpose === "platform-submission-cover"
+      && request?.videoInternalCover === false
+      && request?.inspectionPassed === true
+      && outputExists
+      && finalOutputExists
+      && entry?.uploadReady === true
+      && entry?.image2NativeTargetRatioReady === true
+      && manifest.primaryPlatformUploadCoverReady === true
+      && qc.primaryPlatformUploadCoverReady === true
+      && qc.platformSubmissionCoverReady === true,
+  );
+  const failures = [];
+  if (!targetId) failures.push("primaryPlatformUploadCoverTargetId is missing");
+  if (request?.status !== "completed") failures.push("the primary standalone cover request is still pending");
+  if (request?.provider !== "codex-context-image2" || request?.tool !== "image_gen") failures.push("the primary cover was not recorded as Context Image2/image_gen");
+  if (request?.inspectionPassed !== true) failures.push("the primary cover has not passed human/vision inspection");
+  if (!outputExists) failures.push("the inspected primary cover bitmap is missing from the package");
+  if (!finalOutputExists) failures.push("the primary cover is not present under the topic-scoped 最终成品/ upload directory");
+  if (entry?.uploadReady !== true || entry?.image2NativeTargetRatioReady !== true) failures.push("the primary cover is not a native target-ratio upload asset");
+  if (manifest.primaryPlatformUploadCoverReady !== true || qc.primaryPlatformUploadCoverReady !== true || qc.platformSubmissionCoverReady !== true) failures.push("canonical cover readiness flags are not true");
+  return { ready, targetId, request, entry, actualOutput, outputExists, finalOutput, finalOutputExists, failures };
 }
 
 function outputFileForTitle({ titleStem, target, ext }) {
@@ -5132,11 +5202,15 @@ function coverAssetTargetRatioStatus({ file = "", dimensions = null, target = nu
   const filenameNative = fileLooksNativeForTargetRatio(file, target);
   const ratioNativeMatch = Boolean(sourceRatio && targetRatio && distance <= 0.035);
   const targetRatioNativeRequired = target.usage === "standalone-upload-resolution" || target.usage === "in-video";
-  const targetRatioNativeMatch = ratioNativeMatch || filenameNative;
+  // A filename such as "vertical-1080x1920.png" is only a hint. It must not
+  // satisfy upload readiness because a wrong bitmap can be renamed to look
+  // native. The pixel dimensions are the source of truth.
+  const targetRatioNativeMatch = ratioNativeMatch;
   return {
     targetRatioNativeRequired,
     targetRatioNativeMatch,
     targetRatioStatus: targetRatioNativeMatch ? "native-target-ratio" : "needs-native-target-ratio-image2",
+    targetRatioFilenameHint: filenameNative,
     targetRatioSlug: targetRatioSlug(target),
     sourceRatio: sourceRatio ? Number(sourceRatio.toFixed(4)) : null,
     targetRatio: targetRatio ? Number(targetRatio.toFixed(4)) : null,
@@ -26929,6 +27003,7 @@ function buildSkillUsageAccuracyAudit({
   coverImage2Qc = {},
   coverSizeSelection = {},
   frameLayoutOverlapAudit = {},
+  allowDegradedRenderer = false,
 } = {}) {
   const pages = Array.isArray(designPlan.pages) ? designPlan.pages : [];
   const frameEvidence = countHtmlFrameEvidence(out, /<main\s+class="stage\b/g);
@@ -27185,15 +27260,17 @@ function buildSkillUsageAccuracyAudit({
       : "",
   }));
   const coverPromptReady = coverImage2Qc.promptQualityPass === true;
-  const coverFinalReady = coverImage2Qc.finalCoverQualityEligible === true;
+  const coverFinalReady = coverImage2Qc.primaryPlatformUploadCoverReady === true
+    && coverImage2Qc.platformSubmissionCoverReady === true;
   const coverReviewFallback = coverImage2Qc.reviewFallbackOnly === true;
   records.push(capabilityAuditRecord({
     id: "cover-image2-chain",
     label: "Cover Image2 chain",
-    required: true,
+    required: false,
+    publishRequired: true,
     planned: true,
     status: !isPostRender ? "pending-render" : coverFinalReady ? "used" : coverPromptReady && coverReviewFallback ? "review-fallback" : "failed",
-    pass: !isPostRender || coverFinalReady || (coverPromptReady && coverReviewFallback),
+    pass: !isPostRender || coverFinalReady,
     evidence: {
       promptQualityPass: coverPromptReady,
       finalCoverQualityEligible: coverFinalReady,
@@ -27201,9 +27278,9 @@ function buildSkillUsageAccuracyAudit({
       blockers: coverImage2Qc.blockers || [],
       allEntriesUploadReady: coverSizeSelection.allEntriesUploadReady === true,
     },
-    blocker: !isPostRender || coverFinalReady || (coverPromptReady && coverReviewFallback)
+    blocker: !isPostRender || coverFinalReady
       ? ""
-      : "cover Image2 prompt/QC chain is missing or not eligible even as review fallback",
+      : "the standalone platform submission cover was not generated through Context Image2/image_gen and inspected; an in-video cover or review fallback cannot satisfy this gate",
   }));
   const issues = records
     .filter((record) => record.required && record.pass !== true)
@@ -27568,6 +27645,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       coverImage2Qc,
       coverSizeSelection,
       frameLayoutOverlapAudit,
+      allowDegradedRenderer,
     });
   }
   writeJson(join(out, "workflow", "skill-usage-accuracy-audit.json"), skillUsageAccuracyAudit);
@@ -28771,8 +28849,9 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     })(),
     coverImage2FinalQualityEligible: (() => {
       try {
-        const reviewFallbackAllowed = allowDegradedRenderer || imageSource === "image2-dryrun";
-        if (coverImage2Qc.finalCoverQualityEligible === true) return true;
+        const reviewFallbackAllowed = false;
+        if (coverImage2Qc.primaryPlatformUploadCoverReady === true
+          && coverImage2Qc.platformSubmissionCoverReady === true) return true;
         return reviewFallbackAllowed
           && coverImage2Qc.reviewFallbackOnly === true
           && coverImage2Qc.promptQualityPass === true
@@ -28784,12 +28863,13 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     })(),
     coverNotLocalFallbackAsFinal: (() => {
       try {
-        const reviewFallbackAllowed = allowDegradedRenderer || imageSource === "image2-dryrun";
+        const reviewFallbackAllowed = false;
         return imageSource !== "local"
           && coverSizeSelection.finalDeliveryDirectory === "最终成品"
           && coverSizeSelection.humanSelectionContainsOnlyUploadReady === true
           && coverSizeSelection.nonUploadReadyVisualFilesCopied === false
-          && (coverImage2Qc.finalCoverQualityEligible === true
+          && ((coverImage2Qc.primaryPlatformUploadCoverReady === true
+            && coverImage2Qc.platformSubmissionCoverReady === true)
             || (reviewFallbackAllowed && coverImage2Qc.reviewFallbackOnly === true));
       } catch {
         return false;
@@ -29773,9 +29853,27 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       captionRendererApplied: nativeArtifactOk,
     });
   }
-  const pass = Object.values(checks).every(Boolean);
+  const coverPublishingReady = checks.coverImage2FirstChainPresent
+    && checks.coverImage2FinalQualityEligible
+    && checks.coverNotLocalFallbackAsFinal;
+  const videoChecks = Object.fromEntries(
+    Object.entries(checks).filter(([id]) => ![
+      "coverImage2FinalQualityEligible",
+      "coverNotLocalFallbackAsFinal",
+    ].includes(id)),
+  );
+  const videoPass = Object.values(videoChecks).every(Boolean);
+  const pass = videoPass;
+  const publishingBlockers = coverPublishingReady
+    ? []
+    : [
+        "platform submission cover is still pending or not yet inspected as a native-ratio Context Image2/image_gen bitmap",
+      ];
   const qc = {
     pass,
+    videoPass,
+    publishingReady: videoPass && coverPublishingReady,
+    publishingBlockers,
     renderer,
     allowDegradedRenderer,
     voiceBackend,
@@ -29848,7 +29946,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     ["Short-form hook plan", checks.shortFormHookPlanPresent && checks.firstFramePromiseVisible && checks.contentPropositionWithin3s && checks.firstThreeSecondVisualDensityOk && checks.shortFormImage2AestheticDecisionPresent && checks.shortFormPayoffLoopPresent ? "PASS" : "FAIL", shortFormHookRequired ? "First frame promise, 0-3s proposition, visual-state density, Image2/aesthetic decisions, and payoff loop are recorded." : "Not a vertical short-form or hook-focused run."],
     ["Sync timecode", checks.syncTimecodePlanPresent && checks.frameAudioTimingBound && checks.audioVideoDurationDeltaOk ? "PASS" : "FAIL", `Scene timing is bound to actual per-frame TTS segments; audio/video duration delta ${audioVideoDelta.toFixed(3)}s.`],
     ["Cover/thumbnail strategy", checks.coverDesignPresent && checks.coverFilesPresent ? "PASS" : "FAIL", "Platform cover targets, promise, hook text, subject, composition, type, contrast, and variants are written."],
-    ["Cover Image2 chain", checks.coverImage2FirstChainPresent && checks.coverImage2FinalQualityEligible && checks.coverNotLocalFallbackAsFinal ? "PASS" : "FAIL", `Cover must use Image2-first prompt/QC/size artifacts; local SVG fallback cannot be presented as final. Current image source: ${imageSource}.`],
+    ["Cover Image2 chain", coverPublishingReady ? "PASS" : "PENDING", `Independent platform-cover lane: Image2-first prompt/QC/size artifacts are recorded, but publishing readiness remains ${coverPublishingReady ? "ready" : "pending"}; the video-production lane is not blocked. Current image source: ${imageSource}.`],
     ["Opening visual policy", checks.openingVisualPolicyOk ? "PASS" : "FAIL", coverTimingMode === "none" ? "The MP4 starts directly on the first content scene; cover files remain standalone upload assets." : `Video-internal cover is rendered into the MP4 for ${coverIntroSeconds}s with narration at 0s.`],
     ["Opening audio", checks.openingAudioStartsImmediately ? "PASS" : "FAIL", `Narration starts at 0s with cover timing mode ${coverTimingMode}; no silent pre-roll is allowed.`],
     ["Aesthetic direction", checks.aestheticBriefPresent && checks.aestheticCapabilityRoutingPresent ? "PASS" : "FAIL", "Art direction, anti-PPT rules, and design/polish capability routing are written before render."],
@@ -29963,6 +30061,8 @@ async function main() {
     }
     console.log(JSON.stringify({
       ok: qc.pass,
+      videoPass: qc.videoPass,
+      publishingReady: qc.publishingReady,
       renderer,
       finalMp4,
       out,
@@ -30073,6 +30173,18 @@ async function main() {
       allowDegradedRenderer,
       allowSayFallback,
       coverIntroSeconds,
+      coverGeneration: {
+        provider: "codex-context-image2",
+        tool: "image_gen",
+        skill: "imagegen",
+        purpose: "platform-submission-cover",
+        requiredBeforeFinalRender: false,
+        requiredBeforePlatformSubmission: true,
+        videoProductionMayCompleteWhileCoverPending: true,
+        parallelExecutionLane: "platform-cover-agent",
+        videoInternalCoverDoesNotSatisfyRequest: true,
+        reviewFallbackAllowedOnlyWithExplicitDraftPolicy: false,
+      },
       coverLocalRecompositionPreview: process.env.COVER_LOCAL_RECOMPOSITION_PREVIEW === "1",
     },
   });
@@ -30137,12 +30249,11 @@ async function main() {
     });
     throw error;
   });
-  // Guard against an unhandled-rejection window: in the full-auto path this
-  // promise is not awaited until after `await generateAudio(...)`. If the cover
-  // lane rejects during that window, Node would emit an unhandledRejection and
-  // crash the process, bypassing main().catch and the workflow's own failure
-  // handling. A benign handler marks it handled now; every real
-  // `await coverArtifactsPromise` below still observes and rethrows the error.
+  // Guard against an unhandled-rejection window: the full-auto video lane does
+  // not wait for this independent cover lane. If cover preparation rejects,
+  // Node must not emit an unhandledRejection and crash the video lane. A benign
+  // handler marks it handled now; cover-only and semi-auto entrypoints still
+  // explicitly await and report cover-lane failures.
   coverArtifactsPromise.catch(() => {});
   const finalRenderRequested = !(generationMode === "semi-auto" && !args.compose && !args["render-final"]) && !args["cover-only"];
   if (finalRenderRequested) {
@@ -30433,6 +30544,11 @@ async function main() {
     writeTimingSummary(out);
     fail(error.message);
   }
+  // The platform-cover agent owns the standalone upload thumbnail lane. It
+  // starts from the locked title/script/design plan and may remain pending
+  // while the video-production agent runs TTS and composes the MP4. The
+  // platform cover is validated independently before publishing, not before
+  // video rendering.
   const narrationSegments = frameNarrationSegments(spokenNarration, frames);
   const cueNarrationSegments = subtitleCueNarrationSegments(narrationSegments);
   writeJson(join(out, "script", "frame-narration-segments.json"), {
@@ -30492,7 +30608,6 @@ async function main() {
     coverArtifactMode: "sync-only",
   });
   assertContentCoverage({ out, coverage: buildContentCoverage({ brief: finalBrief, narration, frames, args }) });
-  await coverArtifactsPromise;
   await prepareVisualAssets({ out, designPlan, imageSource, codexImageAssetsDir });
   writeJson(join(out, "workflow", "tool-candidate-selection.json"), {
     recommended: "html-video content graph plus per-frame HTML visual renderer, then local audio/QC/package",
@@ -30599,6 +30714,7 @@ async function main() {
   const coverImage2QcForDelivery = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
   const coverSizeSelectionForDelivery = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
   const contextImage2CoverRequestsForDelivery = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  const platformCoverReadiness = readPlatformCoverSubmissionReadiness(out);
   const deliveryManifest = {
     generationMode,
     speedProfile,
@@ -30636,6 +30752,10 @@ async function main() {
 	    },
     coverStatus: {
       imageSource,
+      videoProductionMayCompleteWhileCoverPending: true,
+      platformSubmissionCoverReady: platformCoverReadiness.ready === true,
+      platformSubmissionCoverTargetId: platformCoverReadiness.targetId || null,
+      platformSubmissionCoverReadinessFailures: platformCoverReadiness.failures || [],
       image2PromptQualityPass: coverImage2QcForDelivery.promptQualityPass === true,
       finalCoverQualityEligible: coverImage2QcForDelivery.finalCoverQualityEligible === true,
       reviewFallbackOnly: coverImage2QcForDelivery.reviewFallbackOnly === true,
@@ -30739,7 +30859,7 @@ async function main() {
   writeJson(join(out, "workflow", "commands.json"), commandLog);
   writeTimingSummary(out);
   const size = statSync(finalMp4).size;
-  console.log(JSON.stringify({ ok: qc.pass, renderer, finalMp4, out, size, qc: "logs/qc.json", deliveryPage, openedDeliveryPage, openedProjectFolder }, null, 2));
+  console.log(JSON.stringify({ ok: qc.pass, videoPass: qc.videoPass, publishingReady: qc.publishingReady, renderer, finalMp4, out, size, qc: "logs/qc.json", deliveryPage, openedDeliveryPage, openedProjectFolder }, null, 2));
   releaseOutputLock();
   if (!qc.pass) process.exitCode = 2;
 }

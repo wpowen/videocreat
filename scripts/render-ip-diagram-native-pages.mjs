@@ -1540,16 +1540,37 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
 
 function coverNativeImage2Ready(out) {
   const selection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json"));
-  const cover = readJsonIfExists(join(out, "workflow", "cover-design.json"));
-  if (cover?.finalCoverQualityEligible === true) return true;
-  if (selection?.allEntriesUploadReady === true) return true;
+  const requests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json"));
+  if (!selection || !requests) return false;
+  const aliases = {
+    "youtube-1280x720": "horizontal-16x9-1280x720",
+    "bilibili-1920x1080": "horizontal-16x9-1920x1080",
+    "bilibili-1146x717": "bilibili-common-1146x717",
+    "instagram-reels-420x654": "instagram-reels-cover",
+  };
+  const targetKey = (id) => aliases[id] || id;
   const entries = Array.isArray(selection?.entries)
     ? selection.entries
     : Array.isArray(selection?.targets)
       ? selection.targets
       : [];
-  return entries.some((entry) => entry.uploadReady === true
-    && (entry.image2NativeTargetRatioReady === true || /image2|codex|native/i.test(String(entry.qualityStatus || entry.status || ""))));
+  const opening = entries.find((entry) => targetKey(entry.targetId || entry.id || "") === "video-opening");
+  const primaryTargetId = targetKey(requests.primaryPlatformUploadCoverTargetId
+    || selection.primaryPlatformUploadCoverTargetId
+    || (Number(opening?.height || 0) > Number(opening?.width || 0) ? "vertical-1080x1920" : "horizontal-16x9-1280x720"));
+  const request = (requests.requests || []).find((item) => targetKey(item.targetId || item.id || "") === primaryTargetId);
+  const entry = entries.find((item) => targetKey(item.targetId || item.id || "") === primaryTargetId);
+  const actualOutput = request?.actualOutput || "";
+  return requests.provider === "codex-context-image2"
+    && requests.tool === "image_gen"
+    && request?.status === "completed"
+    && request?.inspectionPassed === true
+    && request?.purpose === "platform-submission-cover"
+    && request?.videoInternalCover === false
+    && Boolean(actualOutput)
+    && existsSync(join(out, actualOutput))
+    && entry?.uploadReady === true
+    && entry?.image2NativeTargetRatioReady === true;
 }
 
 function main() {

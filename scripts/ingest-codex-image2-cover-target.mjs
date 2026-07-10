@@ -49,6 +49,23 @@ function jpgForPng(file) {
   return file.replace(/\.png$/i, ".jpg");
 }
 
+function safePathPart(value, fallback) {
+  const text = String(value || fallback || "cover").trim();
+  return text.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ");
+}
+
+function inspectionPassed(status) {
+  return ["passed-human-review", "passed-vision-review", "passed-human-or-vision-review"].includes(String(status || ""));
+}
+
+function inferPrimaryPlatformTarget(selection = {}) {
+  if (selection.primaryPlatformUploadCoverTargetId) return targetKey(selection.primaryPlatformUploadCoverTargetId);
+  const entries = Array.isArray(selection.entries) ? selection.entries : [];
+  const opening = entries.find((item) => targetKey(item.targetId) === "video-opening");
+  if (Number(opening?.height || 0) > Number(opening?.width || 0)) return "vertical-1080x1920";
+  return "horizontal-16x9-1280x720";
+}
+
 function dimensions(path) {
   const output = execFileSync("sips", ["-g", "pixelWidth", "-g", "pixelHeight", path], { encoding: "utf8" });
   const width = Number(output.match(/pixelWidth:\s*(\d+)/)?.[1] || 0);
@@ -115,6 +132,8 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
   entry.selectedAsset = {
     status: "available",
     provider: "codex-built-in-imagegen",
+    canonicalProvider: "codex-context-image2",
+    tool: "image_gen",
     mode: "image2-integrated-typography-cover",
     source: sourceCopy,
     codexGeneratedImageSource: source,
@@ -122,20 +141,38 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
     finalPlatformSize: `${width}x${height}`,
     exactPlatformSize: `${width}x${height}`,
   };
+  const finalDeliveryDirectory = selection.finalDeliveryDirectory || "最终成品";
+  const finalGroup = safePathPart(entry.group, "平台投稿封面");
+  const finalLabel = safePathPart(entry.label, targetId);
+  const finalPngFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.png`);
+  const finalJpgFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.jpg`);
+  mkdirSync(dirname(join(topicDir, finalPngFile)), { recursive: true });
+  copyFileSync(join(topicDir, pngFile), join(topicDir, finalPngFile));
+  copyFileSync(join(topicDir, jpgFile), join(topicDir, finalJpgFile));
   entry.internalReviewFiles = [pngFile, jpgFile];
   entry.files = [
-    { format: "png", file: pngFile },
-    { format: "jpg", file: jpgFile },
+    { format: "png", file: finalPngFile },
+    { format: "jpg", file: finalJpgFile },
   ];
   entry.previewFiles = [];
   selection.needsRegeneration = (selection.needsRegeneration || []).filter((item) => targetKey(item.targetId) !== key);
   selection.pendingNativeTargetCount = selection.needsRegeneration.length;
   selection.allTargetsUploadReady = selection.pendingNativeTargetCount === 0;
+  selection.primaryPlatformUploadCoverTargetId = inferPrimaryPlatformTarget(selection);
+  selection.platformUploadReadyTargetIds = (selection.entries || [])
+    .filter((item) => targetKey(item.targetId) !== "video-opening" && item.uploadReady === true && item.image2NativeTargetRatioReady === true)
+    .map((item) => targetKey(item.targetId));
+  selection.primaryPlatformUploadCoverReady = selection.platformUploadReadyTargetIds.includes(selection.primaryPlatformUploadCoverTargetId);
+  selection.rootOutputCopies = (selection.entries || [])
+    .filter((item) => item.uploadReady === true)
+    .flatMap((item) => item.files || [])
+    .map((item) => item.file)
+    .filter(Boolean);
   writeJson(selectionPath, selection);
   return entry;
 }
 
-function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize }) {
+function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry, requestState }) {
   const designPath = join(topicDir, "workflow", "cover-design.json");
   if (!existsSync(designPath)) return;
   const design = readJson(designPath);
@@ -152,10 +189,41 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
     preset.codexNativeTargetRatioReady = true;
     preset.localTargetRatioRecomposition = false;
     preset.fulfilledBy = "codex-built-in-imagegen";
+    preset.canonicalProvider = "codex-context-image2";
+    preset.tool = "image_gen";
     preset.codexGeneratedImageSource = source;
     preset.codexSourceCopy = sourceCopy;
     preset.requestedCodexImageSize = `${imageSize.width}x${imageSize.height}`;
   }
+  const selectedAsset = {
+    status: "available",
+    provider: "codex-built-in-imagegen",
+    canonicalProvider: "codex-context-image2",
+    tool: "image_gen",
+    mode: "image2-integrated-typography-cover",
+    targetId: key,
+    source: pngFile,
+    codexGeneratedImageSource: source,
+    codexSourceCopy: sourceCopy,
+    requestedCodexImageSize: `${imageSize.width}x${imageSize.height}`,
+    finalPlatformSize: `${entry.width}x${entry.height}`,
+  };
+  design.platformSubmissionCoverAssets = [
+    ...(design.platformSubmissionCoverAssets || []).filter((item) => targetKey(item.targetId) !== key),
+    selectedAsset,
+  ];
+  if (requestState.primaryPlatformUploadCoverTargetId === key) design.selectedCoverAsset = selectedAsset;
+  design.primaryPlatformUploadCoverTargetId = requestState.primaryPlatformUploadCoverTargetId;
+  design.primaryPlatformUploadCoverReady = requestState.primaryPlatformUploadCoverReady;
+  design.allRequestedPlatformUploadCoversReady = requestState.allRequestedPlatformUploadCoversReady;
+  design.rootOutputCopies = requestState.rootOutputCopies;
+  design.thumbnailReadiness = {
+    ...(design.thumbnailReadiness || {}),
+    primaryPlatformUploadCoverReady: requestState.primaryPlatformUploadCoverReady,
+    allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
+    platformSubmissionCoverIsIndependentArtifact: true,
+    videoInternalCoverDoesNotSatisfySubmissionCover: true,
+  };
   design.coverTargetCompletion = {
     ...(design.coverTargetCompletion || {}),
     updatedAt: new Date().toISOString(),
@@ -164,6 +232,148 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
     note: "Pending target-ratio covers are completed only by real Codex/Image2 native-ratio bitmaps. Local recomposition previews remain non-upload-ready.",
   };
   writeJson(designPath, design);
+}
+
+function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry, inspectionStatus }) {
+  const requestPath = join(topicDir, "workflow", "context-image2-cover-requests.json");
+  if (!existsSync(requestPath)) throw new Error(`Missing canonical platform cover request manifest: ${requestPath}`);
+  const manifest = readJson(requestPath);
+  const key = targetKey(targetId);
+  const requests = Array.isArray(manifest.requests) ? manifest.requests : [];
+  const request = requests.find((item) => targetKey(item.targetId || item.id || "") === key);
+  if (!request) throw new Error(`Target ${targetId} not found in ${requestPath}`);
+  request.status = "completed";
+  request.completedAt = new Date().toISOString();
+  request.provider = "codex-context-image2";
+  request.renderProvider = "codex-built-in-imagegen";
+  request.tool = "image_gen";
+  request.purpose = "platform-submission-cover";
+  request.videoInternalCover = false;
+  request.actualOutput = pngFile;
+  request.actualJpgOutput = jpgFile;
+  request.codexGeneratedImageSource = source;
+  request.codexSourceCopy = sourceCopy;
+  request.sourceDimensions = imageSize;
+  request.finalPlatformSize = `${entry.width}x${entry.height}`;
+  request.inspectionStatus = inspectionStatus;
+  request.inspectionPassed = inspectionPassed(inspectionStatus);
+
+  const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
+  const primaryTargetId = targetKey(manifest.primaryPlatformUploadCoverTargetId || inferPrimaryPlatformTarget(selection));
+  const requiredRequests = requests.filter((item) => item.requiredForFinalCover !== false);
+  const completedRequests = requiredRequests.filter((item) => item.status === "completed" && item.inspectionPassed === true);
+  const completedTargetIds = completedRequests.map((item) => targetKey(item.targetId || item.id || ""));
+  const pendingTargetIds = requiredRequests
+    .map((item) => targetKey(item.targetId || item.id || ""))
+    .filter((id) => !completedTargetIds.includes(id));
+  const primaryEntry = (selection.entries || []).find((item) => targetKey(item.targetId) === primaryTargetId);
+  const primaryRequest = requiredRequests.find((item) => targetKey(item.targetId || item.id || "") === primaryTargetId);
+  const primaryReady = Boolean(primaryRequest?.status === "completed"
+    && primaryRequest?.inspectionPassed === true
+    && primaryEntry?.uploadReady === true
+    && primaryEntry?.image2NativeTargetRatioReady === true
+    && existsSync(join(topicDir, primaryRequest.actualOutput || "")));
+  const allReady = requiredRequests.length > 0 && pendingTargetIds.length === 0;
+  manifest.status = allReady ? "satisfied" : completedRequests.length ? "partially-satisfied" : "required-pending";
+  manifest.purpose = "platform-submission-cover";
+  manifest.videoInternalCoverDoesNotSatisfyRequest = true;
+  manifest.primaryPlatformUploadCoverTargetId = primaryTargetId;
+  manifest.primaryPlatformUploadCoverReady = primaryReady;
+  manifest.allRequestedPlatformUploadCoversReady = allReady;
+  manifest.completedRequestCount = completedRequests.length;
+  manifest.pendingRequestCount = pendingTargetIds.length;
+  manifest.completedTargetIds = completedTargetIds;
+  manifest.pendingTargetIds = pendingTargetIds;
+  writeJson(requestPath, manifest);
+  return {
+    manifest,
+    primaryPlatformUploadCoverTargetId: primaryTargetId,
+    primaryPlatformUploadCoverReady: primaryReady,
+    allRequestedPlatformUploadCoversReady: allReady,
+    completedTargetIds,
+    pendingTargetIds,
+    rootOutputCopies: selection.rootOutputCopies || [],
+  };
+}
+
+function updateCoverQc({ topicDir, requestState }) {
+  const qcPath = join(topicDir, "workflow", "cover-image2-qc.json");
+  const qc = existsSync(qcPath) ? readJson(qcPath) : {};
+  const primaryReady = requestState.primaryPlatformUploadCoverReady;
+  const allReady = requestState.allRequestedPlatformUploadCoversReady;
+  const completedCount = requestState.completedTargetIds.length;
+  qc.bitmapSubjectPresent = completedCount > 0;
+  qc.integratedTypographyAssetPresent = completedCount > 0;
+  qc.platformSpecificIntegratedAssetsPresent = allReady;
+  qc.targetSpecificIntegratedAssetsPresent = allReady;
+  qc.allIntegratedAssetsNativeTargetRatio = allReady;
+  qc.generatedBitmapInspectionRequired = true;
+  qc.generatedBitmapInspectionStatus = allReady
+    ? "passed-all-platform-submission-cover-targets"
+    : primaryReady
+      ? "passed-primary-platform-submission-cover-target"
+      : "pending-human-or-vision-review";
+  qc.generatedBitmapInspectionPassed = primaryReady;
+  qc.primaryPlatformUploadCoverTargetId = requestState.primaryPlatformUploadCoverTargetId;
+  qc.primaryPlatformUploadCoverReady = primaryReady;
+  qc.allRequestedPlatformUploadCoversReady = allReady;
+  qc.platformSubmissionCoverReady = primaryReady;
+  qc.contextImage2GenerationRequired = !allReady;
+  qc.contextImage2HandoffRequired = !allReady;
+  qc.finalCoverQualityEligible = allReady;
+  qc.reviewPendingOnly = primaryReady && !allReady;
+  qc.reviewFallbackOnly = !primaryReady;
+  qc.completedPlatformCoverTargetIds = requestState.completedTargetIds;
+  qc.pendingPlatformCoverTargetIds = requestState.pendingTargetIds;
+  qc.blockers = [
+    ...(!primaryReady ? ["primary platform submission cover has not been generated by Context Image2/image_gen and inspected"] : []),
+    ...(!allReady ? ["one or more requested platform submission cover targets remain pending Context Image2/image_gen generation"] : []),
+  ];
+  writeJson(qcPath, qc);
+  return qc;
+}
+
+function updatePackageDeliveryState({ topicDir, requestState }) {
+  const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
+  const primaryEntry = (selection.entries || []).find((item) => targetKey(item.targetId) === requestState.primaryPlatformUploadCoverTargetId);
+  const primaryPng = (primaryEntry?.files || []).find((item) => item.format === "png")?.file
+    || primaryEntry?.internalReviewFiles?.find((file) => /\.png$/i.test(file))
+    || "";
+  const logQcPath = join(topicDir, "logs", "qc.json");
+  if (existsSync(logQcPath)) {
+    const logQc = readJson(logQcPath);
+    logQc.checks = {
+      ...(logQc.checks || {}),
+      coverNativeImage2Ready: requestState.primaryPlatformUploadCoverReady,
+      platformSubmissionCoverReady: requestState.primaryPlatformUploadCoverReady,
+    };
+    logQc.coverArtifacts = {
+      ...(logQc.coverArtifacts || {}),
+      status: requestState.primaryPlatformUploadCoverReady ? "platform-submission-cover-ready" : "review-grade-pending-context-image2",
+      uploadReady: requestState.primaryPlatformUploadCoverReady,
+      primaryPlatformUploadCoverTargetId: requestState.primaryPlatformUploadCoverTargetId,
+      primaryPlatformUploadCover: primaryPng,
+      allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
+      contextImage2Pending: !requestState.allRequestedPlatformUploadCoversReady,
+    };
+    logQc.pass = Object.values(logQc.checks).every(Boolean);
+    logQc.status = logQc.pass ? "pass" : "fail";
+    writeJson(logQcPath, logQc);
+  }
+  const deliveryPath = join(topicDir, "delivery-manifest.json");
+  if (existsSync(deliveryPath)) {
+    const delivery = readJson(deliveryPath);
+    delivery.cover = {
+      ...(delivery.cover || {}),
+      purpose: "platform-submission-cover",
+      primaryPlatformUploadCoverTargetId: requestState.primaryPlatformUploadCoverTargetId,
+      primaryPlatformUploadCover: primaryPng,
+      primaryPlatformUploadCoverReady: requestState.primaryPlatformUploadCoverReady,
+      allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
+      status: requestState.primaryPlatformUploadCoverReady ? "primary-platform-submission-cover-ready" : "pending-context-image2",
+    };
+    writeJson(deliveryPath, delivery);
+  }
 }
 
 function updatePrompts({ topicDir, targetId, entry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize }) {
@@ -201,6 +411,7 @@ function main() {
   const topicDir = resolve(argValue("--topic"));
   const targetId = targetKey(argValue("--target"));
   const source = resolve(argValue("--source"));
+  const inspectionStatus = argValue("--inspection-status", "pending-human-or-vision-review");
   if (!topicDir || !targetId || !source) {
     throw new Error("Usage: ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>");
   }
@@ -223,10 +434,23 @@ function main() {
     height: Number(entry.height),
   });
   const updatedEntry = updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize });
-  updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize });
   const promptsPath = join(topicDir, "workflow", "cover-image2-prompts.json");
   const promptItem = existsSync(promptsPath) ? matchingPrompt(readJson(promptsPath), targetId) : null;
   updatePrompts({ topicDir, targetId, entry: updatedEntry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize });
+  const requestState = updateContextRequests({
+    topicDir,
+    targetId,
+    source,
+    sourceCopy,
+    pngFile,
+    jpgFile,
+    imageSize,
+    entry: updatedEntry,
+    inspectionStatus,
+  });
+  const coverQc = updateCoverQc({ topicDir, requestState });
+  updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry: updatedEntry, requestState });
+  updatePackageDeliveryState({ topicDir, requestState });
   console.log(JSON.stringify({
     ok: true,
     topic: relative(process.cwd(), topicDir),
@@ -238,6 +462,11 @@ function main() {
     jpgFile,
     sourceDimensions: imageSize,
     finalPlatformSize: `${updatedEntry.width}x${updatedEntry.height}`,
+    inspectionStatus,
+    primaryPlatformUploadCoverTargetId: requestState.primaryPlatformUploadCoverTargetId,
+    primaryPlatformUploadCoverReady: requestState.primaryPlatformUploadCoverReady,
+    allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
+    finalCoverQualityEligible: coverQc.finalCoverQualityEligible,
   }, null, 2));
 }
 

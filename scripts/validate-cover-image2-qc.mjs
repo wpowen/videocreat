@@ -18,15 +18,20 @@ function expect(condition, message, failures) {
 function main() {
   const out = resolve(argValue("--out", process.cwd()));
   const allowReviewFallback = process.argv.includes("--allow-review-fallback");
+  const requireAllPlatformCovers = process.argv.includes("--require-all-platform-covers");
   const failures = [];
   const warnings = [];
   const qcPath = join(out, "workflow", "cover-image2-qc.json");
   const promptsPath = join(out, "workflow", "cover-image2-prompts.json");
   const designPath = join(out, "workflow", "cover-design.json");
+  const requestPath = join(out, "workflow", "context-image2-cover-requests.json");
+  const selectionPath = join(out, "workflow", "cover-size-selection.json");
 
   expect(existsSync(qcPath), "missing workflow/cover-image2-qc.json", failures);
   expect(existsSync(promptsPath), "missing workflow/cover-image2-prompts.json", failures);
   expect(existsSync(designPath), "missing workflow/cover-design.json", failures);
+  expect(existsSync(requestPath), "missing workflow/context-image2-cover-requests.json", failures);
+  expect(existsSync(selectionPath), "missing workflow/cover-size-selection.json", failures);
   if (failures.length) {
     console.log(JSON.stringify({ ok: false, out, failures, warnings }, null, 2));
     process.exit(1);
@@ -35,6 +40,8 @@ function main() {
   const qc = readJson(qcPath);
   const prompts = readJson(promptsPath);
   const design = readJson(designPath);
+  const requests = readJson(requestPath);
+  const selection = readJson(selectionPath);
   const promptAssessments = Array.isArray(qc.promptAssessments) ? qc.promptAssessments : [];
   const promptItems = Array.isArray(prompts.prompts) ? prompts.prompts : [];
 
@@ -46,6 +53,9 @@ function main() {
   expect(design.coverImage2QualityGateFile === "workflow/cover-image2-qc.json", "cover-design.json does not reference cover-image2-qc.json", failures);
   expect(prompts.promptQualityGateFile === "workflow/cover-image2-qc.json", "cover-image2-prompts.json does not reference cover-image2-qc.json", failures);
   expect(Array.isArray(qc.requiredVisualBars) && qc.requiredVisualBars.length >= 5, "missing required visual quality bars", failures);
+  expect(requests.purpose === "platform-submission-cover", "cover requests must represent standalone platform submission covers", failures);
+  expect(requests.videoInternalCoverDoesNotSatisfyRequest === true, "in-video cover must not satisfy platform submission cover generation", failures);
+  expect(typeof requests.primaryPlatformUploadCoverTargetId === "string" && requests.primaryPlatformUploadCoverTargetId.length > 0, "missing primary platform upload cover target", failures);
 
   expect(qc.integratedTypographyRequired === true, "cover Image 2 QC must require integrated typography", failures);
   if (qc.integratedTypographyAssetPresent !== true) {
@@ -54,16 +64,25 @@ function main() {
     else failures.push(message);
   }
 
-  if (qc.reviewFallbackOnly === true || qc.finalCoverQualityEligible !== true) {
-    const message = "cover package is review-only because no approved real Image 2/Codex integrated-typography cover is bound";
+  const primarySubmissionCoverReady = qc.primaryPlatformUploadCoverReady === true
+    && qc.platformSubmissionCoverReady === true;
+  if (!primarySubmissionCoverReady) {
+    const message = "cover package is review-only because the primary standalone platform submission cover is not ready";
     if (allowReviewFallback) warnings.push(message);
     else failures.push(message);
+  } else if (qc.finalCoverQualityEligible !== true) {
+    const message = "primary platform submission cover is ready, but additional requested platform sizes remain pending";
+    if (requireAllPlatformCovers) failures.push(message);
+    else warnings.push(message);
   }
+  expect(selection.primaryPlatformUploadCoverReady === true || allowReviewFallback, "cover selection does not expose an upload-ready primary platform cover", failures);
 
   const report = {
     ok: failures.length === 0,
     out,
     allowReviewFallback,
+    requireAllPlatformCovers,
+    primaryPlatformUploadCoverReady: primarySubmissionCoverReady,
     promptQualityPass: qc.promptQualityPass,
     bitmapSubjectPresent: qc.bitmapSubjectPresent,
     finalCoverQualityEligible: qc.finalCoverQualityEligible,
