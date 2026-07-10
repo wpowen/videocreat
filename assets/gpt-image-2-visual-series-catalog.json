@@ -83,6 +83,22 @@
       "no mixing of rendering mediums within a page or across pages of one set"
     ]
   },
+  "routingContract": {
+    "schemaVersion": 1,
+    "defaultTextPolicy": "text-safe",
+    "thresholds": { "recommend": 6, "autoSelectApproved": 8, "minimumWinnerMargin": 2 },
+    "statusPolicy": {
+      "candidate": { "recommend": true, "autoSelect": false, "explicitDraftSelect": true, "finalEligible": false },
+      "approved": { "recommend": true, "autoSelect": true, "explicitDraftSelect": true, "finalEligible": true }
+    },
+    "precedence": [
+      "explicit non-negated personal-IP intent",
+      "authorized real screenshots, real data, and user-owned source material",
+      "explicit scene visualSeriesId",
+      "scene content-shape scoring",
+      "approved explainer board or deterministic fallback"
+    ]
+  },
   "series": [
     {
       "seriesId": "knowledge-encyclopedia-card-v1",
@@ -91,8 +107,9 @@
       "axes": { "useCase": "infographic/education", "style": "modern encyclopedia plate", "subject": "diagram + concrete subject" },
       "appliesTo": ["subject profiles and archives", "roundups and rankings", "attribute or trait breakdowns", "science and lifestyle knowledge summaries"],
       "plannerGuidance": "Pick when a scene presents one subject with structured facts: profile, traits, mechanisms, ratings, or top-N takeaways. Strong replacement for bullet-list HTML slides in knowledge videos.",
+      "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["subject-profile", "archive", "roundup", "ranking", "rating", "science-summary"], "requiredAny": ["one-subject-many-attributes", "rating-or-roundup", "structured-science"], "negativeSignals": ["ordered-instructions", "repeated-specimens", "typed-relationship-edges", "software-interface-state"], "priority": 60 },
       "aspects": ["9:16", "16:9"],
-      "defaultTextPolicy": "integrated-chinese",
+      "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "styleDna": "Modular encyclopedia knowledge plate: field-guide texture, encyclopedia-page structure, information hierarchy, and collectible knowledge-card finish. High information density that still breathes. Never an advertising poster.",
       "styleSpec": {
@@ -125,8 +142,9 @@
       "axes": { "useCase": "infographic/tutorial", "style": "high-density guide board", "subject": "steps + priorities + checklist" },
       "appliesTo": ["tutorials and how-to sequences", "step-by-step methods", "priority and resource planning", "pitfall warnings and checklists"],
       "plannerGuidance": "Pick when narration walks through ordered steps, priorities, or do/don't lists. Each page owns one stage of the guide so the video can page through the method.",
+      "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["tutorial", "how-to", "pitfall-warning", "resource-planning"], "requiredAny": ["ordered-steps", "checklist", "pitfall-warning"], "negativeSignals": ["typed-relationship-edges", "repeated-specimens", "pure-mood-beat", "software-state-evidence"], "priority": 70 },
       "aspects": ["9:16", "16:9"],
-      "defaultTextPolicy": "integrated-chinese",
+      "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "styleDna": "High-density strategy guide board: numbered step markers, route lines, and priority badges as the visual language, organized like a premium strategy guide page, information-dense but strictly gridded.",
       "styleSpec": {
@@ -159,8 +177,9 @@
       "axes": { "useCase": "infographic/narrative", "style": "designed relationship map", "subject": "nodes + typed edges" },
       "appliesTo": ["character or faction relationships", "organization structures", "concept networks", "cause-effect webs"],
       "plannerGuidance": "Pick when the scene explains who relates to whom or how concepts interlock. Use multiple pages to zoom from full map to clusters to key pairs instead of one crowded chart.",
+      "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["relationship-explanation", "organization-map", "concept-network", "cause-effect-web"], "requiredAny": ["multiple-nodes-typed-edges", "concept-network"], "negativeSignals": ["single-subject-profile", "same-subject-multiple-states", "ordered-instructions"], "priority": 80 },
       "aspects": ["9:16", "16:9"],
-      "defaultTextPolicy": "integrated-chinese",
+      "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "styleDna": "Designed relationship map poster: node portraits or concept badges, edges differentiated by color, line style, and arrowheads, grouped clusters with soft containment shapes, and a compact legend. Editorial, restrained, high design finish.",
       "styleSpec": {
@@ -193,8 +212,9 @@
       "axes": { "useCase": "infographic/collection", "style": "collectible atlas card", "subject": "species, object, or item profile" },
       "appliesTo": ["animal or plant profiles", "object and product field guides", "item-by-item roundups", "healing or lifestyle knowledge cards"],
       "plannerGuidance": "Pick for series content that profiles one specimen per page: animals, plants, foods, tools, collectibles. Choose the museum tone for authority topics and the cute tone for healing/lifestyle topics.",
+      "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["specimen-profile", "collection-guide", "item-by-item-roundup"], "requiredAny": ["collection-series", "repeated-specimens"], "negativeSignals": ["one-subject-many-attributes", "ranking-only", "typed-relationship-edges"], "priority": 75 },
       "aspects": ["9:16", "16:9"],
-      "defaultTextPolicy": "integrated-chinese",
+      "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "toneVariants": {
         "museum": "Refined natural-history atlas plate: paper-textured light background, precise specimen rendering, elegant serif-feeling hierarchy, muted botanical palette.",
@@ -231,8 +251,9 @@
       "axes": { "useCase": "hook/divider", "style": "editorial magazine cover", "subject": "dominant subject + masthead typography" },
       "appliesTo": ["opening hooks", "chapter dividers", "topic reveals", "closing title pages"],
       "plannerGuidance": "Pick when a beat needs a premium full-screen hook or chapter divider with one dominant subject and a short high-impact title. Works as the video-internal analogue of the integrated-typography cover.",
+      "routing": { "scope": ["scene"], "kind": "accent-series", "intents": ["opening-hook", "chapter-divider", "topic-reveal", "closing-title"], "requiredAny": ["opening-or-divider", "short-title-role"], "negativeSignals": ["dense-body-copy", "multi-step-explanation", "fact-table", "relationship-network"], "priority": 90 },
       "aspects": ["9:16", "16:9"],
-      "defaultTextPolicy": "integrated-chinese",
+      "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "styleDna": "High-end editorial cover language: one dominant subject with strong presence, masthead-style title zone, one or two kicker lines, studio-grade lighting, generous margins, print-quality finish.",
       "styleSpec": {
@@ -264,6 +285,7 @@
       "axes": { "useCase": "hook/transition", "style": "surreal concept carrier", "subject": "a world inside an object" },
       "appliesTo": ["opening hooks", "emotional transitions", "concept metaphors", "ending echoes"],
       "plannerGuidance": "Pick when the beat needs wonder or a strong metaphor: an idea contained in an unexpected carrier object. Deterministic overlays own any title text, so this series stays text-safe.",
+      "routing": { "scope": ["scene"], "kind": "accent-series", "intents": ["wonder-hook", "concept-metaphor", "emotional-transition", "ending-echo"], "requiredAny": ["surreal-metaphor", "wonder-transition"], "negativeSignals": ["factual-evidence", "ordered-instructions", "software-interface-state", "relationship-network"], "priority": 65 },
       "aspects": ["9:16", "16:9"],
       "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["text-safe"],
@@ -297,6 +319,7 @@
       "axes": { "useCase": "transition/mood", "style": "new-Chinese ink wash + modern minimal", "subject": "landscape or subject in atmosphere" },
       "appliesTo": ["emotional transitions", "culture and history topics", "season or time passage", "calm endings"],
       "plannerGuidance": "Pick for culture-adjacent topics or when pacing needs a calm breath between dense boards. Large negative space doubles as a natural title/subtitle stage for deterministic overlays.",
+      "routing": { "scope": ["scene"], "kind": "accent-series", "intents": ["culture-atmosphere", "time-passage", "pacing-breath", "calm-ending"], "requiredAny": ["culture-or-history", "intentional-breath-or-ending"], "negativeSignals": ["urgent-hook", "dense-instruction", "software-demo", "numeric-proof"], "priority": 50 },
       "aspects": ["9:16", "16:9"],
       "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["text-safe"],
@@ -330,6 +353,7 @@
       "axes": { "useCase": "evidence/product", "style": "original fictional software interface", "subject": "dashboard, panels, flows" },
       "appliesTo": ["tool and SaaS walkthroughs", "product feature explanations", "workflow state demonstrations", "before-after result panels"],
       "plannerGuidance": "Pick when the scene needs software-interface evidence but no real screenshot exists or may be shown. The plate is an original fictional UI; all readable UI copy stays deterministic, so this series is text-safe only.",
+      "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["tool-walkthrough", "saas-explanation", "product-feature", "workflow-state"], "requiredAny": ["tool-or-product", "software-interface-state"], "negativeSignals": ["authorized-real-screenshot-available", "real-brand-ui-reproduction", "generic-tutorial-without-ui"], "priority": 85 },
       "aspects": ["16:9", "9:16"],
       "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["text-safe"],
@@ -364,6 +388,7 @@
       "axes": { "useCase": "recap/montage", "style": "consistent grid collage", "subject": "one subject across states" },
       "appliesTo": ["recaps and montages", "progression over time", "multi-state comparisons", "mood boards"],
       "plannerGuidance": "Pick when one subject must be shown across several states, moments, or variations in a single frame: recaps, progressions, comparisons. Grid cells must keep strict subject and style consistency.",
+      "routing": { "scope": ["scene"], "kind": "primary-content-series", "intents": ["recap", "progression", "multi-state-comparison", "montage"], "requiredAny": ["same-subject-multiple-states", "progression-or-recap"], "negativeSignals": ["multiple-nodes-typed-edges", "single-static-profile", "ordered-instructions"], "priority": 70 },
       "aspects": ["9:16", "16:9"],
       "defaultTextPolicy": "text-safe",
       "supportedTextPolicies": ["text-safe"],

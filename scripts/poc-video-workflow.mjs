@@ -16,6 +16,12 @@ import {
 } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  buildVisualSeriesRoutingPlan,
+  normalizePlannerToggle,
+  personalIpIntentForBrief,
+  stripNegatedPersonalIpText,
+} from "./lib/visual-route-planner.mjs";
 
 const ROOT = process.cwd();
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -28,6 +34,7 @@ const DEFAULT_TYPOGRAPHY_STYLE_CATALOG = join(SKILL_ROOT, "assets", "typography-
 const DEFAULT_MOTION_STYLE_CATALOG = join(SKILL_ROOT, "assets", "motion-style-catalog.json");
 const DEFAULT_MOTION_STYLE_TEMPLATE_LIBRARY = join(SKILL_ROOT, "assets", "motion-style-template-library.json");
 const GALACEAN_EFFECT_CAPABILITY_CATALOG = join(SKILL_ROOT, "assets", "galacean-effects-capability-catalog.json");
+const GPT_IMAGE2_VISUAL_SERIES_CATALOG = join(SKILL_ROOT, "assets", "gpt-image-2-visual-series-catalog.json");
 const SEMI_AUTO_CONFIG_PAGE_BUILDER = join(SKILL_ROOT, "scripts", "build-semi-auto-config-html.mjs");
 const PERSONAL_IP_ASSET_ROOT_ENV = "CODEX_VIDEO_PERSONAL_IP_ASSET_ROOT";
 const DEFAULT_PERSONAL_IP_ASSET_ROOT = join(
@@ -53,7 +60,7 @@ const DEFAULT_SPEED_PROFILE = "standard";
 const DEFAULT_FINAL_AUDIO_MODE = "reencode-video";
 const MIN_AUDIBLE_MEAN_DB = -20;
 const MIN_AUDIBLE_MAX_DB = -8;
-const FINAL_AUDIO_NORMALIZE_FILTER = "volume=1.55,acompressor=threshold=-22dB:ratio=2.2:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9,alimiter=limit=0.90,loudnorm=I=-15:TP=-1.5:LRA=8";
+const FINAL_AUDIO_NORMALIZE_FILTER = "highpass=f=70,lowpass=f=14000,loudnorm=I=-15:TP=-1.5:LRA=8,alimiter=limit=0.95";
 const DELIVERY_AUDIO_SAMPLE_RATE = 48000;
 const DELIVERY_AUDIO_CHANNELS = 2;
 const DELIVERY_AUDIO_CHANNEL_LAYOUT = "stereo";
@@ -10641,6 +10648,17 @@ function buildDesignPlan({ brief, frames, imageSource }) {
     },
   });
   applyIpDiagramCreatorPlannerToPages({ pages, plan: ipDiagramCreatorPlan });
+  const visualSeriesCatalog = readJsonIfExists(GPT_IMAGE2_VISUAL_SERIES_CATALOG) || {};
+  const visualSeriesRoutingPlan = buildVisualSeriesRoutingPlan({
+    brief,
+    pages,
+    catalog: visualSeriesCatalog,
+    personalIpIntent: ipDiagramCreatorPlan.routingSignals?.personalIpIntent || personalIpIntentForBrief(brief),
+  });
+  applyVisualSeriesRoutingPlanToPages({
+    pages,
+    plan: visualSeriesRoutingPlan,
+  });
   for (const page of pages) {
     const pageTemplate = {
       ...template,
@@ -10678,6 +10696,7 @@ function buildDesignPlan({ brief, frames, imageSource }) {
     templateKit: templateKitSummary,
     aestheticDirection,
     ipDiagramCreatorPlan,
+    visualSeriesRoutingPlan,
     rules: [
       "Video must not be only text cards; each scene needs an inserted illustration or visual metaphor layer.",
       "Image prompts are image2-compatible and rights-safe; local SVG fallback remains deterministic.",
@@ -12590,48 +12609,21 @@ const IP_DIAGRAM_CREATOR_TERMS = [
   "个人 IP",
   "IP角色",
   "图解角色",
-  "知识卡",
-  "知识卡片",
-  "手绘图解",
   "执行Agent",
   "执行 Agent",
   "Agent协作",
-  "PPT课件",
-  "PPT演示",
-  "课件",
-  "教学",
-  "教程",
-  "课程",
-  "讲解",
-  "科普",
-  "方法论",
-  "训练营",
-  "知识讲解",
-  "教学图解",
-  "直播分享",
   "导演规划",
   "三张角色",
   "角色主锚图",
+  "ip-diagram-creator",
   "creator persona",
   "personal brand",
   "personal ip",
-  "knowledge card",
   "diagram persona",
   "agent collaboration",
-  "ppt presentation",
-  "slide deck",
-  "lesson",
-  "tutorial",
-  "course",
-  "teaching",
-  "explainer",
-  "methodology",
-  "training",
-  "workshop",
-  "how to",
 ];
 
-const IP_DIAGRAM_CREATOR_TEXT_RE = /个人\s*IP|IP\s*角色|图解角色|知识卡(?:片)?|手绘图解|教学图解|课程图解|方法图解|执行\s*Agent|Agent\s*协作|PPT\s*(?:课件|页面|演示|导演)|课件|直播分享|导演规划|三张角色|角色主锚图|creator-led|creator persona|personal brand|personal ip|knowledge card|diagram persona|agent collaboration|ppt presentation|slide deck/i;
+const IP_DIAGRAM_CREATOR_TEXT_RE = /个人\s*IP|IP\s*角色|图解角色|执行\s*Agent|Agent\s*协作|导演规划|三张角色|角色主锚图|ip[-_\s]?diagram[-_\s]?creator|creator persona|personal brand|personal ip|diagram persona|agent collaboration/i;
 const IP_DIAGRAM_CREATOR_TEACHING_RE = /教学|教程|课程|讲解|科普|方法论|训练营|知识讲解|教学图解|课件|PPT|直播分享|lesson|tutorial|course|teaching|explainer|methodology|training|workshop|how\s+to/i;
 
 function ipDiagramCreatorBriefText(brief = {}, designPlan = {}) {
@@ -12693,22 +12685,16 @@ function ipDiagramCreatorBriefText(brief = {}, designPlan = {}) {
 
 function ipDiagramCreatorActivationSignals(brief = {}, designPlan = {}) {
   const text = ipDiagramCreatorBriefText(brief, designPlan);
-  const lower = text.toLowerCase();
+  const nonNegatedText = stripNegatedPersonalIpText(text);
+  const lower = nonNegatedText.toLowerCase();
+  const personalIpIntent = personalIpIntentForBrief(brief);
   const explicitFields = [
     "ipDiagram",
     "ipDiagramCreator",
-    "personalIp",
-    "creatorPersona",
-    "ipCharacter",
-    "characterAssets",
-    "pptPresentationMode",
     "ipDiagramCreatorPrimary",
     "primaryIpDiagramCreator",
-    "teachingMode",
-    "courseMode",
-    "tutorialMode",
-    "lessonMode",
-  ].filter((field) => Boolean(brief[field]));
+  ].filter((field) => normalizePlannerToggle(brief[field]) === "on");
+  explicitFields.push(...personalIpIntent.explicitOnFields);
   if (String(brief.visualMode || "").toLowerCase() === "ip-diagram") {
     explicitFields.push("visualMode:ip-diagram");
   }
@@ -12720,8 +12706,10 @@ function ipDiagramCreatorActivationSignals(brief = {}, designPlan = {}) {
     brief.plannerRoute,
     brief.ipDiagramCreatorMode,
   ].filter(Boolean).join(" ");
-  const primaryRequested = Boolean(brief.ipDiagramCreatorPrimary || brief.primaryIpDiagramCreator)
-    || /ip[-\s]?diagram[-\s]?creator|ip\s*diagram|个人\s*IP\s*图解|教学图解/i.test(routeText);
+  const primaryRequested = normalizePlannerToggle(brief.ipDiagramCreatorPrimary) === "on"
+    || normalizePlannerToggle(brief.primaryIpDiagramCreator) === "on"
+    || personalIpIntent.active
+    || /ip[-\s]?diagram[-\s]?creator|ip\s*diagram|个人\s*IP\s*图解/i.test(stripNegatedPersonalIpText(routeText));
   const matchedTerms = IP_DIAGRAM_CREATOR_TERMS
     .filter((term) => lower.includes(term.toLowerCase()))
     .slice(0, 12);
@@ -12729,9 +12717,10 @@ function ipDiagramCreatorActivationSignals(brief = {}, designPlan = {}) {
     explicitFields,
     matchedTerms,
     primaryRequested,
-    personalIpVisualMatched: /个人\s*IP|IP\s*角色|图解角色|手绘图解|知识卡(?:片)?|creator persona|personal brand|personal ip|diagram persona/i.test(text),
+    personalIpIntent,
+    personalIpVisualMatched: personalIpIntent.active,
     teachingMatched: IP_DIAGRAM_CREATOR_TEACHING_RE.test(text),
-    textMatched: IP_DIAGRAM_CREATOR_TEXT_RE.test(text),
+    textMatched: IP_DIAGRAM_CREATOR_TEXT_RE.test(nonNegatedText),
   };
 }
 
@@ -13004,6 +12993,61 @@ function applyIpDiagramCreatorPlannerToPages({ pages = [], plan = {} }) {
   return pages;
 }
 
+function applyVisualSeriesRoutingPlanToPages({ pages = [], plan = {} }) {
+  const decisionsByScene = new Map((plan.sceneDecisions || []).map((decision) => [decision.sceneId, decision]));
+  for (const page of pages) {
+    const decision = decisionsByScene.get(page.id) || null;
+    if (!decision) continue;
+    const previous = page.visualAssetDecision || {};
+    const personalIpOwnsScene = decision.precedenceWinner === "personal-ip";
+    const seriesOwnsScene = Boolean(decision.selectedSeriesId);
+    const explainerBoard = previous.explainerBoard || {};
+    page.visualSeriesRouting = decision;
+    page.visualAssetDecision = {
+      ...previous,
+      primaryRoute: personalIpOwnsScene
+        ? "ip-diagram-creator"
+        : seriesOwnsScene
+          ? "gpt-image-2-visual-series"
+          : previous.primaryRoute || "default-visual-planner",
+      visualSeries: decision,
+      ...(personalIpOwnsScene ? {
+        useGeneratedImage: false,
+        placement: "none",
+        reason: "personal-IP native route owns the visible frame; generic Image2 and non-persona visual-series routes are suppressed",
+        blockedReason: "",
+        generatedExplainerBoardAllowed: false,
+        explainerBoard: {
+          ...explainerBoard,
+          active: false,
+          routeId: "none",
+          disabledReason: "personal-IP route precedence",
+        },
+        fallbackVisualSystem: "ip-diagram-creator native source pages own the visual frame",
+      } : {}),
+      ...(!personalIpOwnsScene && seriesOwnsScene ? {
+        useGeneratedImage: decision.autoActivated === true,
+        placement: decision.autoActivated === true ? "full-screen-series-page" : "none",
+        reason: decision.autoActivated === true
+          ? `approved visual series ${decision.selectedSeriesId} owns this scene`
+          : `planner recommends candidate visual series ${decision.selectedSeriesId}; final generation remains gated until series approval or explicit draft selection`,
+        blockedReason: decision.autoActivated === true ? "" : "candidate visual series cannot silently auto-enter final composition",
+        generatedExplainerBoardAllowed: false,
+        explainerBoard: {
+          ...explainerBoard,
+          active: false,
+          routeId: "none",
+          disabledReason: "visual-series route owns scene planning",
+        },
+        fallbackVisualSystem: decision.autoActivated === true
+          ? "full-screen Image2 visual-series page plus deterministic subtitle layers"
+          : previous.fallbackVisualSystem,
+      } : {}),
+    };
+  }
+  return pages;
+}
+
 function briefRequestsIpDiagramNativeDirectUse(brief = {}) {
   const routeText = [
     brief.ipDiagramCreatorExecutionMode,
@@ -13017,34 +13061,7 @@ function briefRequestsIpDiagramNativeDirectUse(brief = {}) {
 }
 
 function briefRequestsPersonalIpNativeSkillRoute(brief = {}) {
-  const personalIp = brief.personalIp && typeof brief.personalIp === "object" ? brief.personalIp : {};
-  const routeText = [
-    brief.ipDiagramCreatorExecutionMode,
-    brief.ipDiagramCreatorMode,
-    brief.plannerDriver,
-    brief.visualPlanner,
-    brief.primaryVisualSystem,
-    brief.visualSystem,
-    brief.videoType,
-    brief.visualMode,
-    brief.objective,
-    personalIp.mode,
-    personalIp.workflow,
-  ].filter(Boolean).join(" ");
-  return Boolean(
-    brief.personalIp
-    || brief.creatorPersona
-    || brief.ipCharacter
-    || brief.characterAssets
-    || brief.personalIpAssets
-    || brief.authorizedRoleAssets
-    || brief.personalIpReference
-    || brief.personalIpPhoto
-    || brief.personalIpImage
-    || personalIp.name
-    || personalIp.displayName
-    || personalIp.role
-  ) || /个人\s*IP|IP\s*角色|图解角色|creator persona|personal brand|personal ip|diagram persona|角色主锚图|三张角色|ip[-_\s]?diagram[-_\s]?creator/i.test(routeText);
+  return personalIpIntentForBrief(brief).active;
 }
 
 function briefRequestsIpDiagramNativeFinalVideo(brief = {}) {
@@ -16266,6 +16283,12 @@ function writeAestheticArtifacts({ out, brief, designPlan }) {
   };
   const themeReadabilityAudit = buildThemeReadabilityAudit({ brief, designPlan, motionSelection });
   const ipDiagramCreatorPlan = designPlan.ipDiagramCreatorPlan || buildIpDiagramCreatorPlan({ brief, designPlan });
+  const visualSeriesRoutingPlan = designPlan.visualSeriesRoutingPlan || buildVisualSeriesRoutingPlan({
+    brief,
+    pages: designPlan.pages || [],
+    catalog: readJsonIfExists(GPT_IMAGE2_VISUAL_SERIES_CATALOG) || {},
+    personalIpIntent: ipDiagramCreatorPlan.routingSignals?.personalIpIntent || personalIpIntentForBrief(brief),
+  });
   const ipDiagramCreatorVendorUsage = ipDiagramCreatorVendorUsageForRun({ active: ipDiagramCreatorPlan.active === true });
   const ipDiagramCreatorNativeJobs = buildIpDiagramCreatorNativeJobs({
     brief,
@@ -16282,6 +16305,7 @@ function writeAestheticArtifacts({ out, brief, designPlan }) {
   });
   writeJson(join(out, "workflow", "design-platform-planner.json"), designPlan.designPlatformPlanner);
   writeJson(join(out, "workflow", "ip-diagram-creator-plan.json"), ipDiagramCreatorPlan);
+  writeJson(join(out, "workflow", "visual-series-routing-plan.json"), visualSeriesRoutingPlan);
   writeJson(join(out, "workflow", "ip-diagram-creator-vendor-usage.json"), ipDiagramCreatorVendorUsage);
   writeJson(
     join(out, "workflow", "personal-ip-asset-registry.json"),
@@ -16364,6 +16388,15 @@ function writeAestheticArtifacts({ out, brief, designPlan }) {
         "final Chinese text remains deterministic except governed cover typography",
         "Agent collaboration helpers need concrete execution jobs",
       ],
+    },
+    visualSeriesRoutingPlan: {
+      status: visualSeriesRoutingPlan.status || "missing",
+      artifact: "workflow/visual-series-routing-plan.json",
+      precedenceWinner: visualSeriesRoutingPlan.videoDecision?.precedenceWinner || "fallback-planner",
+      selectedSeriesIds: visualSeriesRoutingPlan.videoDecision?.selectedSeriesIds || [],
+      candidateSeriesOnly: visualSeriesRoutingPlan.videoDecision?.candidateSeriesOnly === true,
+      finalAutoEligible: visualSeriesRoutingPlan.videoDecision?.finalAutoEligible === true,
+      rule: visualSeriesRoutingPlan.videoDecision?.rule || "one primary route per scene",
     },
     audienceState: {
       knows: "The viewer understands the broad topic but may not know why a chapter fails to retain readers.",
@@ -25849,6 +25882,10 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
   const providedAudioPath = normalizeProvidedAudioPath(providedAudio);
   if (providedAudioPath) {
     if (!existsSync(providedAudioPath)) throw new Error(`--provided-audio not found: ${providedAudioPath}`);
+    const normalizedProvidedAudioPath = providedAudioPath.replaceAll("\\", "/").toLowerCase();
+    if (normalizedProvidedAudioPath.endsWith("/mix.m4a") && existsSync(join(dirname(providedAudioPath), "generated-pad.m4a"))) {
+      throw new Error("--provided-audio points to a workflow mix.m4a. Pass the voice-only narration.m4a or narration.wav instead; a workflow mix must never be mixed again.");
+    }
     const sourceExt = extname(providedAudioPath).toLowerCase() || ".audio";
     const sourceCopy = join(assets, `source-provided-audio${sourceExt}`);
     copyFileSync(providedAudioPath, sourceCopy);
@@ -25866,7 +25903,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       "-ss", String(trimStart),
       "-i", providedAudioPath,
       "-t", String(trimDuration),
-      "-af", FINAL_AUDIO_DELIVERY_FILTER,
+      "-af", DELIVERY_AUDIO_FORMAT_FILTER,
       "-c:a", "pcm_s16le",
       "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
       "-ac", String(DELIVERY_AUDIO_CHANNELS),
@@ -25880,7 +25917,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     run("ffmpeg", [
       "-y",
       "-i", raw,
-      "-af", FINAL_AUDIO_DELIVERY_FILTER,
+      "-af", DELIVERY_AUDIO_FORMAT_FILTER,
       "-c:a", "pcm_s16le",
       "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
       "-ac", String(DELIVERY_AUDIO_CHANNELS),
@@ -25888,13 +25925,11 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     ], { cwd: out, category: "audio-post" });
     await runParallel([
       () => runAsync("ffmpeg", ["-y", "-i", narrationWav, "-codec:a", "libmp3lame", "-q:a", "2", narrationMp3], { cwd: out, category: "audio-post", parallelGroup: "audio-derivatives" }),
-      () => runAsync("ffmpeg", ["-y", "-i", narrationWav, "-af", FINAL_AUDIO_DELIVERY_FILTER, "-c:a", "aac", "-b:a", "192k", "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE), "-ac", String(DELIVERY_AUDIO_CHANNELS), narrationM4a], { cwd: out, category: "audio-post", parallelGroup: "audio-derivatives" }),
+      () => runAsync("ffmpeg", ["-y", "-i", narrationWav, "-c:a", "aac", "-b:a", "192k", "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE), "-ac", String(DELIVERY_AUDIO_CHANNELS), narrationM4a], { cwd: out, category: "audio-post", parallelGroup: "audio-derivatives" }),
       () => runAsync("ffmpeg", [
         "-y",
-        "-f", "lavfi", "-i", `sine=frequency=98:duration=${finalDuration}`,
-        "-f", "lavfi", "-i", `sine=frequency=196:duration=${finalDuration}`,
-        "-filter_complex", `[0:a]volume=-30dB[a0];[1:a]volume=-36dB[a1];[a0][a1]amix=inputs=2,afade=t=in:st=0:d=1,afade=t=out:st=${Math.max(0, finalDuration - 2)}:d=2,${DELIVERY_AUDIO_FORMAT_FILTER}[a]`,
-        "-map", "[a]",
+        "-f", "lavfi", "-i", `anullsrc=r=${DELIVERY_AUDIO_SAMPLE_RATE}:cl=stereo`,
+        "-t", String(finalDuration),
         "-c:a", "aac",
         "-b:a", "160k",
         "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
@@ -25904,18 +25939,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     ], { limit: 3 });
     waitForValidMedia(narrationM4a, { minDuration: Math.max(1, finalDuration - 1), label: "assets/narration.m4a" });
     waitForValidMedia(bgm, { minDuration: Math.max(1, finalDuration - 1), label: "assets/generated-pad.m4a" });
-    run("ffmpeg", [
-      "-y",
-      "-i", narrationM4a,
-      "-i", bgm,
-      "-filter_complex", `[0:a]volume=1.35,highpass=f=70,acompressor=threshold=-22dB:ratio=2.4:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9[a0];[1:a]volume=0.18[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.92,loudnorm=I=-15:TP=-1.5:LRA=8,${DELIVERY_AUDIO_FORMAT_FILTER}[a]`,
-      "-map", "[a]",
-      "-c:a", "aac",
-      "-b:a", "192k",
-      "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
-      "-ac", String(DELIVERY_AUDIO_CHANNELS),
-      mixed,
-    ], { cwd: out, category: "audio-post" });
+    copyFileSync(narrationM4a, mixed);
     waitForValidMedia(mixed, { minDuration: Math.max(1, finalDuration - 1), label: "assets/mix.m4a" });
     const segmentTimings = estimateProvidedAudioSegmentTimings({
       segments: Array.isArray(narrationSegments) && narrationSegments.length
@@ -25937,7 +25961,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       audioGender: voiceDirection?.audioGender || voiceDirection?.voiceGender || "unknown",
       audioGenderSource: voiceDirection?.audioGenderSource || "provided-audio-metadata-or-brief",
       personalIpPersonaGenderRule: "personal-IP default host gender follows audioGender unless an explicit persona manifest or persona-gender override is supplied",
-      music: "assets/generated-pad.m4a",
+      music: null,
+      musicRole: "silent_compatibility_track",
       mix: "assets/mix.m4a",
       subtitleFile: "script/subtitles.srt",
       segmentTimingSource: "provided_audio_estimated_subtitle_cue_segments",
@@ -25962,8 +25987,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
         minMaxDb: MIN_AUDIBLE_MAX_DB,
       },
       dynamicsProcessing: {
-        filterChain: `provided audio: ${FINAL_AUDIO_DELIVERY_FILTER}; mix: volume/compressor/dynaudnorm/loudnorm/${DELIVERY_AUDIO_FORMAT_FILTER}; final MP4: ${FINAL_AUDIO_DELIVERY_FILTER}`,
-        purpose: "normalize user-provided dialogue into the same 48 kHz stereo AAC delivery chain used by final workflow videos",
+        filterChain: `voice assets: ${DELIVERY_AUDIO_FORMAT_FILTER}; final MP4: ${FINAL_AUDIO_DELIVERY_FILTER}`,
+        purpose: "keep provided voice-only audio unprocessed until the single final delivery normalization pass",
       },
       deliveryAudioFormat: {
         sampleRateHz: DELIVERY_AUDIO_SAMPLE_RATE,
@@ -26002,7 +26027,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
   }
   if (process.env.CODEX_VIDEO_REUSE_AUDIO === "1") {
     if (!existsSync(narrationM4a) || !existsSync(bgm) || !existsSync(mixed)) {
-      throw new Error("CODEX_VIDEO_REUSE_AUDIO=1 requires assets/narration.m4a, assets/generated-pad.m4a, and assets/mix.m4a.");
+      throw new Error("CODEX_VIDEO_REUSE_AUDIO=1 requires voice-only assets/narration.m4a, the silent compatibility track, and assets/mix.m4a.");
     }
     const narrationDuration = mediaDurationSeconds(narrationM4a);
     const mixedDuration = mediaDurationSeconds(mixed);
@@ -26035,7 +26060,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       voiceBackend: existingManifest.voiceBackend || voiceBackend,
       requestedVoiceBackend: existingManifest.requestedVoiceBackend || voiceBackend,
       narration: "assets/narration.m4a",
-      music: "assets/generated-pad.m4a",
+      music: null,
+      musicRole: "silent_compatibility_track",
       mix: "assets/mix.m4a",
       sourceNarration: "script/narration.txt",
       spokenNarration: "script/narration-spoken.txt",
@@ -26120,10 +26146,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     () => runAsync("ffmpeg", ["-y", "-i", narrationWav, "-c:a", "aac", "-b:a", "192k", narrationM4a], { cwd: out, category: "audio-post", parallelGroup: "audio-derivatives" }),
     () => runAsync("ffmpeg", [
       "-y",
-      "-f", "lavfi", "-i", `sine=frequency=98:duration=${finalDuration}`,
-      "-f", "lavfi", "-i", `sine=frequency=196:duration=${finalDuration}`,
-      "-filter_complex", `[0:a]volume=-26dB[a0];[1:a]volume=-33dB[a1];[a0][a1]amix=inputs=2,afade=t=in:st=0:d=1,afade=t=out:st=${Math.max(0, finalDuration - 2)}:d=2[a]`,
-      "-map", "[a]",
+      "-f", "lavfi", "-i", `anullsrc=r=${DELIVERY_AUDIO_SAMPLE_RATE}:cl=stereo`,
+      "-t", String(finalDuration),
       "-c:a", "aac",
       "-b:a", "160k",
       "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
@@ -26133,18 +26157,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
   ], { limit: 3 });
   waitForValidMedia(narrationM4a, { minDuration: Math.max(1, finalDuration - 1), label: "assets/narration.m4a" });
   waitForValidMedia(bgm, { minDuration: Math.max(1, finalDuration - 1), label: "assets/generated-pad.m4a" });
-  run("ffmpeg", [
-    "-y",
-    "-i", narrationM4a,
-    "-i", bgm,
-    "-filter_complex", `[0:a]volume=1.45,highpass=f=70,acompressor=threshold=-22dB:ratio=2.4:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9[a0];[1:a]volume=0.28[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.92,loudnorm=I=-15:TP=-1.5:LRA=8,${DELIVERY_AUDIO_FORMAT_FILTER}[a]`,
-    "-map", "[a]",
-    "-c:a", "aac",
-    "-b:a", "192k",
-    "-ar", String(DELIVERY_AUDIO_SAMPLE_RATE),
-    "-ac", String(DELIVERY_AUDIO_CHANNELS),
-    mixed,
-  ], { cwd: out });
+  copyFileSync(narrationM4a, mixed);
   waitForValidMedia(mixed, { minDuration: Math.max(1, finalDuration - 1), label: "assets/mix.m4a" });
   writeJson(join(out, "workflow", "voice-subtitle-manifest.json"), {
     voiceBackend: selected.backend,
@@ -26164,7 +26177,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     personalIpPersonaGenderRule: "personal-IP default host gender follows audioGender unless an explicit persona manifest or persona-gender override is supplied",
     pauseDurations: voiceDirection?.pauseDurations,
     shortPausePolicy: voiceDirection?.shortPausePolicy,
-    music: "assets/generated-pad.m4a",
+    music: null,
+    musicRole: "silent_compatibility_track",
     mix: "assets/mix.m4a",
     subtitleFile: "script/subtitles.srt",
     segmentTimingSource: selected.segmentTimingSource || "unknown",
@@ -26206,8 +26220,8 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       minMaxDb: MIN_AUDIBLE_MAX_DB,
     },
     dynamicsProcessing: {
-      filterChain: `mix: volume=1.45,highpass=f=70,acompressor=threshold=-22dB:ratio=2.4:attack=6:release=100:makeup=2,dynaudnorm=f=120:g=12:p=0.9,alimiter=limit=0.92,loudnorm=I=-15:TP=-1.5:LRA=8,${DELIVERY_AUDIO_FORMAT_FILTER}; final MP4: ${FINAL_AUDIO_DELIVERY_FILTER}`,
-      purpose: "reduce noticeable narration loudness swings while preserving clear口播 presence",
+      filterChain: `voice assets: ${DELIVERY_AUDIO_FORMAT_FILTER}; final MP4: ${FINAL_AUDIO_DELIVERY_FILTER}`,
+      purpose: "keep local TTS voice-only audio clean until the single final delivery normalization pass",
     },
     deliveryAudioFormat: {
       sampleRateHz: DELIVERY_AUDIO_SAMPLE_RATE,
@@ -26546,8 +26560,8 @@ async function renderWithHtmlVideo({ out, brief, frames, narration, audio, desig
     musicAssetId: bgmAsset?.id,
     narrationText: narration,
     narrationByFrame: Object.fromEntries(renderFrames.map((frame) => [frame.id, frame.subtitle])),
-    musicPrompt: "locally generated low sine-pad bed",
-    musicVolumeDb: -24,
+    musicPrompt: "disabled by default; silent compatibility track only",
+    musicVolumeDb: -60,
     narrationVolumeDb: 1,
     fadeInSec: 0.4,
     fadeOutSec: 1.2,

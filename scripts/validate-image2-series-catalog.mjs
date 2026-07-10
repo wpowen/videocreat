@@ -15,6 +15,7 @@ const REQUIRED_SERIES_FIELDS = [
   "axes",
   "appliesTo",
   "plannerGuidance",
+  "routing",
   "aspects",
   "defaultTextPolicy",
   "supportedTextPolicies",
@@ -87,6 +88,20 @@ function validateSeries(series, index, catalog, issues) {
   if (series.defaultTextPolicy && !(series.supportedTextPolicies || []).includes(series.defaultTextPolicy)) {
     issues.push(`${label}: defaultTextPolicy "${series.defaultTextPolicy}" is not in supportedTextPolicies`);
   }
+  if (series.defaultTextPolicy !== "text-safe") {
+    issues.push(`${label}: defaultTextPolicy must be text-safe; integrated-chinese is opt-in only`);
+  }
+  const routing = series.routing;
+  if (!routing || typeof routing !== "object" || Array.isArray(routing)) {
+    issues.push(`${label}: routing must be an object`);
+  } else {
+    if (!Array.isArray(routing.scope) || routing.scope.length === 0) issues.push(`${label}: routing.scope is required`);
+    if (!Array.isArray(routing.intents) || routing.intents.length === 0) issues.push(`${label}: routing.intents is required`);
+    if (!Array.isArray(routing.requiredAny) || routing.requiredAny.length === 0) issues.push(`${label}: routing.requiredAny is required`);
+    if (!Array.isArray(routing.negativeSignals)) issues.push(`${label}: routing.negativeSignals must be an array`);
+    if (!Number.isFinite(Number(routing.priority))) issues.push(`${label}: routing.priority must be numeric`);
+    if (!["primary-content-series", "accent-series"].includes(routing.kind)) issues.push(`${label}: routing.kind is invalid`);
+  }
   const skeleton = series.promptSkeleton || {};
   for (const field of REQUIRED_SKELETON_FIELDS) {
     const value = skeleton[field];
@@ -150,6 +165,9 @@ function main() {
       issues.push("textPolicies must define both text-safe and integrated-chinese");
     }
     if (!catalog.sharedContract?.subtitleSafeBand) issues.push("sharedContract.subtitleSafeBand is required");
+    if (catalog.routingContract?.defaultTextPolicy !== "text-safe") issues.push("routingContract.defaultTextPolicy must be text-safe");
+    if (!catalog.routingContract?.thresholds?.recommend) issues.push("routingContract.thresholds.recommend is required");
+    if (catalog.routingContract?.statusPolicy?.candidate?.autoSelect !== false) issues.push("candidate series must not auto-select");
     if (!Array.isArray(catalog.series) || catalog.series.length === 0) {
       issues.push("Catalog has no series");
     } else {

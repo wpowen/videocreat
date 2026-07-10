@@ -34,11 +34,11 @@ The machine-readable series library is `assets/gpt-image-2-visual-series-catalog
 
 | seriesId | Name | Best for | Default text policy |
 | --- | --- | --- | --- |
-| `knowledge-encyclopedia-card-v1` | 科普百科卡 | subject profiles, roundups, ratings, structured facts | integrated-chinese |
-| `strategy-guide-board-v1` | 步骤攻略板 | tutorials, ordered steps, priorities, checklists, pitfalls | integrated-chinese |
-| `relationship-map-poster-v1` | 关系图谱页 | character/faction/concept relationships, org structures | integrated-chinese |
-| `collection-atlas-card-v1` | 图鉴收藏卡 | per-specimen profiles (animals, plants, objects); museum/cute tones | integrated-chinese |
-| `editorial-cover-hook-v1` | 杂志封面式开场页 | opening hooks, chapter dividers, topic reveals | integrated-chinese |
+| `knowledge-encyclopedia-card-v1` | 科普百科卡 | subject profiles, roundups, ratings, structured facts | text-safe |
+| `strategy-guide-board-v1` | 步骤攻略板 | tutorials, ordered steps, priorities, checklists, pitfalls | text-safe |
+| `relationship-map-poster-v1` | 关系图谱页 | character/faction/concept relationships, org structures | text-safe |
+| `collection-atlas-card-v1` | 图鉴收藏卡 | per-specimen profiles (animals, plants, objects); museum/cute tones | text-safe |
+| `editorial-cover-hook-v1` | 杂志封面式开场页 | opening hooks, chapter dividers, topic reveals | text-safe |
 | `surreal-carrier-poster-v1` | 超现实创意载体页 | wonder hooks, concept metaphors, transitions, endings | text-safe |
 | `oriental-ink-atmosphere-v1` | 新中式水墨氛围页 | culture topics, pacing breaths, calm endings | text-safe |
 | `interface-mockup-plate-v1` | 界面示意板 | tool/SaaS/product walkthroughs without real screenshots | text-safe only |
@@ -86,7 +86,10 @@ The style lock is created once per output directory and reused on re-runs (creat
 
 ## Planner Decision Rules
 
-- Write the chosen `seriesId` (or the decision not to use one) into the scene's `visualAssetDecision`; a series page must still be traceable to the scene narration via `workflow/visual-relevance-audit.json`.
+- Main workflow writes `workflow/visual-series-routing-plan.json` for every run and mirrors each scene decision into `visualAssetDecision.visualSeries`. The artifact must retain matched signals, rejected candidates, text policy, series status, generation status, and the precedence winner.
+- Route precedence is strict: explicit non-negated personal-IP intent wins first; then authorized real screenshots/data/user-owned source material; then an explicit valid `visualSeriesId`; then content-shape scoring; finally the existing explainer-board/deterministic fallback. `personalIp: false`, `"off"`, `{ "enabled": false }`, `不要个人 IP`, and `do not use personal IP` are opt-outs, not activation signals.
+- Scene/content mapping is: subject profile/roundup/rating/science structure → `knowledge-encyclopedia-card-v1`; tutorial/steps/checklist/pitfalls → `strategy-guide-board-v1`; character/faction/concept edges → `relationship-map-poster-v1`; item-by-item specimens → `collection-atlas-card-v1`; opening hook/divider/reveal → `editorial-cover-hook-v1`; wonder/metaphor/transition → `surreal-carrier-poster-v1`; culture/breath/calm ending → `oriental-ink-atmosphere-v1`; tool/SaaS/product UI without authorized screenshots → `interface-mockup-plate-v1`; same-subject recap/progression/multi-state comparison → `photo-collage-grid-v1`.
+- Candidate series are `recommend-only`: they may prepare a page-generation route but must not silently auto-enter final composition. Only an approved series that satisfies the catalog threshold may set `autoActivated: true`; explicit draft selection remains non-final until its provenance/QC gates pass.
 - Match series to scene role using `appliesTo`/`plannerGuidance` in the catalog. Do not mix multiple series inside one video without an explicit design reason recorded in the aesthetic brief; one video normally locks one series plus deterministic HTML/SVG scenes.
 - Mechanism/teaching scenes keep evaluating the approved `image2-explainer-board-v1` route first; personal-IP briefs keep the personal-IP route. Series pages are for the remaining scene types or full "图鉴流"-style videos where generated pages carry the whole visual line.
 - Deterministic layers still own subtitles, numeric claims, source notes, and anything outside the whitelist. The lower 18% subtitle-safe band must stay clean in every page.

@@ -285,7 +285,7 @@ node .agents/skills/codex-video-workflow/scripts/validate-raw-footage-editing-co
 --provided-audio-trim-end 2
 ```
 
-提供音频时，流程必须把该文件作为口播源：复制到视频包内，按 `--provided-audio-trim-start` / `--provided-audio-trim-end` 裁剪，进入统一响度和动态处理链，并在 `workflow/voice-subtitle-manifest.json` 记录 `voiceBackend: "provided_audio"` 与 `providedAudio.authorizedByUser: true`。这时不会重新生成 TTS，最终视频时长以提供音频裁剪后的真实时长为准。
+提供音频时，流程必须把该文件作为口播源：复制到视频包内，按 `--provided-audio-trim-start` / `--provided-audio-trim-end` 裁剪；输入必须是纯人声，不能把工作流已经生成的 `mix.m4a` 再作为输入。纯人声资产保留到最终封装阶段，只做一次统一响度处理，并在 `workflow/voice-subtitle-manifest.json` 记录 `voiceBackend: "provided_audio"` 与 `providedAudio.authorizedByUser: true`。默认不添加可听见的正弦垫音，`assets/mix.m4a` 只表示纯人声交付副本。这时不会重新生成 TTS，最终视频时长以提供音频裁剪后的真实时长为准。
 
 未提供音频时，流程才使用 skill 自身语音能力生成口播。默认 `--voice-backend auto` 会先尝试本地 CosyVoice，再尝试本地 MeloTTS；显式指定 `cosyvoice_local` 或 `melotts_local` 时只走对应本地后端。
 

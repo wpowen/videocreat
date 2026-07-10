@@ -42,6 +42,10 @@ function main() {
 
   expect(/throw new Error\(`--provided-audio not found:/.test(script), "Missing provided audio must fail immediately.", failures);
   expect(/copyFileSync\(providedAudioPath, sourceCopy\)/.test(script), "Provided audio must be copied into the package.", failures);
+  expect(/normalizedProvidedAudioPath\.endsWith\("\/mix\.m4a"\)/.test(script), "Workflow-generated mix.m4a must be rejected as provided-audio input when its compatibility track is present.", failures);
+  expect(/copyFileSync\(narrationM4a, mixed\)/.test(script), "The default mix derivative must be a voice-only copy rather than a second narration/pad mix.", failures);
+  expect(/anullsrc=r=\$\{DELIVERY_AUDIO_SAMPLE_RATE\}:cl=stereo/.test(script), "The compatibility track must be silent when no explicit music is requested.", failures);
+  expect(!/sine=frequency=98|sine=frequency=196|amix=inputs=2/.test(script), "The default audio route must not generate or mix the old synthetic sine pad.", failures);
   expect(/trimStart = Math\.max\(0, Number\(providedAudioTrimStart/.test(script), "Provided audio trim start must be clamped.", failures);
   expect(/trimEnd = Math\.max\(0, Number\(providedAudioTrimEnd/.test(script), "Provided audio trim end must be clamped.", failures);
   expect(/FINAL_AUDIO_DELIVERY_FILTER/.test(script), "Provided and generated audio must use the final delivery normalization filter.", failures);
@@ -70,6 +74,9 @@ function main() {
       providedAudioBackend: "provided_audio",
       noProvidedAudioBackend: "auto -> cosyvoice_local -> melotts_local",
       finalAudioNormalizationRequired: true,
+      voiceOnlyMixByDefault: true,
+      syntheticPadDisabledByDefault: true,
+      workflowMixCannotBeReusedAsProvidedAudio: true,
       qcAllows: ["provided_audio with authorizedByUser", "cosyvoice_local", "melotts_local"],
     },
     checkedFiles: [

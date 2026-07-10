@@ -30,14 +30,10 @@ const DEFAULT_PORTRAIT_HEIGHT = 1920;
 const DELIVERY_AUDIO_SAMPLE_RATE = 48000;
 const DELIVERY_AUDIO_CHANNELS = 2;
 const FINAL_AUDIO_DELIVERY_FILTER = [
-  "volume=2.2",
   "highpass=f=70",
-  "acompressor=threshold=-24dB:ratio=3:attack=5:release=120:makeup=4",
-  "dynaudnorm=f=151:g=15:p=0.95",
+  "lowpass=f=14000",
+  "loudnorm=I=-15:TP=-1.5:LRA=8",
   "alimiter=limit=0.95",
-  "loudnorm=I=-14:TP=-1.2:LRA=7",
-  "volume=1.4",
-  "alimiter=limit=0.92",
   "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo",
 ].join(",");
 const MIN_AUDIBLE_MEAN_DB = -18;
@@ -1382,9 +1378,9 @@ function normalizeFinalAudio({ out, finalPath, commands }) {
     output: "renders/final.mp4",
     filter: FINAL_AUDIO_DELIVERY_FILTER,
     target: {
-      approximateMeanDb: -14,
-      truePeakDb: -1.2,
-      lra: 7,
+      approximateMeanDb: -15,
+      truePeakDb: -1.5,
+      lra: 8,
     },
     deliveryAudioFormat: {
       sampleRateHz: DELIVERY_AUDIO_SAMPLE_RATE,
