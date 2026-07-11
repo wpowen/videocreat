@@ -12,6 +12,7 @@
 - `workflow/generation-mode-contract.json`
 - `workflow/voice-direction.json`
 - `workflow/voice-subtitle-manifest.json`
+- `workflow/chinese-pronunciation-preflight.json`, `workflow/effective-pronunciation-plan.json`, and `workflow/pronunciation-application-verification.json` for Chinese generated TTS
 - `workflow/sync-timecode-plan.json`
 - `workflow/cover-design.json`
 - `workflow/content-presentation-design.json`
@@ -79,7 +80,9 @@ Pass criteria for the local video workflow:
 - Final audio loudness: `volumedetect` must show audible口播 volume, with mean volume not below `-36 dB` and max volume not below `-18 dB`; prefer a normal spoken-video range around `-30 dB` to `-18 dB` mean volume.
 - Voice backend: Chinese videos must use `cosyvoice_local` or `melotts_local` unless `--allow-say-fallback` was explicitly used and reported as degraded.
 - MeloTTS parameters: Chinese runs must use language `ZH`, CPU device by default, and a recorded speed value, normally around `0.95`.
-- Chinese polyphone control: MeloTTS Chinese runs must load the project polyphone lexicon when available, include its source/hash/version in `workflow/voice-subtitle-manifest.json`, and write `workflow/chinese-polyphone-lexicon.json`.
+- Chinese pronunciation preflight: analyze the complete `script/narration-spoken.txt` before segmentation and synthesis. The preflight must record every candidate occurrence, context, selected tone3 pinyin, source, unresolved count, narration hash, and effective-plan hash. Unresolved occurrences fail final generation unless an explicitly degraded review run uses `--allow-unresolved-pronunciations`.
+- Chinese polyphone application: `workflow/effective-pronunciation-plan.json.phrases` must be synthesis-ready, non-empty, and identical to the analyzed effective entries. Controlled phrases must be injected into both `pypinyin` and `jieba`, pass the real MeloTTS frontend G2P probe, remain intact inside one TTS cue, and write `workflow/pronunciation-application-verification.json`. The application artifact must prove `pronunciationLoaderActive: true`, a positive `loadedPronunciationEntries`, and `loadedPronunciationHash === pronunciationPlanHash`. A controlled plan locks `auto` to `melotts_local`; an empty plan, hash mismatch, inactive loader, or backend failure must block instead of silently using default pronunciation or falling back to an unverified backend.
+- Pronunciation cache integrity: `workflow/voice-subtitle-manifest.json` must record `pronunciationNarrationHash` and `pronunciationPlanHash`. Audio reuse and shared segment caches must invalidate when either the spoken manuscript or effective pronunciation plan changes.
 - Voice direction: `workflow/voice-direction.json` exists and names speech style, pace, tone, pause policy, and sentence completeness rules.
 - Punctuation pause policy: `workflow/voice-direction.json` records `pauseDurations.commaLikeSeconds` as `0.5` and `pauseDurations.sentenceEnd` as `tts-default`; `script/narration-spoken.txt` must not add a newline immediately after comma-like punctuation (`，`, `,`, `、`).
 - Audio dynamics: final narration should use compression, dynamic normalization, limiting, or loudness normalization when volume varies noticeably; the manifest must record the filter chain when used.

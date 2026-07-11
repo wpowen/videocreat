@@ -225,6 +225,9 @@ Typical output includes:
 - `workflow/free-stock-material-plan.json`, `workflow/free-stock-asset-ledger.json`, `materials/free-stock/raw/*`, and `assets/free-stock/*.mp4` when free-stock enrichment is active
 - `workflow/raw-footage-inventory.json`, `workflow/raw-transcript-index.json`, `workflow/takes-packed.md`, `workflow/word-boundary-map.json`, `workflow/edit-decision-list.json`, `workflow/cut-boundary-qc.json`, and `workflow/source-media-normalization-plan.json` when authorized raw footage is provided
 - `workflow/voice-subtitle-manifest.json`
+- `workflow/chinese-pronunciation-preflight.json`
+- `workflow/effective-pronunciation-plan.json`
+- `workflow/pronunciation-application-verification.json`
 - `workflow/final-audio-normalization.json`
 - `logs/qc.json`
 - `screenshots/frame-*.png`
@@ -289,7 +292,7 @@ Voice:
 
 Use `say` or `--allow-say-fallback` only for explicitly degraded smoke checks. Final-quality videos in any language should use CosyVoice or MeloTTS.
 
-For Chinese MeloTTS, the workflow loads `assets/chinese-polyphone-phrases.json` before TTS so phrase-level polyphonic pronunciations are resolved by a project lexicon. The selected lexicon is recorded in `workflow/chinese-polyphone-lexicon.json` and `workflow/voice-subtitle-manifest.json`; override it with `CHINESE_POLYPHONE_LEXICON=/path/to/file.json`.
+Before generated Chinese TTS, the workflow analyzes the complete finalized spoken manuscript and writes candidate occurrences, context, selected tone3 pinyin, sources, and unresolved items to `workflow/chinese-pronunciation-preflight.json`. Unresolved items block TTS by default. Add manuscript-specific readings through brief `ttsPronunciations`, for example `{ "phrase": "凡人修仙传", "pinyin": ["fan2", "ren2", "xiu1", "xian1", "zhuan4"] }`. The effective plan is injected into both `pypinyin` and `jieba`, validated through the real MeloTTS frontend, bound into cache/manifest hashes, and recorded in `workflow/effective-pronunciation-plan.json` plus `workflow/pronunciation-application-verification.json`. See `references/chinese-pronunciation-control.md`.
 
 Speech style:
 

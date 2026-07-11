@@ -6,9 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(__dirname, "..");
-const workspace = resolve(skillRoot, "../../..");
 const lexiconPath = join(skillRoot, "assets/chinese-polyphone-phrases.json");
-const meloPython = join(workspace, "research/voice-quality-poc/melotts/.venv/bin/python");
+const meloPython = join(skillRoot, "research/voice-quality-poc/melotts/.venv/bin/python");
 
 function expect(condition, message, failures) {
   if (!condition) failures.push(message);
@@ -24,31 +23,43 @@ function main() {
 
   const seen = new Set();
   for (const entry of phrases) {
-    expect(entry && typeof entry.phrase === "string" && entry.phrase.length > 0, "each entry needs a phrase", failures);
-    expect(!seen.has(entry.phrase), `duplicate phrase: ${entry.phrase}`, failures);
-    seen.add(entry.phrase);
-    expect(Array.isArray(entry.pinyin), `entry ${entry.phrase} needs pinyin array`, failures);
-    expect(entry.pinyin.every((item) => typeof item === "string" && /^[a-z]+[1-5]$/i.test(item)), `entry ${entry.phrase} has invalid tone-number pinyin`, failures);
-    expect([...entry.phrase].length === entry.pinyin.length, `entry ${entry.phrase} pinyin count must match character count`, failures);
+    const phrase = entry && typeof entry.phrase === "string" ? entry.phrase : "";
+    const pronunciation = Array.isArray(entry?.pinyin) ? entry.pinyin : [];
+    expect(Boolean(phrase), "each entry needs a phrase", failures);
+    expect(!phrase || !seen.has(phrase), `duplicate phrase: ${phrase}`, failures);
+    if (phrase) seen.add(phrase);
+    expect(Array.isArray(entry?.pinyin), `entry ${phrase || "<invalid>"} needs pinyin array`, failures);
+    expect(pronunciation.every((item) => typeof item === "string" && /^[a-z]+[1-5]$/i.test(item)), `entry ${phrase || "<invalid>"} has invalid tone-number pinyin`, failures);
+    expect(!phrase || [...phrase].length === pronunciation.length, `entry ${phrase || "<invalid>"} pinyin count must match character count`, failures);
   }
 
   if (existsSync(meloPython) && failures.length === 0) {
     const probe = spawnSync(meloPython, ["-", lexiconPath], {
-      cwd: workspace,
+      cwd: skillRoot,
       encoding: "utf8",
       input: String.raw`
 import json
 import sys
 from pathlib import Path
+import jieba
 from pypinyin import Style, lazy_pinyin, load_phrases_dict
+from melo.text import chinese
 
 data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 phrase_dict = {entry["phrase"]: [[p] for p in entry["pinyin"]] for entry in data["phrases"]}
 load_phrases_dict(phrase_dict)
-sample_phrases = ["处处", "削苹果", "剥削", "模样", "埋怨", "挣扎", "传记", "一行人"]
+for phrase in phrase_dict:
+    jieba.add_word(phrase, freq=10**9, tag="x")
+sample_phrases = ["处处", "削苹果", "剥削", "模样", "埋怨", "挣扎", "传记", "凡人修仙传", "传略", "一行人"]
 result = {}
 for phrase in sample_phrases:
-    result[phrase] = lazy_pinyin(phrase, neutral_tone_with_five=True, style=Style.TONE3)
+    phones, tones, word2ph = chinese.g2p(chinese.text_normalize(phrase))
+    result[phrase] = {
+        "pinyin": lazy_pinyin(phrase, neutral_tone_with_five=True, style=Style.TONE3),
+        "phones": phones,
+        "tones": tones,
+        "word2ph": word2ph,
+    }
 print(json.dumps(result, ensure_ascii=False))
 `,
     });
@@ -57,7 +68,8 @@ print(json.dumps(result, ensure_ascii=False))
       const actual = JSON.parse(probe.stdout);
       const expected = Object.fromEntries(phrases.map((entry) => [entry.phrase, entry.pinyin]));
       for (const phrase of Object.keys(actual)) {
-        expect(JSON.stringify(actual[phrase]) === JSON.stringify(expected[phrase]), `probe mismatch for ${phrase}: ${actual[phrase]} !== ${expected[phrase]}`, failures);
+        expect(JSON.stringify(actual[phrase].pinyin) === JSON.stringify(expected[phrase]), `probe mismatch for ${phrase}: ${actual[phrase].pinyin} !== ${expected[phrase]}`, failures);
+        expect(Array.isArray(actual[phrase].phones) && actual[phrase].phones.length > 2, `MeloTTS frontend produced no phones for ${phrase}`, failures);
       }
     }
   }
@@ -67,10 +79,11 @@ print(json.dumps(result, ensure_ascii=False))
     lexicon: "assets/chinese-polyphone-phrases.json",
     version: lexicon.version || null,
     entries: phrases.length,
-    pythonProbe: existsSync(meloPython) ? "research/voice-quality-poc/melotts/.venv/bin/python" : "skipped: MeloTTS venv not found",
+    pythonProbe: existsSync(meloPython) ? "passed: research/voice-quality-poc/melotts/.venv/bin/python" : "failed: MeloTTS venv not found",
     failures,
   };
   console.log(JSON.stringify(report, null, 2));
+  if (!existsSync(meloPython)) process.exitCode = 1;
   if (!report.ok) process.exitCode = 1;
 }
 

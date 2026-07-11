@@ -29,6 +29,7 @@ const SKILL_ROOT = resolve(SCRIPT_DIR, "..");
 const RUNTIME_DEFAULTS_PATH = join(SKILL_ROOT, "assets", "runtime-defaults.json");
 const RUNTIME_CONFIG_ENV = "CODEX_VIDEO_WORKFLOW_CONFIG";
 const DEFAULT_CHINESE_POLYPHONE_LEXICON = join(SKILL_ROOT, "assets", "chinese-polyphone-phrases.json");
+const CHINESE_PRONUNCIATION_ANALYZER = join(SKILL_ROOT, "scripts", "analyze-chinese-pronunciation.py");
 const DEFAULT_CAPTION_STYLE_CATALOG = join(SKILL_ROOT, "assets", "caption-style-catalog.json");
 const DEFAULT_TYPOGRAPHY_STYLE_CATALOG = join(SKILL_ROOT, "assets", "typography-style-catalog.json");
 const DEFAULT_MOTION_STYLE_CATALOG = join(SKILL_ROOT, "assets", "motion-style-catalog.json");
@@ -950,6 +951,7 @@ function usage() {
     [--provided-audio <wav|m4a|mp3>] [--provided-audio-trim-start seconds] [--provided-audio-trim-end seconds]
     [--audio-gender male|female] [--voice-gender male|female]
     [--voice-backend auto|cosyvoice_local|melotts_local|say] [--allow-say-fallback]
+    [--allow-unresolved-pronunciations]
     [--speech-style auto|conversational|tutorial|explainer|story|news|product|documentary]
     [--speed-profile standard|fast] [--tts-workers <1-5>] [--tts-device cpu|mps|cuda|auto] [--tts-cache-root <dir|off>] [--tts-cache-max-gb <gb>]
     [--final-audio-mode reencode-video|copy-video]
@@ -2674,6 +2676,32 @@ function normalizeFrames(brief, duration, options = {}) {
 
 function textComparable(value) {
   return String(value || "").replace(/\s+/g, "");
+}
+
+function countNonOverlappingOccurrences(text, phrase) {
+  let count = 0;
+  let cursor = 0;
+  while (phrase && cursor <= text.length - phrase.length) {
+    const index = text.indexOf(phrase, cursor);
+    if (index < 0) break;
+    count += 1;
+    cursor = index + phrase.length;
+  }
+  return count;
+}
+
+function assertPronunciationMatchesPreservedInSegments(pronunciationPlan, segments) {
+  if (!pronunciationPlan) return;
+  const expected = new Map();
+  for (const match of pronunciationPlan.phraseMatches || []) {
+    expected.set(match.phrase, (expected.get(match.phrase) || 0) + 1);
+  }
+  for (const [phrase, count] of expected) {
+    const preserved = segments.reduce((sum, segment) => sum + countNonOverlappingOccurrences(String(segment.text || ""), phrase), 0);
+    if (preserved !== count) {
+      throw new Error(`TTS segmentation split or lost controlled pronunciation phrase ${phrase}: whole-document matches=${count}, segment-contained matches=${preserved}. Rebuild cue boundaries before TTS.`);
+    }
+  }
 }
 
 function frameNarrationSegments(narration, frames) {
@@ -25245,6 +25273,8 @@ def load_polyphone_lexicon(path: str | None) -> dict:
         raise FileNotFoundError(f"polyphone lexicon not found: {lexicon_path}")
     data = json.loads(lexicon_path.read_text(encoding="utf-8"))
     phrases = data.get("phrases", [])
+    if not phrases:
+        raise ValueError(f"pronunciation plan contains no synthesis-ready phrases: {lexicon_path}")
     phrase_dict = {}
     for entry in phrases:
         phrase = str(entry.get("phrase", "")).strip()
@@ -25253,8 +25283,11 @@ def load_polyphone_lexicon(path: str | None) -> dict:
             raise ValueError(f"invalid polyphone lexicon entry: {entry!r}")
         phrase_dict[phrase] = [[item] for item in pinyin]
     if phrase_dict:
+        import jieba
         from pypinyin import load_phrases_dict
         load_phrases_dict(phrase_dict)
+        for phrase in phrase_dict:
+            jieba.add_word(phrase, freq=10**9, tag="x")
     return {
         "active": bool(phrase_dict),
         "entries": len(phrase_dict),
@@ -25709,15 +25742,83 @@ function meloTtsAudioGenderForSettings(settings = {}, requestedVoiceGender = "")
   };
 }
 
-function chinesePolyphoneLexiconForLanguage(language) {
+function pronunciationOverridesForBrief(brief = {}) {
+  const value = brief.ttsPronunciations ?? brief.pronunciations ?? brief.chinesePronunciations ?? [];
+  return Array.isArray(value) ? value : [];
+}
+
+function runChinesePronunciationPreflight({ out, narrationPath, language, voiceRoot, overrides = [], allowUnresolved = false }) {
   if (normalizedVoiceLanguage(language) !== "zh") return null;
-  const lexiconPath = process.env.CHINESE_POLYPHONE_LEXICON
-    ? resolve(process.env.CHINESE_POLYPHONE_LEXICON)
-    : DEFAULT_CHINESE_POLYPHONE_LEXICON;
+  const python = join(voiceRoot || "", "melotts", ".venv", "bin", "python");
+  if (!voiceRoot || !existsSync(python)) {
+    throw new Error("Chinese TTS pronunciation preflight requires the local MeloTTS Python environment before any synthesis can start.");
+  }
+  if (!existsSync(CHINESE_PRONUNCIATION_ANALYZER)) {
+    throw new Error(`Chinese pronunciation analyzer not found: ${CHINESE_PRONUNCIATION_ANALYZER}`);
+  }
+  const overridesPath = join(out, "workflow", "pronunciation-run-overrides.json");
+  const reportPath = join(out, "workflow", "chinese-pronunciation-preflight.json");
+  writeJson(overridesPath, { schemaVersion: 1, pronunciations: overrides });
+  const args = [
+    CHINESE_PRONUNCIATION_ANALYZER,
+    "--text-file", narrationPath,
+    "--base-lexicon", process.env.CHINESE_POLYPHONE_LEXICON ? resolve(process.env.CHINESE_POLYPHONE_LEXICON) : DEFAULT_CHINESE_POLYPHONE_LEXICON,
+    "--overrides", overridesPath,
+    "--output", reportPath,
+    ...(allowUnresolved ? ["--allow-unresolved"] : []),
+  ];
+  const result = run(python, args, { cwd: out, category: "tts-pronunciation-preflight", check: false });
+  const report = readJsonIfExists(reportPath);
+  if (!report) {
+    throw new Error(`Chinese pronunciation preflight did not write ${relative(ROOT, reportPath)}: ${result.stderr || result.stdout || "unknown failure"}`);
+  }
+  if (result.status === 1) {
+    throw new Error(`Chinese pronunciation preflight failed validation: ${result.stderr || result.stdout || "unknown failure"}`);
+  }
+  if (report.blocking || result.status === 2) {
+    const examples = (report.unresolved || []).slice(0, 8).map((item) => `${item.character}@${item.index}(${item.context})`).join("、");
+    throw new Error(`Chinese pronunciation preflight found ${report.counts?.unresolved || 0} unresolved polyphonic occurrences before TTS: ${examples}. Add brief.ttsPronunciations phrase-level tone3 overrides and rerun.`);
+  }
+  const effectiveLexiconPath = join(out, "workflow", "effective-pronunciation-plan.json");
+  writeJson(effectiveLexiconPath, {
+    schemaVersion: 1,
+    stage: "locked-before-tts",
+    narration: "script/narration-spoken.txt",
+    narrationHash: report.narrationHash,
+    effectivePronunciationHash: report.effectivePronunciationHash,
+    backendStrategy: report.backendStrategy,
+    degraded: !report.ok,
+    matchingPolicy: report.matchingPolicy,
+    phrases: (report.effectiveEntries || []).map((entry) => ({
+      phrase: entry.phrase,
+      pinyin: entry.pinyin,
+      source: entry.source,
+    })),
+    phraseMatches: report.phraseMatches || [],
+    resolved: report.resolved || [],
+    unresolved: report.unresolved || [],
+  });
+  return {
+    ...report,
+    reportPath,
+    reportRelativePath: relative(out, reportPath),
+    effectiveLexiconPath,
+    effectiveLexiconRelativePath: relative(out, effectiveLexiconPath),
+    requiresMeloTts: Number(report.counts?.polyphoneCandidates || 0) > 0 || Number(report.counts?.phraseMatches || 0) > 0,
+  };
+}
+
+function chinesePolyphoneLexiconForLanguage(language, pronunciationPlan = null) {
+  if (normalizedVoiceLanguage(language) !== "zh") return null;
+  const lexiconPath = pronunciationPlan?.effectiveLexiconPath
+    || (process.env.CHINESE_POLYPHONE_LEXICON ? resolve(process.env.CHINESE_POLYPHONE_LEXICON) : DEFAULT_CHINESE_POLYPHONE_LEXICON);
   if (!existsSync(lexiconPath)) return null;
   const raw = readFileSync(lexiconPath, "utf8");
   const data = JSON.parse(raw);
   const phrases = Array.isArray(data.phrases) ? data.phrases : [];
+  if (pronunciationPlan && !phrases.length) {
+    throw new Error(`effective pronunciation plan contains no synthesis-ready phrases: ${lexiconPath}`);
+  }
   for (const entry of phrases) {
     if (!entry || typeof entry.phrase !== "string" || !Array.isArray(entry.pinyin)) {
       throw new Error(`Invalid Chinese polyphone lexicon entry in ${lexiconPath}`);
@@ -25729,8 +25830,8 @@ function chinesePolyphoneLexiconForLanguage(language) {
   return {
     path: lexiconPath,
     relativePath: relative(ROOT, lexiconPath),
-    hash: fileHash(raw),
-    version: data.version || "unknown",
+    hash: pronunciationPlan?.effectivePronunciationHash || fileHash(raw),
+    version: data.version || pronunciationPlan?.schemaVersion || "unknown",
     entries: phrases.length,
   };
 }
@@ -25829,7 +25930,7 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
   };
 }
 
-async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null, language = "zh", voiceGender = "", ttsAcceleration = {} }) {
+async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, narrationSegments = null, language = "zh", voiceGender = "", ttsAcceleration = {}, pronunciationPlan = null }) {
   const melo = join(voiceRoot || "", "melotts", ".venv", "bin", "melo");
   if (!voiceRoot || !existsSync(melo)) {
     throw new Error("MeloTTS local POC environment not found under " + (voiceRoot || "<missing voice-quality-poc>"));
@@ -25841,7 +25942,7 @@ async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, n
   const ttsCacheRoot = normalizeTtsCacheRoot(ttsAcceleration.ttsCacheRoot || "");
   const ttsCacheMaxBytes = normalizeTtsCacheMaxBytes(ttsAcceleration.ttsCacheMaxBytes ?? DEFAULT_TTS_CACHE_MAX_BYTES);
   const segments = normalizeTtsInputSegments(readFileSync(narrationPath, "utf8"), narrationSegments);
-  const polyphoneLexicon = chinesePolyphoneLexiconForLanguage(language);
+  const polyphoneLexicon = chinesePolyphoneLexiconForLanguage(language, pronunciationPlan);
   writePolyphoneLexiconArtifact(out, polyphoneLexicon);
   writeJson(join(out, "script", "tts-segments-melotts.json"), segments);
   const outputDir = join(out, "assets", "voice", "melotts");
@@ -26094,7 +26195,7 @@ function voiceBackendOrder(value, allowSayFallback) {
   return order;
 }
 
-async function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null, language = "zh", providedAudio = "", providedAudioTrimStart = 0, providedAudioTrimEnd = 0, ttsAcceleration = {} }) {
+async function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null, language = "zh", providedAudio = "", providedAudioTrimStart = 0, providedAudioTrimEnd = 0, ttsAcceleration = {}, pronunciationPlan = null }) {
   const assets = join(out, "assets");
   const raw = join(assets, "narration.raw.wav");
   const narrationM4a = join(assets, "narration.m4a");
@@ -26259,6 +26360,12 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     }
     const finalDuration = Number(narrationDuration.toFixed(3));
     const existingManifest = readJsonIfExists(join(out, "workflow", "voice-subtitle-manifest.json")) || {};
+    if (pronunciationPlan) {
+      if (existingManifest.pronunciationPlanHash !== pronunciationPlan.effectivePronunciationHash
+        || existingManifest.pronunciationNarrationHash !== pronunciationPlan.narrationHash) {
+        throw new Error("CODEX_VIDEO_REUSE_AUDIO=1 refused stale audio because the narration or effective pronunciation plan hash changed.");
+      }
+    }
     let reusableSegmentTimings = Array.isArray(existingManifest.segmentTimings) ? existingManifest.segmentTimings : [];
     let reusableSegmentTimingSource = existingManifest.segmentTimingSource || "reused-audio";
     if (!reusableSegmentTimings.length) {
@@ -26326,14 +26433,20 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
   }
   const voiceRoot = findVoicePocRoot(out);
   const failures = [];
-  const order = voiceBackendOrder(voiceBackend, allowSayFallback);
+  let order = voiceBackendOrder(voiceBackend, allowSayFallback);
+  if (pronunciationPlan?.requiresMeloTts) {
+    if (voiceBackend === "cosyvoice_local" || voiceBackend === "say") {
+      throw new Error(`Chinese pronunciation plan ${pronunciationPlan.effectivePronunciationHash} requires the verified MeloTTS pypinyin+jieba adapter; ${voiceBackend} cannot guarantee the locked readings.`);
+    }
+    order = ["melotts_local"];
+  }
   let selected = null;
   for (const backend of order) {
     try {
       if (backend === "cosyvoice_local") {
         selected = generateWithCosyVoice({ out, voiceRoot, narration, rawOutput: raw, narrationSegments, language, voiceGender: voiceDirection?.voiceGender || voiceDirection?.audioGender });
       } else if (backend === "melotts_local") {
-        selected = await generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments, language, voiceGender: voiceDirection?.voiceGender || voiceDirection?.audioGender, ttsAcceleration });
+        selected = await generateWithMeloTTS({ out, voiceRoot, narrationPath: join(out, "script", "narration-spoken.txt"), rawOutput: raw, narrationSegments, language, voiceGender: voiceDirection?.voiceGender || voiceDirection?.audioGender, ttsAcceleration, pronunciationPlan });
       } else if (backend === "say") {
         selected = generateWithSay({ out, narration, rawOutput: raw, narrationSegments });
       }
@@ -26344,7 +26457,42 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     }
   }
   if (!selected) {
-    throw new Error(`CosyVoice and MeloTTS both failed. Refusing non-local-TTS fallback by default: ${JSON.stringify(failures)}`);
+    const policy = pronunciationPlan?.requiresMeloTts
+      ? "The locked pronunciation plan requires MeloTTS, so fallback to an unverified pronunciation backend is forbidden."
+      : "CosyVoice and MeloTTS both failed. Refusing non-local-TTS fallback by default.";
+    throw new Error(`${policy}: ${JSON.stringify(failures)}`);
+  }
+  if (pronunciationPlan) {
+    const loadedPronunciationEntries = Number(selected.polyphoneLexicon?.entries || 0);
+    const loadedPronunciationHash = selected.polyphoneLexicon?.hash || null;
+    const pronunciationLoaderActive = selected.backend === "melotts_local"
+      && loadedPronunciationEntries > 0
+      && loadedPronunciationHash === pronunciationPlan.effectivePronunciationHash;
+    const pronunciationApplicationPassed = !pronunciationPlan.requiresMeloTts || pronunciationLoaderActive;
+    if (!pronunciationApplicationPassed) {
+      throw new Error(`pronunciation plan was not applied to synthesis: backend=${selected.backend}, entries=${loadedPronunciationEntries}, loadedHash=${loadedPronunciationHash}, expectedHash=${pronunciationPlan.effectivePronunciationHash}`);
+    }
+    writeJson(join(out, "workflow", "pronunciation-application-verification.json"), {
+      schemaVersion: 1,
+      status: "passed",
+      preflight: pronunciationPlan.reportRelativePath,
+      effectivePlan: pronunciationPlan.effectiveLexiconRelativePath,
+      narrationHash: pronunciationPlan.narrationHash,
+      pronunciationPlanHash: pronunciationPlan.effectivePronunciationHash,
+      backend: selected.backend,
+      pronunciationLoaderActive,
+      loadedPronunciationEntries,
+      loadedPronunciationHash,
+      backendStrategy: pronunciationPlan.requiresMeloTts
+        ? "MeloTTS pypinyin.load_phrases_dict plus jieba.add_word before model inference"
+        : "backend default; no controlled polyphonic occurrence was required",
+      wholeDocumentAnalyzedBeforeTts: true,
+      unresolvedCount: pronunciationPlan.counts?.unresolved || 0,
+      matchedPhraseCount: pronunciationPlan.counts?.phraseMatches || 0,
+      meloFrontendValidation: pronunciationPlan.meloFrontendValidation || [],
+      annotationsAreAuditOnly: true,
+      visibleNarrationAndSubtitlesRemainUnmodified: true,
+    });
   }
   const rawDuration = selected.rawDurationSeconds || mediaDurationSeconds(selected.rawOutput || raw);
   if (!rawDuration || rawDuration < 1) {
@@ -26387,6 +26535,13 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     requestedVoiceBackend: voiceBackend,
     backendOrder: order,
     failures,
+    pronunciationPreflight: pronunciationPlan?.reportRelativePath || null,
+    effectivePronunciationPlan: pronunciationPlan?.effectiveLexiconRelativePath || null,
+    pronunciationApplicationVerification: pronunciationPlan ? "workflow/pronunciation-application-verification.json" : null,
+    pronunciationNarrationHash: pronunciationPlan?.narrationHash || null,
+    pronunciationPlanHash: pronunciationPlan?.effectivePronunciationHash || null,
+    pronunciationResolvedCount: pronunciationPlan?.counts?.resolved || 0,
+    pronunciationUnresolvedCount: pronunciationPlan?.counts?.unresolved || 0,
     narration: "assets/narration.m4a",
     reviewWav: "assets/narration.wav",
     reviewMp3: "assets/narration.mp3",
@@ -30698,8 +30853,19 @@ async function main() {
   // while the video-production agent runs TTS and composes the MP4. The
   // platform cover is validated independently before publishing, not before
   // video rendering.
+  const pronunciationPlan = providedAudioPath
+    ? null
+    : runChinesePronunciationPreflight({
+        out,
+        narrationPath: join(out, "script", "narration-spoken.txt"),
+        language: brief.language || "zh",
+        voiceRoot: findVoicePocRoot(out),
+        overrides: pronunciationOverridesForBrief(planningBrief),
+        allowUnresolved: args["allow-unresolved-pronunciations"] === true || planningBrief.allowUnresolvedPronunciations === true,
+      });
   const narrationSegments = frameNarrationSegments(spokenNarration, frames);
   const cueNarrationSegments = subtitleCueNarrationSegments(narrationSegments);
+  assertPronunciationMatchesPreservedInSegments(pronunciationPlan, cueNarrationSegments);
   writeJson(join(out, "script", "frame-narration-segments.json"), {
     source: "spoken narration split once and bound to visual frames before TTS",
     preservation: "The concatenated segment text must match script/narration-spoken.txt except whitespace.",
@@ -30725,6 +30891,7 @@ async function main() {
     providedAudioTrimStart,
     providedAudioTrimEnd,
     ttsAcceleration: acceleration,
+    pronunciationPlan,
   });
   const finalDuration = audio.durationSeconds;
   frames = applyAudioTimingsToFrames(frames, audio.segmentTimings);

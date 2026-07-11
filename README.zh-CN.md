@@ -220,6 +220,9 @@ node .agents/skills/codex-video-workflow/scripts/incremental-video-edit.mjs \
 - 当启用免费素材引擎时，还会输出 `workflow/free-stock-material-plan.json`、`workflow/free-stock-asset-ledger.json`、`materials/free-stock/raw/*` 和 `assets/free-stock/*.mp4`
 - 当 brief 提供授权原始素材时，还会输出 `workflow/raw-footage-inventory.json`、`workflow/raw-transcript-index.json`、`workflow/takes-packed.md`、`workflow/word-boundary-map.json`、`workflow/edit-decision-list.json`、`workflow/cut-boundary-qc.json` 和 `workflow/source-media-normalization-plan.json`
 - `workflow/voice-subtitle-manifest.json`
+- `workflow/chinese-pronunciation-preflight.json`
+- `workflow/effective-pronunciation-plan.json`
+- `workflow/pronunciation-application-verification.json`
 - `workflow/final-audio-normalization.json`
 - `logs/qc.json`
 - `screenshots/frame-*.png`
@@ -291,7 +294,7 @@ node .agents/skills/codex-video-workflow/scripts/validate-raw-footage-editing-co
 
 `say` 或 `--allow-say-fallback` 只应该用于明确降级的 smoke check。任何语言的最终质量视频都应该使用 CosyVoice 或 MeloTTS。
 
-MeloTTS 中文会在 TTS 前加载 `assets/chinese-polyphone-phrases.json` 作为多音词短语读音表，并把词典版本写入 `workflow/chinese-polyphone-lexicon.json` 和 `workflow/voice-subtitle-manifest.json`；可以用 `CHINESE_POLYPHONE_LEXICON=/path/to/file.json` 覆盖默认词典。
+中文生成 TTS 前会先分析完整的 `script/narration-spoken.txt`，把多音字候选、上下文、最终 tone3 拼音、来源和未解析项写入 `workflow/chinese-pronunciation-preflight.json`。未解析项默认阻断 TTS；专有名词可以通过 brief 的 `ttsPronunciations` 传入，例如 `{ "phrase": "凡人修仙传", "pinyin": ["fan2", "ren2", "xiu1", "xian1", "zhuan4"] }`。有效读音计划写入 `workflow/effective-pronunciation-plan.json`，并同时注入 `pypinyin` 与 `jieba` 后再由真实 MeloTTS 前端验证。存在受控读音时，`auto` 会锁定 `melotts_local`，不会回退到无法证明读音已应用的后端。完整规则见 `references/chinese-pronunciation-control.md`。
 
 口播风格：
 

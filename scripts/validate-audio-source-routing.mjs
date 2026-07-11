@@ -5,8 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(__dirname, "..");
-const workspace = resolve(skillRoot, "../../..");
-const outDir = join(workspace, "research/codex-video-workflow-poc/audio-source-routing-validation");
+const outDir = join(skillRoot, "research/codex-video-workflow-poc/audio-source-routing-validation");
 
 function read(relativePath) {
   return readFileSync(join(skillRoot, relativePath), "utf8");
@@ -37,7 +36,7 @@ function main() {
 
   const providedBranch = indexOfRequired(script, "if (providedAudioPath) {", failures);
   const reuseBranch = indexOfRequired(script, 'if (process.env.CODEX_VIDEO_REUSE_AUDIO === "1")', failures);
-  const ttsOrder = indexOfRequired(script, "const order = voiceBackendOrder(voiceBackend, allowSayFallback);", failures);
+  const ttsOrder = indexOfRequired(script, "let order = voiceBackendOrder(voiceBackend, allowSayFallback);", failures);
   expect(providedBranch < reuseBranch && providedBranch < ttsOrder, "Provided-audio branch must run before reuse/TTS backend selection.", failures);
 
   expect(/throw new Error\(`--provided-audio not found:/.test(script), "Missing provided audio must fail immediately.", failures);

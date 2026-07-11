@@ -1,0 +1,55 @@
+{
+  "title": "凡人修仙传读音预检",
+  "language": "zh",
+  "audience": "本地 TTS 发音流程验证者",
+  "objective": "验证整稿多音字分析、MeloTTS 后端锁定、真实 G2P 应用、缓存哈希与语音清单闭环。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationMode": "auto",
+  "videoType": "knowledge-explainer",
+  "imageSource": "image2-dryrun",
+  "style": "editorial-light",
+  "voiceBackend": "auto",
+  "speechStyle": "explainer",
+  "narration": "《凡人修仙传》。人物传记。凡人修仙传。",
+  "ttsPronunciations": [
+    {
+      "phrase": "凡人修仙传",
+      "pinyin": ["fan2", "ren2", "xiu1", "xian1", "zhuan4"],
+      "note": "作品名，传读 zhuàn"
+    }
+  ],
+  "rights": {
+    "text": "original local pronunciation test fixture",
+    "visuals": "original deterministic local test visuals",
+    "voice": "local MeloTTS, no cloning",
+    "music": "none",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "title",
+      "label": "作品名",
+      "headline": ["凡人修仙传", "传读 zhuàn"],
+      "body": "完整作品名必须按受控短语处理。",
+      "subtitle": "《凡人修仙传》。",
+      "palette": "ink"
+    },
+    {
+      "id": "biography",
+      "label": "语义对照",
+      "headline": ["人物传记", "同为 zhuàn"],
+      "body": "人物传记中的传同样使用第四声。",
+      "subtitle": "人物传记。",
+      "palette": "blue"
+    },
+    {
+      "id": "repeat",
+      "label": "重复命中",
+      "headline": ["再次出现", "读音保持一致"],
+      "body": "重复出现时仍应命中同一个有效读音计划。",
+      "subtitle": "凡人修仙传。",
+      "palette": "green"
+    }
+  ]
+}
