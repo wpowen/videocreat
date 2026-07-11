@@ -3021,6 +3021,10 @@ function coverTitleDescription(value) {
     .trim();
 }
 
+function isNovelSelectionCoverText(value) {
+  return /选题决策|灵感转化为小说主题|十个灵感|10个灵感|主项目|备用项目|作者资源|资源匹配|四层检查|四层筛选|可完成字数/u.test(String(value || ""));
+}
+
 function coverHookFromTitle(value, language = "zh") {
   const title = coverTitleDescription(value) || String(value || "").trim();
   if (!title) return "";
@@ -3057,6 +3061,7 @@ function deriveCoverTexts({ coverPromise, coverTitle, frames, language = "zh" })
   const writingMethodHook = (raw) => {
     const text = String(raw || "");
     const rules = [
+      [/选题决策|灵感转化为小说主题|十个灵感|10个灵感|主项目|备用项目|作者资源|资源匹配|四层检查|四层筛选/, ["灵感怎么选?", "10个只留1个", "先筛再写"]],
       [/小说不是灵感产品|不是灵感|灵感产品|灵感/, ["灵感不够", "读者买承诺", "别等灵感"]],
       [/题材|平台|读者画像|读者/, ["写给谁看?", "题材先匹配", "别选错战场"]],
       [/一句话卖点|卖点|核心循环|循环/, ["一句话卖点", "追更靠循环", "先卖清楚"]],
@@ -3256,6 +3261,20 @@ function coverTitleSystem({ coverTitle = "", coverTexts = {}, platformStrategy =
     return base;
   }
   if (/小说不是灵感产品|不是灵感|灵感产品|灵感/.test(text)) {
+    if (isNovelSelectionCoverText(text)) {
+      return {
+        seriesLabel: "写小说实践",
+        mainTitle: "灵感怎么选?",
+        subtitle: "10个只留1个",
+        methodPoint: "四层筛选，选出能写完的题",
+        actionBadge: "先筛再写",
+        visualKeywords: ["灵感池", "四层筛选", "主项目"],
+        visualHook: "十张无文字灵感卡进入四层筛选漏斗，最终留下一个主项目档案和一个备用项目档案",
+        visualDirective: "Show ten icon-only story-idea cards entering a four-gate selection funnel for story engine, reader promise, expansion capacity, and author resources. The funnel resolves into one dominant main-project folder and one smaller backup-project folder beside a realistic time/resource gauge. Keep all cards and folders unlabeled except for the approved visible-text whitelist; use icons, seals, color, and hierarchy instead of extra words.",
+        headlineLettering: platformFamily === "short-video-vertical" ? "mobile-sticker-hook" : "bilibili-bold-method-hook",
+        textMood: "选择焦虑 + 可完成承诺",
+      };
+    }
     return {
       seriesLabel: "写小说方法论",
       mainTitle: "灵感不够",
@@ -3703,6 +3722,17 @@ function coverContentAssets({ coverTitle = "", coverTexts = {}, frames = [] }) {
     .trim();
   const topic = title.replace(/^写小说方法论[：:]?/u, "") || coverTexts.hookText || "本期内容";
   const keyFrames = frames.slice(0, 5).map((frame) => frame.headline?.[0] || frame.label).filter(Boolean);
+  if (isNovelSelectionCoverText(`${title} ${frameText} ${coverTexts.hookText || ""} ${coverTexts.payoffText || ""}`)) {
+    return {
+      coreViewpoint: "小说选题不是挑最漂亮的设定，而是选出能持续发动冲突、兑现读者承诺并适配作者资源的可完成项目。",
+      userPain: "手里有很多灵感，却不知道哪一个值得写、能展开，而且现在真的写得完。",
+      resultPromise: "用四层检查把十个灵感筛成一个主项目和一个备用项目。",
+      contrarianPoint: "兴趣只能决定候选，故事发动、读者承诺、展开能力和作者资源才决定主项目。",
+      visualMetaphor: "十张灵感卡经过四层筛选漏斗，最终留下主项目档案与备用项目档案。",
+      credibleEvidence: "四层检查、资源上限、硬淘汰、六维评分和明确切换条件。",
+      sourceFrameSignals: keyFrames,
+    };
+  }
   const painRules = [
     [/开篇|开头|黄金开篇/, "开头没有立刻给出读者继续看的理由"],
     [/长篇|规划|大纲|章纲|雪花|递进/, "写到中后段容易塌、散、断更"],
@@ -4265,6 +4295,21 @@ function coverLayoutStrategy({ coverTitle = "", coverTexts = {}, frames = [] }) 
       ],
     };
   }
+  if (isNovelSelectionCoverText(text)) {
+    return {
+      template: "selection-funnel decision cover",
+      reason: "The lesson is a bounded selection decision: many raw ideas pass through four explicit gates and resolve into one main project plus one backup project.",
+      blueprint: [
+        "ten compact icon-only idea cards as the input pool",
+        "four visible selection gates for story engine, reader promise, expansion capacity, and author resources",
+        "one dominant main-project folder and one smaller backup-project folder",
+        "a realistic time/resource gauge that proves finishability",
+      ],
+      promptLine: "Use a selection-funnel decision cover: ten icon-only idea cards enter four clear filter gates, then resolve into one dominant main-project folder and one smaller backup-project folder beside a realistic resource gauge.",
+      fallbackFamily: "selection-funnel",
+      qualityBars: baseQualityBars,
+    };
+  }
   if (/伏笔|契诃夫|Payoff|回收|账本/.test(text)) {
     return {
       template: "ledger-payoff reveal cover",
@@ -4367,6 +4412,7 @@ function highClickKnowledgeCoverProofTextWhitelist({ coverTitle = "", coverTexts
     titleSystem.methodPoint,
     titleSystem.actionBadge,
   ].filter(Boolean).join(" ");
+  if (isNovelSelectionCoverText(basis)) return ["主项目", "备用项目"];
   const proofTexts = ["改前", "改后"];
   if (/高点击封面|封面设计|封面方法|封面公式|点击率|CTR|thumbnail methodology/i.test(basis)) {
     proofTexts.push("点击率 2.1%", "点击率 11.3%");
@@ -4390,6 +4436,7 @@ function highClickKnowledgeCoverPromptContract({
   const platform = platformStrategy || {};
   const category = contentCategoryStrategy || {};
   const targetDesign = platform.targetDesignBrief || coverTargetImage2DesignBrief({ target, platformStrategy: platform });
+  const novelSelection = isNovelSelectionCoverText(`${coverTitle} ${coverTexts.hookText || ""} ${coverTexts.payoffText || ""} ${titleSystem.mainTitle || ""} ${titleSystem.subtitle || ""}`);
   const isVertical = Number(target?.height || 0) > Number(target?.width || 0) || /vertical|short-video|instagram/i.test(platform.family || target?.id || "");
   const proofTexts = highClickKnowledgeCoverProofTextWhitelist({
     coverTitle,
@@ -4398,21 +4445,42 @@ function highClickKnowledgeCoverPromptContract({
     category,
     platform,
   });
-  const audience = /short-video|vertical|douyin|tiktok|reels/i.test(`${platform.family || ""} ${target?.platform || ""}`)
-    ? "短视频创作者、知识博主、AI 工具博主、自媒体运营"
-    : "想提升点击率、完播率和内容交付质量的 B站、YouTube、抖音内容创作者";
+  const audience = novelSelection
+    ? "正在筛选小说题材、希望把灵感变成可完成项目的小说作者"
+    : /short-video|vertical|douyin|tiktok|reels/i.test(`${platform.family || ""} ${target?.platform || ""}`)
+      ? "短视频创作者、知识博主、AI 工具博主、自媒体运营"
+      : "想提升点击率、完播率和内容交付质量的 B站、YouTube、抖音内容创作者";
   const sellingPoint = creativeStrategy?.contentAssets?.resultPromise || coverPromise || coverTexts.payoffText || "用可复用方法论拆解内容为什么值得点击";
   const bigTitle = titleSystem.mainTitle || coverTexts.hookText || coverTitleDescription(coverTitle) || "高点击封面公式";
   const formulaName = targetDesign.id || (isVertical ? "short-video-high-click-profile-cover" : "bilibili-youtube-high-click-knowledge-cover");
-  const composition = targetDesign.composition || (isVertical
+  const composition = novelSelection
+    ? (isVertical
+      ? "竖屏原生构图：女性主讲形象居中偏下，十张图标化灵感卡从中上部进入四层筛选漏斗，最终落入主项目与备用项目两个档案夹；标题位于中部安全区。"
+      : "横屏原生构图：左侧固定女性主讲形象与超大标题，中部十张图标化灵感卡进入四层筛选漏斗，右侧形成一个主项目档案和一个备用项目档案，并配资源刻度。")
+    : targetDesign.composition || (isVertical
     ? "竖屏 9:16 / 3:4 安全区：人物或核心视觉主体居中，超大标题放在中部安全区，副标题在标题下方，改前/改后对比模块和增长箭头在主体周围，顶部和底部不放关键信息。"
     : "横屏 16:9：左侧放清晰知识博主人物半身像或可替代的核心方法论主体，中间或右侧放超大中文标题，下方放改前 vs 改后对比卡片，右上角放增长箭头，标题第一眼、人物/主体第二眼、证明细节第三眼。");
-  const subjectRule = /person|persona|ip|creator|知识|教程|方法|创作|视频|封面|AI|workflow|Skill/i.test(`${category.id || ""} ${category.label || ""} ${coverTitle} ${coverTexts.hookText || ""}`)
+  const subjectRule = novelSelection
+    ? "使用本项目固定女性个人 IP 主讲形象作为左侧教学锚点；核心证明主体是十张图标化灵感卡、四层筛选漏斗、主项目档案、备用项目档案和资源刻度。"
+    : /person|persona|ip|creator|知识|教程|方法|创作|视频|封面|AI|workflow|Skill/i.test(`${category.id || ""} ${category.label || ""} ${coverTitle} ${coverTexts.hookText || ""}`)
     ? "优先使用原创知识博主人物半身像、个人 IP 主讲形象或清晰方法论讲解者；如主题不适合人物，则使用同等强度的核心产品/方法/证据主体。"
     : "使用与主题直接绑定的核心人物、产品、证据物或方法论主体，不要用无关装饰物替代。";
-  const proofTextPolicy = proofTexts.includes("点击率 2.1%")
+  const proofTextPolicy = novelSelection
+    ? "使用十张灵感卡进入四层筛选漏斗的过程作为证明，最终只留下一个主项目和一个备用项目；不使用对比卡、增长箭头、点击率或运营数据。"
+    : proofTexts.includes("点击率 2.1%")
     ? "对比卡可以使用批准文本「改前」「改后」「点击率 2.1%」「点击率 11.3%」制造普通封面 vs 高点击封面的强反差。"
     : "对比卡仅使用批准文本「改前」「改后」和图形符号，除非标题/脚本明确给出真实或声明为示例的数据，不要生成额外数字。";
+  const adaptedTargetDesign = novelSelection
+    ? {
+        ...targetDesign,
+        clickDriver: "让小说作者一眼看懂：这节课解决的不是如何找更多灵感，而是如何从十个灵感中筛出现在真正能写完的主项目。",
+        composition,
+        informationHierarchy: "first-read 灵感怎么选, second-read 10个只留1个, third-read 四层漏斗与主项目/备用项目结果",
+        proofModule: proofTextPolicy,
+        artDirection: "premium novel-writing methodology thumbnail with warm paper texture, ink-black structure, amber/red selection signals, fixed female presenter, and one clear selection funnel instead of marketing proof cards.",
+        negativeAdditions: `${targetDesign.negativeAdditions || ""} no before-after cards, no CTR/growth graphics, no reader-promise contract, no emotional-payoff ticket, no extra labels on idea cards or folders.`,
+      }
+    : targetDesign;
   return {
     methodologyVersion: "high-click-knowledge-cover-v1",
     source: "user-provided 高点击量视频封面生成提示词, adapted into the codex-video-workflow cover engine",
@@ -4420,7 +4488,7 @@ function highClickKnowledgeCoverPromptContract({
     formulaName,
     platformMode: targetDesign.platformMode || (isVertical ? "vertical-short-video" : "horizontal-bilibili-youtube"),
     nativeTargetSize: target?.width && target?.height ? `${target.width}x${target.height}` : null,
-    targetDesignBrief: targetDesign,
+    targetDesignBrief: adaptedTargetDesign,
     topic: coverTitle,
     audience,
     sellingPoint,
@@ -4438,25 +4506,27 @@ function highClickKnowledgeCoverPromptContract({
       `- 目标受众: ${audience}`,
       `- 封面核心卖点: ${sellingPoint}`,
       `- 封面大字: ${bigTitle}`,
-      `- 目标尺寸原生生成: ${targetDesign.nativeInstruction}`,
-      `- 平台入口: ${targetDesign.decisionSurface}`,
-      `- 点击驱动: ${targetDesign.clickDriver}`,
+      `- 目标尺寸原生生成: ${adaptedTargetDesign.nativeInstruction}`,
+      `- 平台入口: ${adaptedTargetDesign.decisionSurface}`,
+      `- 点击驱动: ${adaptedTargetDesign.clickDriver}`,
       "- 风格: 高级、强点击、知识科普、方法论感、专业但不沉闷；适合 B站 / YouTube / 短视频推荐流，手机小图状态下仍然清晰。",
       `- 构图: ${composition}`,
-      `- 安全区: ${targetDesign.safeArea}`,
-      `- 信息层级: ${targetDesign.informationHierarchy}`,
+      `- 安全区: ${adaptedTargetDesign.safeArea}`,
+      `- 信息层级: ${adaptedTargetDesign.informationHierarchy}`,
       `- 主体: ${subjectRule}`,
-      `- 改前 vs 改后证明模块: ${targetDesign.proofModule || proofTextPolicy}`,
+      `${novelSelection ? "- 选题筛选证明模块" : "- 改前 vs 改后证明模块"}: ${adaptedTargetDesign.proofModule || proofTextPolicy}`,
       "- 视觉钩子: 至少体现一种认知缺口、强反差、痛点刺激、结果承诺、方法论感或错误警告；让用户一眼知道视频会解决一个具体问题。",
-      "- 推荐元素: 原创知识博主人物形象、超大中文标题、改前/改后卡片、增长箭头、红圈、对勾、红叉、拆解框、数据曲线、方法论编号角标、AI/创作/运营/数据增长相关图形符号。",
+      novelSelection
+        ? "- 推荐元素: 固定女性主讲形象、十张图标化灵感卡、四层筛选漏斗、主项目档案、备用项目档案、时间与资源刻度；除白名单外不写任何卡片标签。"
+        : "- 推荐元素: 原创知识博主人物形象、超大中文标题、改前/改后卡片、增长箭头、红圈、对勾、红叉、拆解框、数据曲线、方法论编号角标、AI/创作/运营/数据增长相关图形符号。",
       `- 色彩: ${"高对比色彩，主色不超过 3-4 个，标题和背景强对比；背景弱化，主体和标题优先。"}`,
       `- 文字: ${"只渲染白名单文本，中文标题清晰粗体，不生成额外小字、乱码、错别字、平台标签或随机数字。"}`,
-      `- 负面要求: ${"不要低清晰度、杂乱背景、廉价营销风、平台 logo、水印、二维码、无意义装饰、文字裁切、人物/标题互相遮挡。"} ${targetDesign.negativeAdditions || ""}`,
+      `- 负面要求: ${"不要低清晰度、杂乱背景、廉价营销风、平台 logo、水印、二维码、无意义装饰、文字裁切、人物/标题互相遮挡。"} ${adaptedTargetDesign.negativeAdditions || ""}`,
     ].join("\n"),
   };
 }
 
-function image2CoverPrompt({ target, coverTexts, coverTitle, coverPromise, visualSubject, emotionalSignal, layoutStrategy, creativeStrategy, platformStrategy = null, contentCategoryStrategy = null, language = "zh" }) {
+function image2CoverPrompt({ target, coverTexts, coverTitle, coverPromise, visualSubject, emotionalSignal, layoutStrategy, creativeStrategy, platformStrategy = null, contentCategoryStrategy = null, inputImages = [], language = "zh" }) {
   const strategy = layoutStrategy || coverLayoutStrategy({ coverTitle, coverTexts });
   const creative = creativeStrategy || coverCreativeStrategy({ coverTitle, coverPromise, coverTexts, frames: [] });
   const category = contentCategoryStrategy || coverContentCategoryStrategy({ coverTitle, coverTexts, frames: [] });
@@ -4484,69 +4554,61 @@ function image2CoverPrompt({ target, coverTexts, coverTitle, coverPromise, visua
     .filter((value) => String(value || "").trim())
     .map((value) => `「${value}」`)
     .join("、");
-  const exactTextRule = language === "zh"
-    ? `Render only the approved visible Chinese text directly inside the Image 2 bitmap as premium thumbnail typography. Approved visible text whitelist: ${allowedText}. Do not add any other readable Chinese, English, letters, numbers, platform names, labels, chapter numbers, UI labels, fake handwriting, or watermark. Evidence boards, manuscripts, cards, maps, ledgers, contracts, timeline nodes, and diagram panels must use icons, abstract marks, texture lines, symbols, seals, arrows, color blocks, or illegible pseudo-lines only. Text must be designed as a first-class visual object, not plain caption text.`
-    : "Render only the specified cover text as premium thumbnail typography; no tiny or pseudo text.";
   const colorSystem = coverColorSystem(platform, category, strategy.fallbackFamily);
   const assets = creative.contentAssets;
-  const promptLibraryAdaptation = [
-    "Prompt-library adaptation: borrow the YouMind GPT Image 2 collection's thumbnail/poster prompt structure only: use-case, style, subject, layout, lighting/material, dynamic slots, and negative constraints.",
-    `Selected axes: use-case=video thumbnail / poster cover; style=${category.visualPresets.join(" + ")}; subject=${visualSubject}.`,
-    "Do not copy any community example, creator layout, brand, IP, logo, character likeness, or exact prompt wording.",
-  ].join(" ");
+  const novelSelection = isNovelSelectionCoverText(`${coverTitle} ${coverPromise} ${coverTexts.hookText || ""} ${assets.coreViewpoint || ""}`);
+  const effectiveVisualPresets = novelSelection
+    ? ["selection funnel", "idea-card pool", "main-and-backup project folders", "author-resource gauge"]
+    : category.visualPresets;
+  const effectiveVisualSubject = novelSelection
+    ? inputImages.length
+      ? "the fixed female personal-IP presenter from the main-anchor reference beside ten icon-only story-idea cards entering a four-gate selection funnel and resolving into one main-project folder plus one backup-project folder"
+      : "an original adult female writing presenter beside ten icon-only story-idea cards entering a four-gate selection funnel and resolving into one main-project folder plus one backup-project folder"
+    : visualSubject;
+  const effectiveCategoryClickDrivers = novelSelection
+    ? ["把多个灵感筛成一个可完成主项目", "四层判断过程可视化", "主项目与备用项目结果直给"]
+    : category.clickDrivers;
+  const referenceLine = inputImages.length
+    ? `Input images: ${inputImages.map((item) => `${item.role}=${item.path}`).join("; ")}. Preserve the referenced presenter's identity, face, hair, and core visual traits; change only pose, lighting, and composition needed for this cover.`
+    : "Input images: none. Create an original adult presenter only when the composition benefits from a person; do not imitate any real person or claim a fixed identity.";
+  const textLines = [...new Set(allowedTextValues)].map((value) => `- ${JSON.stringify(String(value))}`).join("\n");
   return [
-    "IMAGE 2 PRODUCTION PROMPT - create a complete premium high-click social video cover with integrated designed typography, not a UI mockup and not a PPT slide.",
-    `Canvas guidance: ${target.ratio}, ${target.width}x${target.height}. Platform: ${target.platform}.`,
-    `Native target-ratio requirement: compose this cover directly for ${target.width}x${target.height} (${target.ratio}). Do not reuse, crop, letterbox, blur-fill, stretch, or adapt a different aspect-ratio cover. The full canvas must be one coherent native design with no top/bottom or left/right matte bands.`,
-    "Generate the full finished cover image, including only the approved main Chinese title, subtitle sticker, method line, and action badge. Do not generate supporting paper-note microcopy; use iconography, abstract lines, seals, arrows, and texture instead. Local SVG text overlay is only a fallback if Image 2 text fails.",
-    "Quality bar: looks like a finished professional creator thumbnail with cinematic art direction, tactile material, depth, dramatic contrast, and a clear click hook at 160px preview.",
-    promptLibraryAdaptation,
-    "Keep the same video truth and content promise across platforms, but adapt composition, crop-safe negative space, and visual proof to this platform.",
-    `Target-specific platform design brief: ${targetDesign.nativeInstruction}. Platform entry: ${targetDesign.decisionSurface}. Click driver: ${targetDesign.clickDriver}. Native composition: ${targetDesign.composition}. Safe area: ${targetDesign.safeArea}. Information hierarchy: ${targetDesign.informationHierarchy}. Proof module: ${targetDesign.proofModule}.`,
-    `Video title: ${coverTitle}.`,
-    `Click promise: ${coverPromise}.`,
-    highClickContract.promptBlock,
-    `Text hierarchy to render as designed typography: main title = ${titleSystem.mainTitle}; subtitle sticker = ${titleSystem.subtitle}; method/support line = ${titleSystem.methodPoint}; action badge = ${titleSystem.actionBadge}. The main title must be huge, first-read, textured, and click-driving; the subtitle must explain the specific method point.`,
-    `Auto-generated copy source: hook = ${coverTexts.hookText}; payoff = ${coverTexts.payoffText}; curiosity gap = ${coverTexts.curiosityGap}. Use these to keep the visible wording tied to the title and script, not to manual one-off copy.`,
-    `Content category: ${category.label} (${category.id}). Category click drivers: ${category.clickDrivers.join("; ")}. Visual presets: ${category.visualPresets.join("; ")}.`,
-    `Platform strategy: ${platform.image2PromptRole}. Decision surface: ${platform.decisionSurface}. Click logic: ${platform.clickLogic}. Text density: ${platform.textDensity}. Layout bias: ${platform.layoutBias}. Safe area: ${platform.safeArea}.`,
-    `Headline lettering strategy: ${platform.typographySystem?.mode || titleSystem.headlineLettering || "platform-native-bold-title"}. First read: ${platform.typographySystem?.firstRead || "oversized high-contrast Chinese title"}. Second read: ${platform.typographySystem?.secondRead || "short method subtitle"}. Reject: ${platform.typographySystem?.reject || "neutral PPT typography"}. Use a chunky poster/thumbnail title treatment with thick black stroke, worn paper texture, drop shadow, angled overlap, sticker backers, and accent underline where appropriate.`,
-    `Color system: ${colorSystem.name}. Use ${colorSystem.paper}/${colorSystem.paper2} as the base, ${colorSystem.ink} for strong readable text, ${colorSystem.accent} and ${colorSystem.accent2} as accents, and ${colorSystem.panel}/${colorSystem.panel2} for the proof object. Do not default to green unless the selected platform/category color system calls for it.`,
-    `Methodology driver: ${creative.sourcePrinciple}.`,
-    `Content assets: core viewpoint = ${assets.coreViewpoint}; user pain = ${assets.userPain}; result promise = ${assets.resultPromise}; contrarian point = ${assets.contrarianPoint}; visual metaphor = ${assets.visualMetaphor}; credible evidence = ${assets.credibleEvidence}.`,
-    `Primary click motivation: ${creative.clickMotivation.label} (${creative.clickMotivation.id}). Copy formulas considered: ${creative.clickMotivation.copyFormulas.join(" / ")}. Visual bias: ${creative.clickMotivation.visualBias.join(" / ")}.`,
-    `Visual hierarchy: ${creative.visualHierarchy.primary}; ${creative.visualHierarchy.secondary}; ${creative.visualHierarchy.tertiary}. Major element limit: ${creative.visualHierarchy.majorElementLimit}.`,
-    `Main visual: ${visualSubject}; it must specifically show the topic: ${titleSystem.visualHook || "one concrete method proof object"}. Topic-specific visual directive: ${titleSystem.visualDirective || "Show a concrete writing-craft proof object that makes the method inspectable and click-worthy. The scene should feel like story-craft evidence, not software UI."}`,
-    `Emotional signal: ${emotionalSignal}; show an unresolved contradiction, risk, or transformation that the video will answer.`,
-    `Selected layout template: ${strategy.template}. Reason: ${strategy.reason}. This is downstream of the click strategy, not a copied reference.`,
-    `Composition blueprint: ${strategy.promptLine}`,
-    `UI quality bars: ${strategy.qualityBars.join("; ")}.`,
-    `Art direction: ${targetDesign.artDirection}`,
-    `Composition: ${targetDesign.composition} Design the title as part of the image, not as an external overlay; use foreground/midground/background depth and one strong accent burst.`,
-    `Safe zone: ${targetDesign.safeArea} Keep integrated title, subtitle strip, badge, main proof object, arrows, and payoff burst away from all edges.`,
-    exactTextRule,
-    `Strict typography QC: render ONLY these readable text strings: ${allowedText}. No other readable text anywhere in the cover. If a manuscript, paper, card, map, ledger, contract, board, timeline, node, chip, gauge, or diagram appears, it must contain only icons, abstract marks, seals, arrows, color blocks, or illegible texture lines.`,
-    "Hard negatives: no watermark, no platform UI, no logo, no celebrity likeness, no copied creator style, no clutter, no tiny unreadable text, no random letters or numbers beyond the approved text whitelist, no extra Chinese labels, no generic dashboard, no spreadsheet screenshot, no classroom slide, no PowerPoint look, no flat vector infographic.",
-    "Quality: polished, professional, high-resolution, readable when downscaled to mobile grid size.",
+    "Use case: ads-marketing",
+    "Asset type: platform-submission video cover",
+    `Target: ${target.width}x${target.height}, ${target.ratio}, ${target.platform}. Compose natively at this ratio; no crop, letterbox, blur-fill, stretch, or matte bands.`,
+    `Goal: a polished, professional, high-click cover that truthfully promises ${JSON.stringify(coverPromise)} and remains readable at 160px mobile-preview size.`,
+    referenceLine,
+    `Subject: ${effectiveVisualSubject}. Visual proof: ${titleSystem.visualHook || assets.visualMetaphor || "one concrete proof object"}.`,
+    `Scene/backdrop: ${targetDesign.artDirection}. Use foreground, midground, and background depth; keep the background subordinate to the title and proof subject.`,
+    `Style/medium: premium cinematic creator thumbnail, tactile editorial poster materials, ${effectiveVisualPresets.join(", ")}; not a UI mockup, dashboard, PPT slide, or flat infographic.`,
+    `Composition/framing: ${targetDesign.composition} Safe area: ${targetDesign.safeArea} Hierarchy: oversized title first, presenter/proof subject second, one supporting proof module third; maximum four major elements.`,
+    `Lighting/mood: dramatic directional light, material depth, crisp subject separation, ${emotionalSignal}.`,
+    `Color palette: ${colorSystem.name}; base ${colorSystem.paper}/${colorSystem.paper2}, text ${colorSystem.ink}, accents ${colorSystem.accent}/${colorSystem.accent2}; 3-4 principal colors maximum.`,
+    "Text (verbatim):",
+    textLines,
+    `Typography: integrate the approved Chinese strings into the bitmap as designed thumbnail lettering. Main title ${JSON.stringify(titleSystem.mainTitle)} is huge and first-read; other approved strings are smaller supporting stickers/badges.`,
+    "Constraints: render only the verbatim strings above. Every card, manuscript, gauge, funnel, board, or diagram uses icons, abstract marks, arrows, seals, color blocks, or illegible texture lines instead of extra readable text.",
+    `Content binding: audience = ${novelSelection ? "正在筛选小说题材、希望把灵感变成可完成项目的小说作者" : (category.audience || "the intended viewer")}; ${effectiveCategoryClickDrivers.join("; ")}. ${novelSelection ? "十张灵感卡进入四层筛选漏斗，最后形成一个主项目和一个备用项目；卡片本身只用图标，不加额外文字。" : `Show the truthful result promise: ${assets.resultPromise}.`}`,
+    `Avoid: watermark, logo, platform UI, copied creator style, celebrity likeness, random letters or numbers, extra Chinese labels, tiny text, clutter, cheap marketing poster, title/face overlap, edge clipping, generic software dashboard, spreadsheet screenshot, PowerPoint look. Approved text whitelist: ${allowedText}.`,
   ].join("\n");
 }
 
 function assessCoverImage2Prompt(promptItem = {}) {
   const prompt = String(promptItem.prompt || "");
   const checks = [
-    ["productionPrompt", /IMAGE 2 PRODUCTION PROMPT|premium high-click|professional creator thumbnail/i.test(prompt), 10],
+    ["productionPrompt", /Use case: ads-marketing[\s\S]*Asset type: platform-submission video cover/i.test(prompt), 10],
     ["notPptOrUi", /not a UI mockup|not a PPT slide|no PowerPoint|no flat vector infographic/i.test(prompt), 12],
-    ["integratedTypography", /integrated designed typography|Render the specified Chinese cover text directly|Text hierarchy to render as designed typography|subtitle sticker|action badge/i.test(prompt), 12],
+    ["integratedTypography", /Text \(verbatim\):[\s\S]*integrate the approved Chinese strings/i.test(prompt), 12],
     ["specificVisualHook", /Topic-specific visual directive|visualHook|manuscript|first-chapter|reader|pressure|promise|clue|red threads|foreshadowing|payoff|character|dialogue|method proof/i.test(prompt), 14],
     ["premiumMaterialDepth", /cinematic|tactile|material|depth|paper fibers|metal pins|dust particles|focus falloff/i.test(prompt), 14],
-    ["platformDecisionSurface", /Platform strategy|Decision surface|Safe area|Canvas guidance/i.test(prompt), 10],
-    ["nativeTargetRatio", /Native target-ratio requirement|Do not reuse, crop, letterbox, blur-fill, stretch, or adapt a different aspect-ratio cover/i.test(prompt), 8],
-    ["contentTruth", /Video title|Click promise|Content assets|core viewpoint|user pain|result promise/i.test(prompt), 10],
-    ["highClickKnowledgeContract", /High-click knowledge cover prompt contract|高点击知识封面提示词契约|改前.*改后|普通封面 vs 高点击封面|强反差|结果承诺/i.test(prompt), 12],
-    ["strictTextWhitelist", /Approved visible text whitelist|Strict typography QC|只渲染白名单文本|No other readable text/i.test(prompt), 8],
-    ["negativeList", /no watermark|no platform UI|no logo|no copied creator style|no random letters/i.test(prompt), 8],
-    ["mobilePreview", /160px preview|mobile grid|downscaled/i.test(prompt), 6],
-    ["safeComposition", /title as part of the image|foreground\/midground\/background|away from all edges|center 3:4/i.test(prompt), 6],
+    ["platformDecisionSurface", /Target:|Safe area:|Composition\/framing:/i.test(prompt), 10],
+    ["nativeTargetRatio", /Compose natively at this ratio; no crop, letterbox, blur-fill, stretch/i.test(prompt), 8],
+    ["contentTruth", /Goal:|Content binding:|result promise/i.test(prompt), 10],
+    ["highClickKnowledgeContract", /high-click cover|four visual gates|主项目.*备用项目|改前.*改后|result promise/i.test(prompt), 12],
+    ["strictTextWhitelist", /Text \(verbatim\):|Approved text whitelist|render only the verbatim strings/i.test(prompt), 8],
+    ["negativeList", /Avoid:[\s\S]*watermark[\s\S]*logo[\s\S]*platform UI|no watermark|no platform UI/i.test(prompt), 8],
+    ["mobilePreview", /160px (?:mobile-)?preview|mobile grid|downscaled/i.test(prompt), 6],
+    ["safeComposition", /foreground, midground, and background|Safe area:|edge clipping/i.test(prompt), 6],
   ];
   const results = checks.map(([id, pass, points]) => ({ id, pass: Boolean(pass), points }));
   const score = results.reduce((sum, item) => sum + (item.pass ? item.points : 0), 0);
@@ -4641,7 +4703,22 @@ function coverImage2QualityGate({ coverSubjectAsset, coverSubjectAssets = [], co
   };
 }
 
-function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, coverSizeSelection }) {
+function requestedPlatformCoverTargetIds({ brief = {}, coverSizeSelection = {}, prompts = [] } = {}) {
+  const availableIds = new Set(prompts.map((item) => String(item.targetId || "").replace(/-image2-integrated-cover$/, "")));
+  const explicit = [
+    ...(Array.isArray(brief.coverTargetIds) ? brief.coverTargetIds : []),
+    ...(Array.isArray(brief.coverTargets) ? brief.coverTargets : []),
+  ].map(String).filter((id) => availableIds.has(id));
+  if (explicit.length) return [...new Set(explicit)];
+  if (brief.coverAllPlatforms === true || brief.generateAllPlatformCovers === true) return [...availableIds];
+  const openingEntry = (coverSizeSelection.entries || []).find((entry) => String(entry.targetId || entry.id || "") === "video-opening");
+  const primary = Number(openingEntry?.height || 0) > Number(openingEntry?.width || 0)
+    ? "vertical-1080x1920"
+    : "youtube-1280x720";
+  return availableIds.has(primary) ? [primary] : [[...availableIds][0]].filter(Boolean);
+}
+
+function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverImage2Prompts, coverSizeSelection, inputImages = [] }) {
   const requestDir = join(out, "prompts", "context-image2-covers");
   ensureDir(requestDir);
   const entries = Array.isArray(coverSizeSelection?.entries) ? coverSizeSelection.entries : [];
@@ -4649,9 +4726,11 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
   const pendingPromptIds = new Set((coverSizeSelection?.needsRegeneration || []).map((entry) => entry.id || entry.targetId).filter(Boolean));
   const pendingIds = new Set([...pendingEntryIds, ...pendingPromptIds]);
   const prompts = Array.isArray(coverImage2Prompts) ? coverImage2Prompts : [];
-  const selectedPrompts = pendingIds.size
-    ? prompts.filter((prompt) => pendingIds.has(String(prompt.targetId || "").replace(/-image2-integrated-cover$/, "")))
-    : prompts;
+  const requestedIds = new Set(requestedPlatformCoverTargetIds({ brief, coverSizeSelection, prompts }));
+  const selectedPrompts = prompts.filter((prompt) => {
+    const id = String(prompt.targetId || "").replace(/-image2-integrated-cover$/, "");
+    return requestedIds.has(id) && (!pendingIds.size || pendingIds.has(id));
+  });
   const requests = selectedPrompts.map((promptItem) => {
     const targetId = String(promptItem.targetId || "").replace(/-image2-integrated-cover$/, "");
     const promptFileName = `${safeFileStem(targetId || "cover")}.txt`;
@@ -4683,6 +4762,8 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
       platformFamily: promptItem.platformFamily || "",
       promptPath: relative(out, promptPath),
       prompt: promptItem.prompt || "",
+      inputImages: inputImages.map((item) => ({ ...item })),
+      contextImages: inputImages.map((item) => item.path),
       expectedOutput: `cover/context-image2-${targetId}.png`,
       ingestCommand: `node scripts/ingest-codex-image2-cover-target.mjs --topic ${out} --target ${targetId} --source <codex-imagegen-png>`,
       sourceCoreLogic: [
@@ -4708,11 +4789,12 @@ function writeContextImage2CoverRequests({ out, coverTitle, coverImage2Prompts, 
     requiredForFinalCover: true,
     purpose: "platform-submission-cover",
     generationContract: {
-      skill: "codex-video-workflow",
+      skill: "system-imagegen",
       coverSkill: "imagegen",
       provider: "codex-context-image2",
       tool: "image_gen",
-      invocation: "The platform-cover agent must invoke the installed cover/image generation Skill with the package-bound prompt in parallel with video production.",
+      executionMode: "built-in-image_gen",
+      invocation: "Invoke the system imagegen Skill and its built-in image_gen tool with the package-bound structured prompt and every role-labelled input image. Do not route through the legacy API-key CLI by default.",
       completion: "Only scripts/ingest-codex-image2-cover-target.mjs may move a request from pending to completed after native-ratio inspection.",
     },
     videoInternalCoverDoesNotSatisfyRequest: true,
@@ -4835,6 +4917,53 @@ function chineseCoverSizeNote(target) {
   if (target.id === "instagram-reels-cover") return "Instagram Reels 个人主页封面；必须使用原生 420x654 Image 2 构图，不允许由 9:16 裁切、补边或层叠适配。";
   if (target.id === "bilibili-common-1146x717") return "B站常见创作者封面尺寸；必须使用原生 1146x717 Image 2 构图，不允许由 16:9 裁切、补边或层叠适配。";
   return target.rule || "平台封面尺寸导出。";
+}
+
+function captureCompletedCoverRequests(out) {
+  const manifest = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  return (manifest.requests || []).flatMap((request) => {
+    const outputPath = request.actualOutput ? join(out, request.actualOutput) : "";
+    if (request.status !== "completed" || request.inspectionPassed !== true || !outputPath || !existsSync(outputPath)) return [];
+    return [{
+      targetId: request.targetId,
+      width: request.width,
+      height: request.height,
+      prompt: request.prompt,
+      inputImages: request.inputImages || [],
+      inspectionStatus: request.inspectionStatus || "passed-human-or-vision-review",
+      bytes: readFileSync(outputPath),
+    }];
+  });
+}
+
+function restoreCompletedCoverRequests(out, snapshots = []) {
+  if (!snapshots.length) return [];
+  const manifest = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  const restored = [];
+  for (const snapshot of snapshots) {
+    const request = (manifest.requests || []).find((item) => item.targetId === snapshot.targetId);
+    const sameContract = request
+      && request.prompt === snapshot.prompt
+      && Number(request.width) === Number(snapshot.width)
+      && Number(request.height) === Number(snapshot.height)
+      && JSON.stringify(request.inputImages || []) === JSON.stringify(snapshot.inputImages || []);
+    if (!sameContract) continue;
+    const tempPath = join(out, "workflow", `.preserved-${safeFileStem(snapshot.targetId)}.png`);
+    writeFileSync(tempPath, snapshot.bytes);
+    const result = spawnSync(process.execPath, [
+      join(SCRIPT_DIR, "ingest-codex-image2-cover-target.mjs"),
+      "--topic", out,
+      "--target", snapshot.targetId,
+      "--source", tempPath,
+      "--inspection-status", snapshot.inspectionStatus,
+    ], { cwd: SKILL_ROOT, encoding: "utf8" });
+    rmSync(tempPath, { force: true });
+    if (result.status !== 0) {
+      throw new Error(`Failed to restore inspected cover ${snapshot.targetId}: ${result.stderr || result.stdout}`);
+    }
+    restored.push(snapshot.targetId);
+  }
+  return restored;
 }
 
 function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverSubjectAssetsByTarget = null }) {
@@ -13793,6 +13922,20 @@ function personalIpPrimaryRenderableAsset(registry = {}) {
   }) || null;
 }
 
+function coverInputImagesFromDesignPlan(designPlan = {}) {
+  const registry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry
+    || designPlan.personalIpAssetRegistry
+    || {};
+  const asset = personalIpPrimaryRenderableAsset(registry);
+  const manifestPath = registry.existingPersona?.manifestPath || registry.library?.manifestPath || "";
+  const primaryPath = asset?.absolutePath || (asset ? resolvePersonalIpManifestAssetPath(manifestPath, asset) : "");
+  const fallbackPath = registry.genericFallback?.mainAnchorPath || "";
+  const resolvedPath = [primaryPath, fallbackPath].map(resolveUserPath).find((path) => path && existsSync(path));
+  return resolvedPath
+    ? [{ role: "main-anchor", path: resolvedPath, required: true, usage: "preserve-presenter-identity" }]
+    : [];
+}
+
 function personalIpRenderableAssetFromManifestPath(manifestPath = "") {
   const existingPersona = readPersonalIpSavedManifest(resolveUserPath(manifestPath));
   if (!existingPersona?.fixedPersonaUsable) return null;
@@ -16593,6 +16736,7 @@ function writeSyncTimecodePlan({ out, brief, frames, duration, coverIntroSeconds
 }
 
 async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource = "image2-dryrun", codexImageAssetsDir = "" }) {
+  const completedCoverSnapshots = captureCompletedCoverRequests(out);
   const canvas = brief.canvas || canvasForBrief(brief);
   const coverDir = join(out, "cover");
   ensureDir(coverDir);
@@ -16619,6 +16763,7 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
   const coverThemeKey = designPlan.templateKit?.themeKey || "storyPaper";
   const coverTheme = visualThemeForKey(coverThemeKey);
   const coverTargets = coverTargetSpecs(canvas.width, canvas.height);
+  const coverInputImages = coverInputImagesFromDesignPlan(designPlan);
   const coverSubjectAssetsByTarget = new Map();
   const coverAssetForTarget = (target) => {
     if (!coverSubjectAssetsByTarget.has(target.id)) {
@@ -16744,6 +16889,7 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
       creativeStrategy,
       platformStrategy,
       contentCategoryStrategy,
+      inputImages: coverInputImages,
       language: brief.language || "zh",
     }),
     };
@@ -16752,9 +16898,11 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
   const coverImage2Qc = coverImage2QualityGate({ coverSubjectAsset: masterCoverSubjectAsset, coverSubjectAssets: [...coverSubjectAssetsByTarget.values()], coverImage2Prompts });
   const contextImage2CoverRequests = writeContextImage2CoverRequests({
     out,
+    brief,
     coverTitle,
     coverImage2Prompts,
     coverSizeSelection,
+    inputImages: coverInputImages,
   });
   writeJson(join(out, "workflow", "cover-image2-qc.json"), coverImage2Qc);
   writeJson(join(out, "workflow", "cover-image2-prompts.json"), {
@@ -16961,6 +17109,7 @@ async function writeCoverArtifacts({ out, brief, frames, designPlan, imageSource
     contentTruth: "cover promise is derived from the title and narration-derived frames and must be paid off in the opening seconds",
     rejectList: ["legacy title-card cover", "promise seal as primary design", "tiny text", "generic AI glow", "too many elements", "misleading hook", "wrong platform ratio", "copied creator thumbnail style", "visible platform/spec/debug labels on the cover"],
   });
+  restoreCompletedCoverRequests(out, completedCoverSnapshots);
 }
 
 async function writeSyncAndCoverArtifacts({ out, brief, frames, duration, designPlan, coverIntroSeconds = 0, imageSource = "image2-dryrun", codexImageAssetsDir = "" }) {
@@ -29863,7 +30012,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     ].includes(id)),
   );
   const videoPass = Object.values(videoChecks).every(Boolean);
-  const pass = videoPass;
+  const pass = videoPass && coverPublishingReady;
   const publishingBlockers = coverPublishingReady
     ? []
     : [

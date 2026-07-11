@@ -29,6 +29,9 @@ Every final-quality run must write `workflow/cover-design.json` before packaging
 - `videoInternalCover`: the cover frame asset that matches the MP4 canvas. It is exported for continuity/review and is rendered inside the MP4 only when explicitly requested.
 - `image2CoverPromptFile`: `workflow/cover-image2-prompts.json`, containing GPT Image 2 visual prompts derived from the title plus narration/script and adapted to platform strategy variants, plus the resolution preset list.
 - `contextImage2CoverRequestsFile`: `workflow/context-image2-cover-requests.json`, containing the Context Image2 / Codex built-in `image_gen` request list derived from the same core cover logic. This file is required for final upload-ready cover generation in Codex App sessions and must not be replaced by manual one-off prompts.
+- For normal single-platform output, the request list contains only the primary upload target inferred from the canvas. Multi-platform generation is explicit (`coverAllPlatforms`, `generateAllPlatformCovers`, `coverTargetIds`, or `coverTargets`), so a horizontal local-review package does not silently become nine unfinished cover jobs.
+- Prompt text follows the system `imagegen` structured schema and stays compact: use case, asset type, native target, goal, role-labelled inputs, subject, backdrop, style, composition, lighting, palette, exact verbatim text, constraints, content binding, and avoid list. Personal-IP covers must attach the resolved `main-anchor` image; descriptive prose alone is not an identity lock.
+- A rerun in the same output directory must preserve a completed inspected cover when target dimensions, prompt, and input-image contract are unchanged, then replay canonical ingestion after review raster rebuild so the request manifest, QC, selection, design record, and `最终成品/` remain consistent.
 - `coverImage2QualityGateFile`: `workflow/cover-image2-qc.json`, containing pre-generation prompt QC plus post-generation bitmap eligibility. If no real Image 2/Codex bitmap with integrated cover typography is present, `finalCoverQualityEligible` must be `false` and the package is review-only.
 - `clickMotivation`: one of the video's primary click reasons, such as result-method, problem-avoidance, contradiction-explanation, conflict, or clear-promise.
 - `coverQaScore`: the 100-point cover readiness score covering click motivation, main visual clarity, text readability, platform fit, content truth, brand consistency, and freshness.
@@ -116,6 +119,8 @@ This contract is adapted from the user-provided high-click B站/YouTube and shor
 ## Layout Template Library
 
 Select a cover layout from the content. Do not force every cover into the same reference style.
+
+Use `selection-funnel decision cover` for novel-topic selection, idea screening, project choice, and author-resource-fit lessons. Show an initial pool of idea cards passing through explicit decision gates, then resolve into one dominant main project plus one smaller backup project and a realistic resource gauge. Derive the audience from novel writers. Do not route these lessons to generic “灵感不足/读者承诺” framing, content-creator CTR language, before/after proof cards, or growth graphics.
 
 Use `problem-to-proof transformation cover` for click-improvement, problem/solution, and "why nobody clicks/reads/watches" topics:
 

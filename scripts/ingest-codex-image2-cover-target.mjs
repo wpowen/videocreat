@@ -106,7 +106,7 @@ function promptIdOf(promptItem, targetId) {
   return promptItem?.targetId || `${targetKey(targetId)}-image2-integrated-cover`;
 }
 
-function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize }) {
+function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, approved }) {
   const selectionPath = join(topicDir, "workflow", "cover-size-selection.json");
   const selection = readJson(selectionPath);
   const key = targetKey(targetId);
@@ -120,12 +120,12 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
   if (Math.abs(expectedRatio - imageRatio) > 0.01) {
     throw new Error(`Codex Image2 source ratio ${imageSize.width}x${imageSize.height} does not match target ${width}x${height}; refusing to distort/crop.`);
   }
-  entry.qualityStatus = "upload-ready-native-target-ratio";
-  entry.uploadReady = true;
-  entry.needsRegeneration = false;
+  entry.qualityStatus = approved ? "upload-ready-native-target-ratio" : "generated-awaiting-inspection";
+  entry.uploadReady = approved;
+  entry.needsRegeneration = !approved;
   entry.requiresNativeImage2TargetRatio = true;
-  entry.image2NativeTargetRatioReady = true;
-  entry.codexNativeTargetRatioReady = true;
+  entry.image2NativeTargetRatioReady = approved;
+  entry.codexNativeTargetRatioReady = approved;
   entry.localTargetRatioRecomposition = false;
   entry.targetRatioNativeMatch = true;
   entry.sourceAssetRatio = ratioLabel(imageSize.width, imageSize.height);
@@ -141,21 +141,24 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
     finalPlatformSize: `${width}x${height}`,
     exactPlatformSize: `${width}x${height}`,
   };
-  const finalDeliveryDirectory = selection.finalDeliveryDirectory || "最终成品";
-  const finalGroup = safePathPart(entry.group, "平台投稿封面");
-  const finalLabel = safePathPart(entry.label, targetId);
-  const finalPngFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.png`);
-  const finalJpgFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.jpg`);
-  mkdirSync(dirname(join(topicDir, finalPngFile)), { recursive: true });
-  copyFileSync(join(topicDir, pngFile), join(topicDir, finalPngFile));
-  copyFileSync(join(topicDir, jpgFile), join(topicDir, finalJpgFile));
   entry.internalReviewFiles = [pngFile, jpgFile];
-  entry.files = [
-    { format: "png", file: finalPngFile },
-    { format: "jpg", file: finalJpgFile },
-  ];
+  entry.files = [];
+  if (approved) {
+    const finalDeliveryDirectory = selection.finalDeliveryDirectory || "最终成品";
+    const finalGroup = safePathPart(entry.group, "平台投稿封面");
+    const finalLabel = safePathPart(entry.label, targetId);
+    const finalPngFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.png`);
+    const finalJpgFile = join(finalDeliveryDirectory, finalGroup, `${finalLabel}.jpg`);
+    mkdirSync(dirname(join(topicDir, finalPngFile)), { recursive: true });
+    copyFileSync(join(topicDir, pngFile), join(topicDir, finalPngFile));
+    copyFileSync(join(topicDir, jpgFile), join(topicDir, finalJpgFile));
+    entry.files = [
+      { format: "png", file: finalPngFile },
+      { format: "jpg", file: finalJpgFile },
+    ];
+  }
   entry.previewFiles = [];
-  selection.needsRegeneration = (selection.needsRegeneration || []).filter((item) => targetKey(item.targetId) !== key);
+  if (approved) selection.needsRegeneration = (selection.needsRegeneration || []).filter((item) => targetKey(item.targetId) !== key);
   selection.pendingNativeTargetCount = selection.needsRegeneration.length;
   selection.allTargetsUploadReady = selection.pendingNativeTargetCount === 0;
   selection.primaryPlatformUploadCoverTargetId = inferPrimaryPlatformTarget(selection);
@@ -182,11 +185,11 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
     preset.file = pngFile;
     preset.jpg = jpgFile;
     preset.exactTargetPreview = pngFile;
-    preset.uploadReady = true;
-    preset.status = "upload-ready-native-target-ratio";
-    preset.qualityStatus = "upload-ready-native-target-ratio";
-    preset.image2NativeTargetRatioReady = true;
-    preset.codexNativeTargetRatioReady = true;
+    preset.uploadReady = entry.uploadReady === true;
+    preset.status = entry.uploadReady === true ? "upload-ready-native-target-ratio" : "generated-awaiting-inspection";
+    preset.qualityStatus = preset.status;
+    preset.image2NativeTargetRatioReady = entry.uploadReady === true;
+    preset.codexNativeTargetRatioReady = entry.uploadReady === true;
     preset.localTargetRatioRecomposition = false;
     preset.fulfilledBy = "codex-built-in-imagegen";
     preset.canonicalProvider = "codex-context-image2";
@@ -196,7 +199,7 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
     preset.requestedCodexImageSize = `${imageSize.width}x${imageSize.height}`;
   }
   const selectedAsset = {
-    status: "available",
+    status: entry.uploadReady === true ? "available" : "generated-awaiting-inspection",
     provider: "codex-built-in-imagegen",
     canonicalProvider: "codex-context-image2",
     tool: "image_gen",
@@ -242,8 +245,9 @@ function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile
   const requests = Array.isArray(manifest.requests) ? manifest.requests : [];
   const request = requests.find((item) => targetKey(item.targetId || item.id || "") === key);
   if (!request) throw new Error(`Target ${targetId} not found in ${requestPath}`);
-  request.status = "completed";
-  request.completedAt = new Date().toISOString();
+  const passedInspection = inspectionPassed(inspectionStatus);
+  request.status = passedInspection ? "completed" : "generated-awaiting-inspection";
+  request.completedAt = passedInspection ? new Date().toISOString() : null;
   request.provider = "codex-context-image2";
   request.renderProvider = "codex-built-in-imagegen";
   request.tool = "image_gen";
@@ -256,7 +260,7 @@ function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile
   request.sourceDimensions = imageSize;
   request.finalPlatformSize = `${entry.width}x${entry.height}`;
   request.inspectionStatus = inspectionStatus;
-  request.inspectionPassed = inspectionPassed(inspectionStatus);
+  request.inspectionPassed = passedInspection;
 
   const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
   const primaryTargetId = targetKey(manifest.primaryPlatformUploadCoverTargetId || inferPrimaryPlatformTarget(selection));
@@ -376,12 +380,21 @@ function updatePackageDeliveryState({ topicDir, requestState }) {
   }
 }
 
-function updatePrompts({ topicDir, targetId, entry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize }) {
+function updatePrompts({ topicDir, targetId, entry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize, approved }) {
   const promptsPath = join(topicDir, "workflow", "cover-image2-prompts.json");
   if (!existsSync(promptsPath)) return;
   const prompts = readJson(promptsPath);
   const key = targetKey(targetId);
+  if (!approved) {
+    prompts.generatedAwaitingInspection = [
+      ...(prompts.generatedAwaitingInspection || []).filter((item) => targetKey(item.id || item.targetId || "") !== key),
+      { id: key, targetId: key, file: pngFile, jpg: jpgFile, status: "generated-awaiting-inspection" },
+    ];
+    writeJson(promptsPath, prompts);
+    return;
+  }
   prompts.pendingNativeTargetRatioPrompts = (prompts.pendingNativeTargetRatioPrompts || []).filter((item) => targetKey(item.id || item.targetId || "") !== key);
+  prompts.generatedAwaitingInspection = (prompts.generatedAwaitingInspection || []).filter((item) => targetKey(item.id || item.targetId || "") !== key);
   prompts.fulfilledNativeTargetRatioExports = [
     ...(prompts.fulfilledNativeTargetRatioExports || []).filter((item) => targetKey(item.id || item.targetId || "") !== key),
     {
@@ -412,6 +425,7 @@ function main() {
   const targetId = targetKey(argValue("--target"));
   const source = resolve(argValue("--source"));
   const inspectionStatus = argValue("--inspection-status", "pending-human-or-vision-review");
+  const approved = inspectionPassed(inspectionStatus);
   if (!topicDir || !targetId || !source) {
     throw new Error("Usage: ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>");
   }
@@ -433,10 +447,10 @@ function main() {
     width: Number(entry.width),
     height: Number(entry.height),
   });
-  const updatedEntry = updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize });
+  const updatedEntry = updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, approved });
   const promptsPath = join(topicDir, "workflow", "cover-image2-prompts.json");
   const promptItem = existsSync(promptsPath) ? matchingPrompt(readJson(promptsPath), targetId) : null;
-  updatePrompts({ topicDir, targetId, entry: updatedEntry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize });
+  updatePrompts({ topicDir, targetId, entry: updatedEntry, promptItem, source, sourceCopy, pngFile, jpgFile, imageSize, approved });
   const requestState = updateContextRequests({
     topicDir,
     targetId,
