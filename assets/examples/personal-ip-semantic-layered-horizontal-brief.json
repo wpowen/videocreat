@@ -1,0 +1,49 @@
+{
+  "language": "zh",
+  "audience": "内容创作者",
+  "objective": "横屏使用独立双模块布局，保留固定个人 IP 角色，并把人物、标题、内容、路径、结论与字幕拆成独立语义层。",
+  "platform": "local-review",
+  "aspectRatio": "16:9",
+  "durationSeconds": 9,
+  "durationMode": "fixed",
+  "videoType": "tutorial-explainer",
+  "generationMode": "full-auto",
+  "imageSource": "local",
+  "speechStyle": "tutorial",
+  "audioGender": "female",
+  "narration": "先按语义拆出人物、标题和内容。再让节点依次出现，让路径在卡片下方绘制。最后检查遮挡、缺失与字幕层级，并输出完整视频。",
+  "scenes": [
+    {
+      "id": "semantic-ownership",
+      "label": "语义拆层",
+      "body": "每个元素只由一个图层拥有，避免白底切片和重复文字。",
+      "subtitle": "先按语义拆出人物、标题和内容。"
+    },
+    {
+      "id": "progressive-motion",
+      "label": "逐层动画",
+      "body": "路径永远位于卡片下方，人物和正文拥有独立安全区。",
+      "subtitle": "再让节点依次出现，让路径在卡片下方绘制。"
+    },
+    {
+      "id": "delivery-qc",
+      "label": "交付验证",
+      "body": "多时间点检查可见性、碰撞、字幕顶层和视频解码。",
+      "subtitle": "最后检查遮挡、缺失与字幕层级，并输出完整视频。"
+    }
+  ],
+  "takeaway": "双画幅原生布局，不裁切不挤压",
+  "personalIp": {
+    "name": "通用女性知识主讲人",
+    "allowGenericFallback": true
+  },
+  "personalIpAnimation": "semantic-layers",
+  "rights": {
+    "text": "original local workflow example",
+    "visuals": "fixed generic persona plus deterministic SVG/HTML semantic layers",
+    "voice": "authorized local narration",
+    "music": "none",
+    "externalMedia": "none"
+  },
+  "title": "个人 IP 横屏语义动画"
+}

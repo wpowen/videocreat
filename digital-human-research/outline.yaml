@@ -1,0 +1,21 @@
+topic: "数字人构建技术与 API 必要性"
+scope:
+  time_range: "近两年，必要时引用更早基础方法"
+  primary_scenario: "视频口播"
+items:
+  - "参数化 2D / Live2D 数字人"
+  - "单图音频驱动 talking head"
+  - "参考视频驱动肖像重演"
+  - "已有视频局部口型重绘与配音"
+  - "音频驱动半身/全身扩散视频"
+  - "长视频与流式分块生成"
+  - "个性化 NeRF / 3D Gaussian 神经头像"
+  - "传统 3D 角色、Blendshape、动捕与引擎渲染"
+  - "实时交互式数字人系统"
+  - "商业 SaaS / API"
+  - "本地开源、自建云 GPU 与混合部署"
+execution:
+  batch_size: 1
+  items_per_agent: 11
+  output_dir: "./results"
+

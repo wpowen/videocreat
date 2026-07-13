@@ -286,6 +286,7 @@ function scenarios(fixtureDir) {
         ipNativeFinalStatus: "blocked-needs-native-page-provenance",
         ipPromptOnlySelected: false,
         ipPersonalIpChoice: "auto",
+        ipHandDrawnChoice: "off",
         ipPrimaryPlannerRoute: true,
       },
     },
@@ -343,9 +344,48 @@ function scenarios(fixtureDir) {
         ipNativeFinalStatus: "blocked-needs-native-page-provenance",
         ipPromptOnlySelected: false,
         ipPersonalIpChoice: "auto",
+        ipHandDrawnChoice: "off",
         ipPrimaryPlannerRoute: true,
         ipPersonaStatus: "ready-default-persona",
         ipNativeMinResolvedImageCount: 24,
+      },
+    },
+    {
+      id: "zh-personal-ip-plus-animation",
+      brief: baseBrief({
+        title: "个人 IP + 动画：钩子升级路径",
+        objective: "保留个人 IP 原生页面，增加克制的前景路径动画、圈画和顶层字幕。",
+        videoType: "tutorial-explainer",
+        personalIp: {
+          name: "方法课主讲人",
+          allowGenericFallback: true,
+        },
+        personalIpAnimation: "subtle",
+        scenes: [
+          { id: "hook", label: "建立压力", headline: ["先给压力", "再给未知"], body: "个人 IP 主讲人指出第一个节点。", subtitle: "先建立压力。", palette: "blue" },
+          { id: "path", label: "路径升级", headline: ["倒计时", "信息差"], body: "路径线在原生页面上方依次绘制。", subtitle: "再沿路径升级。", palette: "orange" },
+          { id: "resolve", label: "行动收束", headline: ["保持终态", "字幕最高"], body: "终态保留全部页面内容。", subtitle: "最后收束成行动。", palette: "gold" },
+        ],
+        narration: "先建立压力。再沿路径升级。最后收束成行动。",
+      }),
+      expect: {
+        activeExternal: ["ip-diagram-creator-planner"],
+        files: [
+          "workflow/ip-diagram-creator-plan.json",
+          "workflow/personal-ip-asset-registry.json",
+          "workflow/ip-diagram-creator-native-jobs.json",
+          "workflow/ip-diagram-layout-audit.json",
+        ],
+        ipNativeDirectSelected: false,
+        ipNativeFinalRequested: true,
+        ipNativeFinalSelected: false,
+        ipIntegratedSelected: false,
+        ipNativeFinalStatus: "blocked-needs-native-page-provenance",
+        ipPromptOnlySelected: false,
+        ipPersonalIpChoice: "auto",
+        ipHandDrawnChoice: "subtle",
+        ipPrimaryPlannerRoute: true,
+        ipPersonaStatus: "ready-default-persona",
       },
     },
     {
@@ -749,7 +789,8 @@ function validateScenario(scenario, run) {
         || typeof expect.ipIntegratedSelected === "boolean"
         || typeof expect.ipPromptOnlySelected === "boolean"
         || expect.ipNativeFinalStatus
-        || expect.ipPersonalIpChoice) {
+        || expect.ipPersonalIpChoice
+        || expect.ipHandDrawnChoice) {
 	    const ipPlan = read("workflow/ip-diagram-creator-plan.json");
 	    const nativeDirect = (ipPlan.executionModes || []).find((mode) => mode.id === "native-skill-direct-generation") || {};
 	    const nativeFinal = (ipPlan.executionModes || []).find((mode) => mode.id === "native-final-video") || {};
@@ -778,6 +819,9 @@ function validateScenario(scenario, run) {
 	    }
 	    if (expect.ipPersonalIpChoice) {
 	      assert(ipPlan.userChoices?.makePersonalIp === expect.ipPersonalIpChoice, `expected makePersonalIp=${expect.ipPersonalIpChoice}, got ${ipPlan.userChoices?.makePersonalIp}`, failures);
+	    }
+	    if (expect.ipHandDrawnChoice) {
+	      assert(ipPlan.userChoices?.addHandDrawnImageAnimation === expect.ipHandDrawnChoice, `expected addHandDrawnImageAnimation=${expect.ipHandDrawnChoice}, got ${ipPlan.userChoices?.addHandDrawnImageAnimation}`, failures);
 	    }
 	    if (typeof expect.ipPrimaryPlannerRoute === "boolean") {
 	      assert(ipPlan.primaryPlannerRoute === expect.ipPrimaryPlannerRoute, `expected ip primaryPlannerRoute=${expect.ipPrimaryPlannerRoute}, got ${ipPlan.primaryPlannerRoute}`, failures);
@@ -896,6 +940,7 @@ function main() {
       && /textPresentationForTreatment/.test(workflowSource)
       && /data-text-presentation/.test(workflowSource)
       && /text-intelligence/.test(workflowSource)
+      && /viewerVisualRoleLabel\(page\.visualRole\)/.test(workflowSource)
       && /ordinary left paragraph/.test(workflowSource),
     selectedTemplate: "static-script-contract",
     activeCapabilities: [],
@@ -909,6 +954,7 @@ function main() {
       !/textPresentationForTreatment/.test(workflowSource) ? "typography plan no longer creates scene-specific text presentation modes" : "",
       !/data-text-presentation/.test(workflowSource) ? "rendered HTML no longer exposes the selected text presentation mode" : "",
       !/text-intelligence/.test(workflowSource) ? "semantic text info rail no longer renders beside main text" : "",
+      !/viewerVisualRoleLabel\(page\.visualRole\)/.test(workflowSource) ? "internal visual-role identifiers can leak into viewer-facing labels" : "",
       !/ordinary left paragraph/.test(workflowSource) ? "regression guard for plain left-column text is missing" : "",
     ].filter(Boolean),
     output: workflowScript,

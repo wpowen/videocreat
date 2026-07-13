@@ -44,6 +44,20 @@ Demo evidence is included as [`media/qc/codex-video-workflow-zh-qc.json`](media/
 - **QC evidence**: emits final MP4, screenshots, subtitles, manifests, FFprobe data, black-frame checks, volume checks, and `logs/qc.json`.
 - **Final loudness normalization**: raises delivered MP4 narration to a clear playback level and records the filter in `workflow/final-audio-normalization.json`.
 
+## How Users Trigger Capabilities
+
+Users do not need to know template IDs or JSON fields. Describe the viewing experience in natural language, for example:
+
+- `Reveal the process layer by layer and draw an animated line between the steps.`
+- `Keep the personal-IP page unchanged; add only foreground circles, underlines, semantic paths, and subtitles.`
+- `Make this feel interactive and progressive instead of a static slide deck.`
+
+The conversation should surface only the 2-3 capabilities relevant to the current content. The default semi-auto flow writes a reviewable configuration page; explicit full-auto wording proceeds to composition.
+
+Use four stable user-facing signals: no visual-mode signal selects the default HTML animation and its content-driven layered semantic-motion flow, now styled with the personal-IP visual grammar without activating a persona; `personal IP` selects verified native personal-IP pages with foreground motion off; `personal IP + animation` combines the stable native page with continuous cue-bound progress, focus, connector, and draw-reveal foreground layers; and `whiteboard` selects the framework animation plus a behind-content whiteboard reveal. Explicit `personalIpAnimation` / `addHandDrawnImageAnimation` fields override natural language. A plain `personalIp` field resolves animation to `off`.
+
+For deterministic triggering, set `brief.layeredMotion.mode` to `semantic-path` or pass `--layered-motion semantic-path`. The run writes `workflow/layered-motion-plan.json`, and `semi-auto-config.html` shows the selected layered-motion preview. See `assets/examples/layered-semantic-motion-brief.json` for a complete example.
+
 ## Quick Start
 
 Install this skill into a Codex skill folder:

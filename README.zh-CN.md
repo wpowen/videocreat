@@ -44,6 +44,77 @@ Demo 的验证证据包含 [`media/qc/codex-video-workflow-zh-qc.json`](media/qc
 - **QC 证据**：输出最终 MP4、截图、字幕、manifest、FFprobe 数据、黑帧检查、音量检查和 `logs/qc.json`。
 - **最终响度归一化**：把交付 MP4 的口播音量提升到清晰可听的播放水平，并在 `workflow/final-audio-normalization.json` 记录滤镜链。
 
+## 用户如何触发能力
+
+用户不需要知道模板名或 JSON 字段。直接描述想要的观看体验即可，Skill 会把自然语言映射到相应流程，并在半自动配置页展示已选择能力。
+
+常用提示词示例：
+
+- `把流程按层拆开，步骤逐个出现，用动画线把它们连接起来。`
+- `不要做成 PPT，希望元素分批展示，路径和重点可以动态绘制。`
+- `保留个人 IP 原图和原来的 UI，只在上面增加圈画、下划线、路径动画和字幕。`
+- `这是数据趋势页，请用曲线追踪、拐点高亮和来源脚注。`
+- `这是代码演示，请展示输入、运行状态和输出，不要只放装饰代码卡。`
+
+对话流程会优先推荐与当前题材相关的 2-3 项能力，例如“分层路径动画、个人 IP 固定底图、字幕顶层”，不会要求用户先学习完整能力清单。默认半自动流程会生成配置页供审阅；明确说“全自动生成”时才直接进入最终合成。
+
+推荐使用四个稳定信号：
+
+- 不指定：默认 HTML 动画与新的分层语义动画流程；按内容决定是否绘制路径，并继承个人 IP 的暖纸、墨线、自然留白、橙蓝标记、偏移阴影和单一文字所有权，但不会自动启用具体人物身份。
+- `个人 IP`：个人 IP 原生页面，默认不增加手绘动画。
+- `个人 IP + 动画`：先把个人 IP 页面拆成独立语义层（人物、标题、内容组、关系路径、结论/Agent、字幕），分别导出 SVG，再由一个 HTML 主时间轴合成和逐帧渲染视频。整张个人 IP 图片作为动画底图、白底切片互相覆盖、通用进度轨、整页框选、跨区域连接线或“每条字幕一张静帧”都会被拒绝。
+- `白板`：默认动画框架加白板语义前景，字幕永远最高。
+
+显式 brief 可用 `personalIpAnimation: "semantic-layers"`；兼容值 `subtle` / `draw-reveal` 也会升级到同一语义分层路线。只设置 `personalIp` 时动画值固定为 `off`，继续保留原生个人 IP 图片流程。
+
+完整执行与验证：
+
+```bash
+node scripts/export-personal-ip-semantic-layered-video.mjs \
+  --out research/personal-ip-semantic-layered-review \
+  --audio path/to/narration.m4a \
+  --title "写小说的方法论"
+
+node scripts/self-test-personal-ip-semantic-layered-export.mjs \
+  research/personal-ip-semantic-layered-self-test-vertical 9:16
+
+node scripts/self-test-personal-ip-semantic-layered-export.mjs \
+  research/personal-ip-semantic-layered-self-test-horizontal 16:9
+```
+
+交付包必须同时包含 `layers/*.svg`、`personal-ip-layered.svg`、`index.html`、`workflow/personal-ip-semantic-layer-manifest.json`、`logs/qc.json` 和 `final.mp4`。缺少任一项都不能把路线标记为完成。
+
+该路线同时支持两套原生布局：`9:16` 为 1080×1920 纵向堆叠，`16:9` 为 1920×1080 横向双模块。横屏必须重新排版，禁止由竖屏缩放、裁切、挤压或加黑边得到。显式设置 `aspectRatio: "16:9"`，或使用默认横屏 `local-review` brief，即会选择横屏语义布局。
+
+### 分层动画线的显式触发
+
+brief：
+
+```json
+{
+  "layeredMotion": {
+    "enabled": true,
+    "mode": "semantic-path",
+    "intensity": "balanced",
+    "revealOrder": "progressive"
+  }
+}
+```
+
+命令行覆盖：
+
+```bash
+node scripts/poc-video-workflow.mjs \
+  --brief assets/examples/layered-semantic-motion-brief.json \
+  --out research/layered-motion-review \
+  --generation-mode semi-auto \
+  --layered-motion semantic-path \
+  --layered-motion-intensity balanced \
+  --image-source image2-dryrun
+```
+
+流程会输出 `workflow/layered-motion-plan.json`，并在 `semi-auto-config.html` 中提供真实动画预览。动画线固定在内容卡片下方；个人 IP 原生页面不会被替换。
+
 ## 快速开始
 
 安装到 Codex 的全局 skill 文件夹：

@@ -1,0 +1,35 @@
+fields:
+  - name: "输入与人物资产"
+    description: "单图、多图、参考视频、专属训练数据、3D 模型与授权素材。"
+    detail_level: detailed
+  - name: "驱动与生成方式"
+    description: "音频、音素、文本、驱动视频、动捕、Blendshape 或多模态联合条件。"
+    detail_level: detailed
+  - name: "人物表现范围"
+    description: "嘴部、头肩、半身、全身、多人或自由视角 3D。"
+    detail_level: moderate
+  - name: "质量与可控性"
+    description: "身份、口型、表情、动作、时序、镜头、局部重生成与长视频稳定性。"
+    detail_level: detailed
+  - name: "性能与算力"
+    description: "显存、统一内存、实时帧率、首帧延迟、生成速度和并发。"
+    detail_level: detailed
+  - name: "部署与总成本"
+    description: "本地 GPU、通用云 GPU、商业 API、工程维护、存储、带宽和失败重生成。"
+    detail_level: detailed
+  - name: "中文音频适配"
+    description: "TTS、普通话、多音字、数字读法、停顿、情绪和口型同步。"
+    detail_level: detailed
+  - name: "许可与合规"
+    description: "代码、权重、基础模型、数据集、肖像、声音、标识和数据留存。"
+    detail_level: detailed
+  - name: "生产集成"
+    description: "CLI/API、队列、幂等、缓存、回调、版本锁定、QC 和失败降级。"
+    detail_level: detailed
+  - name: "适用场景与成熟度"
+    description: "短视频、课程、直播、客服、品牌 IP；论文、开源权重或生产 SLA。"
+    detail_level: moderate
+uncertain:
+  - "具体开源模型在当前 Mac 上的实际生成速度"
+  - "商业服务未来价格、并发和数据留存政策"
+  - "各模型权重与基础模型组合后的完整商用许可"

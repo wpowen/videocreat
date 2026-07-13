@@ -948,6 +948,7 @@ function usage() {
   console.log(`Usage:
   poc-video-workflow.mjs --brief <brief.json> --out <dir> [--mode recommended|fallback] [--duration seconds]
     [--generation-mode full-auto|semi-auto|custom]
+    [--layered-motion auto|off|semantic-path|layered-reveal] [--layered-motion-intensity subtle|balanced|cinematic]
     [--provided-audio <wav|m4a|mp3>] [--provided-audio-trim-start seconds] [--provided-audio-trim-end seconds]
     [--audio-gender male|female] [--voice-gender male|female]
     [--voice-backend auto|cosyvoice_local|melotts_local|say] [--allow-say-fallback]
@@ -1783,7 +1784,7 @@ function sceneListHtml(frames, labels) {
 function writeDeliveryPage({ out, brief, manifest, qc = null, frames = [], renderer, voiceBackend, imageSource }) {
   const language = deliveryLanguage(brief);
   const labels = deliveryLabels(language);
-  const canvas = brief.canvas || canvasForBrief(brief);
+  const canvas = canvasForBrief(brief);
   const videoAspectCss = `${canvas.width} / ${canvas.height}`;
   const videoInternalCover = coverFileForCanvas(canvas);
   const coverDesign = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
@@ -7999,17 +8000,18 @@ function image2PromptForPage(template, page, brief) {
   const explainerBoard = page.visualAssetDecision?.explainerBoard || image2ExplainerBoardRouteForPage({ brief, page, frame: page.frame });
   if (explainerBoard.active) {
     return [
-      "生成一张 16:9 横版讲解型信息图分镜底图，用于视频场景素材，不是最终 PPT 页面，也不是可直接发布的完整幻灯片。",
+      "生成一张 16:9 横版讲解型分层视觉源板，用于视频场景素材，不是最终 PPT 页面，也不是可直接发布的完整幻灯片。",
       styleHint,
-      "视觉方向：柔和、友好、公共教育插画气质；高信息密度的政策简报式图解结构；允许画面信息密集，但不要生成密集可读文字。",
-      "版式：多模块 explainer board，包含问题区、中心流程/因果链、证据或对比模块、图标角色、箭头连接、底部结论条和留白标签牌；每个模块都要能被视频裁切成单独分镜。",
+      "视觉方向：继承高质量个人 IP 图解的设计 DNA，但不复制人物身份；近白暖纸背景、黑色手绘墨线、克制橙红与蓝色标记、轻微纸张纹理、自然留白、明确前中后景。",
+      "版式：只保留一个主视觉隐喻或核心动作，最多两个辅助对象。主体必须参与因果、比较、选择、升级、连接或收束，不要把内容拆成多个等权卡片、仪表盘或培训讲义模块。",
+      "分层要求：背景纸张/环境、主视觉对象、可独立运动的前景对象、语义连接路径、焦点标记分别可被后续 HTML/SVG 动画使用；画面中央和字幕安全区不能被装饰占用。",
       `场景角色：${page.visualRole}。主题：${page.frame.headline.join(" / ")}。`,
       `叙事用途：${page.imageRole}。`,
       `分镜拆分：${explainerBoard.storyboardSplitPlan.join("；")}。`,
       contentBinding,
       "严格不要模仿或提及任何命名画风、真实机构风格、品牌、IP、logo、真实人物或社区示例的原始布局。",
       "不要生成中文正文、伪中文、伪日文、随机字母、随机数字、水印、平台 UI、二维码或细碎表格文字；只保留空白标签牌、抽象占位短线、图标、框线、箭头和视觉层级。",
-      "给上方/侧边标题区和底部字幕带留安全区；主体模块之间要有足够间距，避免后续 HTML/SVG 文字覆盖主体。",
+      "给上方/侧边单一标题区和底部字幕带留安全区；明确视觉焦点，避免后续 HTML/SVG 文字覆盖主体。拒绝多模块信息板、等宽卡片网格、后台 UI、PPT 模板感和无意义装饰。",
     ].join("");
   }
   if (ipAssignment) {
@@ -10727,6 +10729,124 @@ function buildUiUxProMaxDesignIntelligence({ brief, frames, videoType, styleProf
   };
 }
 
+function normalizeLayeredMotionMode(value) {
+  if (value === false) return "off";
+  if (value === true) return "semantic-path";
+  const text = String(value || "").trim().toLowerCase();
+  if (!text || /^(auto|automatic)$/i.test(text)) return "auto";
+  if (/^(off|none|disabled|false)$/i.test(text) || /关闭|禁用|不要分层/.test(text)) return "off";
+  if (/semantic[-_ ]?path|path[-_ ]?draw|connector|timeline|动画线|路径|连线|轨迹/.test(text)) return "semantic-path";
+  if (/layered[-_ ]?reveal|progressive|分层|逐层|逐步/.test(text)) return "layered-reveal";
+  return "auto";
+}
+
+function layeredMotionSignals(brief = {}, frames = []) {
+  const text = [
+    brief.title,
+    brief.objective,
+    brief.notes,
+    brief.visualStyle,
+    brief.motionStyle,
+    typeof brief.layeredMotion === "string" ? brief.layeredMotion : "",
+    ...frames.flatMap((frame) => [
+      frame.label,
+      ...(frame.headline || []),
+      frame.body,
+      frame.subtitle,
+      frame.motionRole,
+      frame.layeredMotion,
+    ]),
+  ].filter(Boolean).join(" ");
+  return {
+    text,
+    semanticPath: /动画线|路径绘制|连线动画|轨迹绘制|沿(?:着)?路径|semantic[-_ ]?path|path[-_ ]?draw|connector[-_ ]?motion/i.test(text),
+    layeredReveal: /分层动画|按层(?:分开)?|逐层(?:出现|展示|揭示)|分批展示元素|layered[-_ ]?motion|layered[-_ ]?reveal/i.test(text),
+  };
+}
+
+function buildLayeredMotionPlan({ brief = {}, pages = [] } = {}) {
+  const requested = brief.layeredMotion;
+  const requestedObject = requested && typeof requested === "object" ? requested : {};
+  const signals = layeredMotionSignals(brief, pages.map((page) => page.frame || {}));
+  const explicit = requested !== undefined || brief.semanticLayerMotion !== undefined;
+  const rawMode = requestedObject.mode
+    ?? requestedObject.type
+    ?? brief.semanticLayerMotion
+    ?? requested;
+  let mode = normalizeLayeredMotionMode(rawMode);
+  const explicitlyDisabled = requestedObject.enabled === false || mode === "off";
+  const explicitlyEnabled = requestedObject.enabled === true || (explicit && mode !== "auto" && mode !== "off");
+  if (mode === "auto") {
+    mode = signals.semanticPath ? "semantic-path" : signals.layeredReveal ? "layered-reveal" : "off";
+  }
+  const active = !explicitlyDisabled && (explicitlyEnabled || mode !== "off");
+  const effectiveMode = active ? mode : "off";
+  const intensity = String(requestedObject.intensity || brief.layeredMotionIntensity || "balanced");
+  const revealOrder = String(requestedObject.revealOrder || "progressive");
+  const zBands = { base: 0, structure: 10, motion: 20, content: 30, foreground: 40, subtitle: 100 };
+  const scenePlans = pages.map((page, index) => {
+    const frame = page.frame || {};
+    const sceneText = [frame.label, ...(frame.headline || []), frame.body, frame.subtitle, frame.motionRole].filter(Boolean).join(" ");
+    const pathScene = /路径|流程|步骤|阶段|升级|时间线|链路|证据|因果|关系|route|path|process|timeline|step|proof|cause/i.test(sceneText)
+      || frame.motionRole === "semantic-path";
+    const sceneActive = active && (effectiveMode === "layered-reveal" || pathScene || pages.length === 1);
+    const selectedBaseTemplate = /证据|因果|关系|proof|evidence|cause/i.test(sceneText)
+      ? "interactive-proof-board"
+      : "semantic-timeline-reveal";
+    return {
+      sceneId: page.id,
+      order: index + 1,
+      active: sceneActive,
+      mode: sceneActive ? effectiveMode : "off",
+      selectedBaseTemplate,
+      semanticJob: pathScene ? "draw-relationship-without-covering-readable-content" : "progressive-content-reveal",
+      layerOrder: ["atomic-or-framework-base", "structure", "motion-path", "readable-content", "foreground-accent", "subtitle"],
+      linePolicy: "animated paths stay inside their semantic module and below opaque content cards",
+      finalStatePolicy: "all required content visible and complete",
+    };
+  });
+  return {
+    schemaVersion: 1,
+    status: active ? "active" : "inactive",
+    mode: effectiveMode,
+    intensity,
+    revealOrder,
+    trigger: {
+      source: explicit ? "brief.layeredMotion" : signals.semanticPath || signals.layeredReveal ? "natural-language-signal" : "not-triggered",
+      explicit,
+      matchedSignals: [signals.semanticPath ? "semantic-path" : "", signals.layeredReveal ? "layered-reveal" : ""].filter(Boolean),
+    },
+    personalIpPolicy: "preserve-native-page-as-immutable-base",
+    designInheritance: active ? {
+      source: "personal-ip-visual-dna",
+      target: "default-html-layered-motion",
+      borrowedTraits: [
+        "warm-paper-surface",
+        "ink-outline",
+        "organic-corners",
+        "offset-tactile-shadow",
+        "orange-blue-marker-accents",
+        "single-text-owner",
+      ],
+      identityBoundary: "borrow visual design grammar without activating or imitating a personal identity",
+      textOwnership: "outer scene owns one headline; motion board owns semantic nodes; subtitles own exact narration",
+    } : null,
+    zBands,
+    scenePlans,
+    requiredEvidence: [
+      "workflow/layered-motion-plan.json",
+      "workflow/frame-layout-overlap-audit.json",
+      "screenshots/opening-middle-ending",
+    ],
+    rejectList: [
+      "motion path above readable text",
+      "animation escaping its semantic module",
+      "native personal-IP page cropped or replaced",
+      "incomplete final state",
+    ],
+  };
+}
+
 function buildDesignPlan({ brief, frames, imageSource }) {
   const videoType = inferVideoType(brief, frames);
   const baseTemplate = DESIGN_TEMPLATES[videoType] || DESIGN_TEMPLATES["professional-explainer"];
@@ -10890,6 +11010,11 @@ function buildDesignPlan({ brief, frames, imageSource }) {
     pages,
     plan: visualSeriesRoutingPlan,
   });
+  const layeredMotionPlan = buildLayeredMotionPlan({ brief, pages });
+  const layeredMotionByScene = new Map(layeredMotionPlan.scenePlans.map((scene) => [scene.sceneId, scene]));
+  for (const page of pages) {
+    page.layeredMotion = layeredMotionByScene.get(page.id) || null;
+  }
   for (const page of pages) {
     const pageTemplate = {
       ...template,
@@ -10928,6 +11053,7 @@ function buildDesignPlan({ brief, frames, imageSource }) {
     aestheticDirection,
     ipDiagramCreatorPlan,
     visualSeriesRoutingPlan,
+    layeredMotionPlan,
     rules: [
       "Video must not be only text cards; each scene needs an inserted illustration or visual metaphor layer.",
       "Image prompts are image2-compatible and rights-safe; local SVG fallback remains deterministic.",
@@ -11010,6 +11136,10 @@ function motionTemplateForPage(page = {}, index = 0, total = 1, designPlan = {})
   const layoutVariant = page.layoutVariant || page.designPlatformInfluence?.layoutVariant || designPlatformLayoutVariant(null, null, index);
   const explicit = capabilitySlug(frame.motionTemplate || frame.htmlMotionTemplate || frame.templateId || "");
   const explicitRegistered = explicit && MOTION_TEMPLATE_IMPLEMENTATION_PATHS[explicit];
+  const layeredTemplate = page.layeredMotion?.active
+    && MOTION_TEMPLATE_IMPLEMENTATION_PATHS[page.layeredMotion.selectedBaseTemplate]
+    ? page.layeredMotion.selectedBaseTemplate
+    : "";
   const hasProductSurface = Boolean(frame.productSurface || frame.productFlow || frame.uiFlow || page.productSurface)
     || hasProductSurfaceIntent(text);
   const processLike = /model|workflow|tutorial|process|流程|步骤|方法|清单|阶段|链路|timeline|semantic-timeline/i.test(text)
@@ -11026,6 +11156,8 @@ function motionTemplateForPage(page = {}, index = 0, total = 1, designPlan = {})
     ? explicit
     : dataLike
       ? "data-curve-trace"
+      : layeredTemplate
+        ? layeredTemplate
       : typedOpenerLike
         ? "typed-black-white-opener"
         : ipAssignment?.mode === "agent-collaboration-diagram"
@@ -12212,6 +12344,7 @@ function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode
       "workflow/page-decision-contract.json",
       "workflow/caption-style-plan.json",
       "workflow/motion-template-selection.json",
+      "workflow/layered-motion-plan.json",
       "workflow/motion-style-template-selection.json",
       "workflow/motion-style-plan.json",
       "workflow/quality-consistency-contract.json",
@@ -12357,6 +12490,7 @@ function buildQualityConsistencyContract({ brief, designPlan, motionSelection })
         "noVerticalBackgroundJump",
       ] : []),
       "whiteboardLayeredRevealContractPresent",
+      "layeredMotionPlanPresent",
       "galaceanEffectsPlanPresent",
       "galaceanEffectsCaptionSafe",
       "galaceanEffectsRightsRecorded",
@@ -12451,6 +12585,7 @@ function buildQualityConsistencyContract({ brief, designPlan, motionSelection })
       "workflow/aesthetic-brief.json",
       "workflow/aesthetic-quality-rubric.md",
       "workflow/motion-template-selection.json",
+      "workflow/layered-motion-plan.json",
       "workflow/motion-style-template-selection.json",
       "workflow/motion-style-plan.json",
       "workflow/production-plan.json",
@@ -12538,6 +12673,7 @@ function buildQualityConsistencyContract({ brief, designPlan, motionSelection })
       designPlatformInfluence: page.designPlatformInfluence,
       ipDiagramCreatorAssignment: page.ipDiagramCreatorAssignment || null,
       galaceanEffect: page.galaceanEffect || null,
+      layeredMotion: page.layeredMotion || null,
       motion: page.motion,
       visualRhythm: page.visualRhythm,
       pageDecisionContract: `workflow/page-decision-contract.json#${page.id}`,
@@ -13293,6 +13429,56 @@ function briefRequestsIpDiagramNativeDirectUse(brief = {}) {
 
 function briefRequestsPersonalIpNativeSkillRoute(brief = {}) {
   return personalIpIntentForBrief(brief).active;
+}
+
+function normalizePersonalIpAnimationChoice(value) {
+  if (value === false || value === 0) return "off";
+  if (value === true || value === 1) return "subtle";
+  const text = String(value ?? "").trim().toLowerCase();
+  if (!text) return "";
+  if (/^(?:off|none|false|disabled|no|static)$/i.test(text) || /不要动画|无动画|静态/.test(text)) return "off";
+  if (/semantic[-_ ]?layers?|layered[-_ ]?svg|svg[-_ ]?html|语义分层|分层输出/.test(text)) return "semantic-layers";
+  if (/draw[-_ ]?reveal|full[-_ ]?draw|绘制揭示|完整绘制|手绘展开/.test(text)) return "draw-reveal";
+  if (/subtle|on|true|enabled|animation|motion|轻微|克制|动画|动效/.test(text)) return "subtle";
+  return "";
+}
+
+function personalIpAnimationChoiceForBrief(brief = {}, active = false, personalIpRouteRequested = false) {
+  if (!active) return "off";
+  if (!personalIpRouteRequested) return "subtle";
+  const personalIp = brief.personalIp && typeof brief.personalIp === "object" ? brief.personalIp : {};
+  const ipDiagram = brief.ipDiagramCreator && typeof brief.ipDiagramCreator === "object" ? brief.ipDiagramCreator : {};
+  const explicitCandidates = [
+    brief.personalIpAnimation,
+    brief.addHandDrawnImageAnimation,
+    brief.handDrawnImageAnimation,
+    personalIp.animation,
+    personalIp.motion,
+    personalIp.addHandDrawnImageAnimation,
+    ipDiagram.addHandDrawnImageAnimation,
+  ];
+  for (const candidate of explicitCandidates) {
+    if (candidate === undefined || candidate === null || candidate === "") continue;
+    return normalizePersonalIpAnimationChoice(candidate) || "off";
+  }
+  const text = [
+    brief.title,
+    brief.objective,
+    brief.notes,
+    brief.visualStyle,
+    brief.motionStyle,
+    ...((Array.isArray(brief.scenes) ? brief.scenes : []).flatMap((scene) => [
+      scene.label,
+      scene.body,
+      scene.subtitle,
+      scene.visualStyle,
+      scene.motionStyle,
+    ])),
+  ].filter(Boolean).join(" ");
+  const withoutNegatedAnimation = text.replace(/(?:不要|无需|关闭|禁用|没有|无)\s*(?:个人\s*IP\s*)?(?:分层|手绘|路径|交互|语义)?\s*(?:动画|动效)/gi, " ");
+  const combinedSignal = /个人\s*IP[\s+＋加与和结合配合带]*?(?:分层|手绘|路径|交互|语义)?\s*(?:动画|动效)/i.test(withoutNegatedAnimation)
+    || /(?:动画|动效)[\s+＋加与和结合配合带]*?个人\s*IP/i.test(withoutNegatedAnimation);
+  return combinedSignal ? "subtle" : "off";
 }
 
 function briefRequestsIpDiagramNativeFinalVideo(brief = {}) {
@@ -14874,7 +15060,7 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
 	    executionModes,
 	    userChoices: {
 	      makePersonalIp: active && personalIpNativeRouteRequested ? "auto" : "off",
-	      addHandDrawnImageAnimation: active ? "subtle" : "off",
+	      addHandDrawnImageAnimation: personalIpAnimationChoiceForBrief(brief, active, personalIpNativeRouteRequested),
 	      speakerPersonaPolicy: dialogueSpeakerBindings.active ? "bind-each-speaker-to-stable-persona" : "single-persona-or-none",
 	      resolvedBy: "brief-routing-signals",
 	      personalIpAssetRegistry: personalIpAssetRegistry.library?.manifestPath || null,
@@ -16679,6 +16865,7 @@ function writeAestheticArtifacts({ out, brief, designPlan }) {
   });
   writeJson(join(out, "workflow", "aesthetic-brief.json"), designPlan.aestheticDirection);
   writeJson(join(out, "workflow", "motion-template-selection.json"), motionSelection);
+  writeJson(join(out, "workflow", "layered-motion-plan.json"), designPlan.layeredMotionPlan || buildLayeredMotionPlan({ brief, pages: designPlan.pages || [] }));
   writeJson(join(out, "workflow", "motion-style-plan.json"), motionStylePlan);
   writeJson(join(out, "workflow", "motion-style-template-selection.json"), motionStyleTemplateSelection);
   writeJson(join(out, "workflow", "quality-consistency-contract.json"), buildQualityConsistencyContract({ brief, designPlan, motionSelection }));
@@ -17263,11 +17450,17 @@ function explainerBoardFallbackSvg(page, frame, index) {
 </svg>`;
 }
 
+function sanitizeVisibleSvgText(value) {
+  return String(value || "")
+    .replace(/(?:…+|\.\.\.)/gu, "")
+    .trim();
+}
+
 function localIllustrationSvg(page, frame, index) {
   const palette = palettes[frame.palette] || palettes.blue;
   const theme = visualThemeForPage(page);
   const ink = theme.ink;
-  const title = esc(frame.headline[0] || frame.label);
+  const title = esc(sanitizeVisibleSvgText(frame.headline[0] || frame.label));
   if (explainerBoardOwnsFinalFrame(page)) {
     return explainerBoardFallbackSvg(page, frame, index);
   }
@@ -17289,7 +17482,7 @@ function localIllustrationSvg(page, frame, index) {
     const y = 420 + (i % 2) * 86;
     return `<g class="node" transform="translate(${x} ${y})">
       <circle r="54" fill="${theme.plate}" stroke="${ink}" stroke-width="6"/>
-      <text x="0" y="10" text-anchor="middle" font-size="34" font-weight="900" fill="${ink}" font-family="PingFang SC, sans-serif">${esc(node)}</text>
+      <text x="0" y="10" text-anchor="middle" font-size="34" font-weight="900" fill="${ink}" font-family="PingFang SC, sans-serif">${esc(sanitizeVisibleSvgText(node))}</text>
     </g>`;
   }).join("\n");
   const connectorMarkup = nodes.slice(0, -1).map((_, i) => {
@@ -18076,7 +18269,7 @@ function sceneTemplateLabels(page = {}, frame = {}, grammar = {}, max = 4) {
     ...(Array.isArray(frame.headline) ? frame.headline : []),
     frame.body,
     frame.subtitle,
-    page.visualRole,
+    viewerVisualRoleLabel(page.visualRole),
     grammar.dataBinding,
     grammar.visualEncoding,
   ].filter(Boolean);
@@ -18108,9 +18301,11 @@ function motionTemplateSceneMarkup(page = {}, frame = {}, index = 0, total = 1, 
   const footer = `<footer><span>${escVisible(support)}</span><b>${escVisible(labels[3])}</b></footer>`;
 
   if (templateSlug.includes("semantic-timeline") || grammar.component === "causal-chain" || grammar.component === "timeline-ribbon") {
-    return `<section class="scene-motion-board template-timeline-board" data-motion-board="semantic-timeline-reveal" data-motion-template="${esc(selectedTemplate)}">
+    const semanticPath = page.layeredMotion?.active ? `<svg class="template-semantic-path" viewBox="0 0 100 420" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M11 28 C7 112 16 210 10 292 C8 346 14 382 12 410"/></svg>` : "";
+    return `<section class="scene-motion-board template-timeline-board" data-motion-board="semantic-timeline-reveal" data-motion-template="${esc(selectedTemplate)}" data-layered-motion="${page.layeredMotion?.active ? esc(page.layeredMotion.mode) : "off"}">
       ${header}
       <div class="template-timeline-track">
+        ${semanticPath}
         ${labels.slice(0, 4).map((label, i) => `<article style="--i:${i}" class="${i === index % 4 ? "is-active" : ""}">
           <i>${semanticMarks[i] || "点"}</i>
           <strong>${escVisible(label)}</strong>
@@ -18126,9 +18321,11 @@ function motionTemplateSceneMarkup(page = {}, frame = {}, index = 0, total = 1, 
       ["承受", labels[1]],
       ["判决", labels[2]],
     ];
-    return `<section class="scene-motion-board template-proof-board" data-motion-board="interactive-proof-board" data-motion-template="${esc(selectedTemplate)}">
+    const semanticPath = page.layeredMotion?.active ? `<svg class="template-semantic-path is-horizontal" viewBox="0 0 720 220" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M54 112 C194 78 286 150 364 112 S548 74 666 112"/></svg>` : "";
+    return `<section class="scene-motion-board template-proof-board" data-motion-board="interactive-proof-board" data-motion-template="${esc(selectedTemplate)}" data-layered-motion="${page.layeredMotion?.active ? esc(page.layeredMotion.mode) : "off"}">
       ${header}
       <div class="template-proof-stack">
+        ${semanticPath}
         ${cards.map((card, i) => `<article style="--i:${i}" class="${i === 2 ? "is-result" : ""}">
           <span>${escVisible(card[0])}</span>
           <strong>${escVisible(card[1])}</strong>
@@ -18461,6 +18658,37 @@ function ipDiagramTemplateAdaptationMarkup(page = {}, frame = {}, index = 0, sce
       </div>`;
 }
 
+function whiteboardForegroundSketchMarkup(page = {}) {
+  const frame = page.frame || {};
+  const signal = [
+    page.styleArchetype,
+    page.styleLabel,
+    frame.visualStyle,
+    frame.motionLibrary,
+  ].filter(Boolean).join(" ");
+  if (!/whiteboard|whiteboard-lesson|roughjs|手绘|白板|板书|草图/i.test(signal)) return "";
+  return `<div class="ip-whiteboard-sketch-layer whiteboard-foreground-layer" data-whiteboard-reveal="semantic-foreground-groups-only" data-layer-owner="whiteboard-layered-reveal" aria-hidden="true">
+      <svg viewBox="0 0 1080 1920" preserveAspectRatio="none" role="presentation">
+        <path class="sketch-loop one" d="M120 360 C250 250 520 250 650 370 C760 470 690 650 490 690 C270 730 80 590 120 360 Z" />
+        <path class="sketch-loop two" d="M470 920 C620 820 930 860 980 1090 C1020 1280 760 1390 560 1290 C420 1220 360 1010 470 920 Z" />
+        <path class="sketch-arrow" d="M300 760 C430 820 550 830 670 900 M642 852 L680 904 L618 916" />
+      </svg>
+    </div>`;
+}
+
+function creatorDesignDnaMarkup(page = {}, palette = palettes.orange) {
+  if (!page.layeredMotion?.active || page.primaryVisualSystem === "ip-diagram-creator") return "";
+  return `<div class="creator-design-dna" data-design-language="personal-ip-derived-editorial" data-layer-owner="creator-aesthetic-structure" aria-hidden="true">
+      <span class="creator-tape creator-tape-one"></span>
+      <span class="creator-tape creator-tape-two"></span>
+      <svg class="creator-margin-sketch" viewBox="0 0 1080 1920" preserveAspectRatio="none" role="presentation">
+        <path class="creator-sketch-stroke creator-sketch-bracket" d="M54 350 C28 520 32 770 58 930" pathLength="1" />
+        <path class="creator-sketch-stroke creator-sketch-swoop" d="M118 1400 C310 1480 560 1470 782 1392" pathLength="1" />
+        <path class="creator-sketch-stroke creator-sketch-tick" d="M872 304 L914 346 L994 246" pathLength="1" />
+      </svg>
+    </div>`;
+}
+
 function ipDiagramPersonaVisualMarkup(page = {}, personaLabel = "主讲人") {
   const personas = Array.isArray(page.personalIpFixedPersonas) && page.personalIpFixedPersonas.length
     ? page.personalIpFixedPersonas
@@ -18627,6 +18855,8 @@ function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) 
   const ipCapabilityMarkup = ipDiagramCreatorStageMarkup(page, frame, index, sceneMotionTemplate);
   const proofCapabilityMarkup = capabilityProofMarkup(page, index, total, palette, theme);
   const galaceanMarkup = galaceanEffectLayerMarkup(page, index, total, palette, theme, canvas);
+  const whiteboardMarkup = whiteboardForegroundSketchMarkup(page);
+  const creatorDesignDna = creatorDesignDnaMarkup(page, palette);
   const capabilityClasses = new Set(capabilityClassForPage(page, index, total).split(/\s+/).filter(Boolean));
   if (ipCapabilityMarkup) {
     capabilityClasses.add("capability-visual-stage");
@@ -18636,6 +18866,14 @@ function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) 
   if (galaceanMarkup) {
     capabilityClasses.add("has-galacean-effect");
     capabilityEvidenceIds.push("galacean-visual-effects-layer");
+  }
+  if (whiteboardMarkup) {
+    capabilityClasses.add("has-whiteboard-reveal");
+    capabilityEvidenceIds.push("whiteboard-layered-reveal");
+  }
+  if (creatorDesignDna) {
+    capabilityClasses.add("creator-design-dna-stage");
+    capabilityEvidenceIds.push("personal-ip-derived-design-dna");
   }
   const capabilityClass = [...capabilityClasses].join(" ");
   const motionTemplateClass = `motion-template-${capabilitySlug(sceneMotionTemplate.selectedTemplate)}`;
@@ -18683,10 +18921,15 @@ function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) 
   const captionMarkup = captionCues.map((cue) =>
     `<span class="caption-cue" style="animation-delay:${cue.start.toFixed(3)}s;animation-duration:${cue.duration.toFixed(3)}s"><span class="caption-cue-text">${captionCueHtml(cue.text, captionStyle.emphasisPlan)}</span></span>`
   ).join("\n");
-  const headline = frame.headline
+  const displayHeadlineLines = templateSceneVisual && page.layeredMotion?.active
+    ? frame.headline.slice(0, 1)
+    : frame.headline;
+  const headline = displayHeadlineLines
     .map((line, i) => `<span class="line line-${i + 1}" style="--line-size:${headlineFontSizeForLine(viewerFacingText(line), constrainedTextStage)}px">${escVisible(line)}</span>`)
     .join("\n");
-  const bodyMarkup = proofCapabilityMarkup ? "" : contentBriefMarkup(frame, page);
+  const bodyMarkup = proofCapabilityMarkup || (templateSceneVisual && page.layeredMotion?.active)
+    ? ""
+    : contentBriefMarkup(frame, page);
   const motionNoteLabel = conciseScreenLabel(frame.headline?.[0] || frame.label, "要点");
   const textInfoLabel = textPresentation.infoLayerLabel || motionNoteLabel;
   const textInfoMeta = textPresentation.semanticInfo || typographyMotion.sceneJob || page.visualRole || "scene text";
@@ -21586,6 +21829,161 @@ body {
   color: ${theme.ink};
   animation: templateBoardIn .72s cubic-bezier(.19,.82,.22,1) .38s both;
 }
+.stage.creator-design-dna-stage {
+  --creator-orange: #f06428;
+  --creator-blue: #2f6fd6;
+  --creator-paper: #fffaf0;
+  --creator-ink: #191713;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(240,100,40,.08), transparent 24%),
+    radial-gradient(circle at 86% 68%, rgba(47,111,214,.07), transparent 26%),
+    repeating-linear-gradient(0deg, rgba(25,23,19,.018) 0 1px, transparent 1px 7px),
+    var(--creator-paper) !important;
+  color: var(--creator-ink);
+}
+.stage.creator-design-dna-stage::before {
+  background:
+    linear-gradient(90deg, rgba(255,250,240,.98) 0%, rgba(255,250,240,.94) 52%, rgba(255,250,240,.56) 100%),
+    radial-gradient(circle at 82% 16%, rgba(240,100,40,.12), transparent 31%) !important;
+}
+.stage.creator-design-dna-stage::after {
+  opacity: .055 !important;
+  background:
+    radial-gradient(circle at 12% 82%, var(--creator-ink) 0 2px, transparent 3px),
+    radial-gradient(circle at 88% 24%, var(--creator-orange) 0 2px, transparent 3px) !important;
+}
+.creator-design-dna {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.creator-margin-sketch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.creator-sketch-stroke {
+  fill: none;
+  stroke: var(--creator-orange);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: .78;
+  animation: templateSemanticPathDraw 1.25s cubic-bezier(.16,1,.3,1) .48s both;
+}
+.creator-sketch-bracket { stroke: var(--creator-blue); stroke-width: 6; opacity: .44; animation-delay: .68s; }
+.creator-sketch-swoop { animation-delay: .84s; }
+.creator-sketch-tick { stroke-width: 10; animation-delay: 1.02s; }
+.creator-tape {
+  position: absolute;
+  width: 132px;
+  height: 32px;
+  border: 1px solid rgba(25,23,19,.09);
+  background: rgba(240,100,40,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.36);
+}
+.creator-tape-one { left: 102px; top: 106px; transform: rotate(-4deg); }
+.creator-tape-two { right: 118px; top: 680px; background: rgba(47,111,214,.14); transform: rotate(5deg); }
+.stage.creator-design-dna-stage .headline {
+  padding: 20px 24px 22px 30px !important;
+  border: 4px solid var(--creator-ink);
+  border-radius: 28px 20px 34px 18px;
+  background: rgba(255,253,247,.96);
+  box-shadow: 12px 14px 0 rgba(25,23,19,.10);
+}
+.stage.creator-design-dna-stage .headline::after {
+  content: "";
+  position: absolute;
+  left: 30px;
+  bottom: 12px;
+  width: 42%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--creator-orange);
+  transform: rotate(-1.5deg) scaleX(0);
+  transform-origin: left;
+  animation: creatorUnderline 1s cubic-bezier(.16,1,.3,1) .72s both;
+}
+.stage.creator-design-dna-stage .body.content-brief {
+  padding: 22px 24px !important;
+  border: 4px solid var(--creator-ink) !important;
+  border-radius: 18px 30px 20px 28px !important;
+  background: rgba(255,253,247,.95) !important;
+  box-shadow: 12px 14px 0 rgba(25,23,19,.09) !important;
+}
+.stage.creator-design-dna-stage .content-eyebrow {
+  color: var(--creator-orange) !important;
+}
+.stage.creator-design-dna-stage .content-points span {
+  border: 3px solid var(--creator-ink) !important;
+  border-radius: 999px 880px 999px 820px !important;
+  background: #fff !important;
+  box-shadow: 4px 5px 0 rgba(25,23,19,.08);
+}
+.stage.creator-design-dna-stage .depth-strip {
+  display: none;
+}
+.stage.creator-design-dna-stage .scene-motion-board {
+  border: 5px solid var(--creator-ink);
+  border-radius: 34px 22px 38px 26px;
+  background:
+    repeating-linear-gradient(0deg, rgba(25,23,19,.018) 0 1px, transparent 1px 7px),
+    rgba(255,253,247,.98);
+  box-shadow: 16px 18px 0 rgba(25,23,19,.11), 0 30px 70px rgba(25,23,19,.10);
+}
+.stage.creator-design-dna-stage .scene-motion-board::before {
+  inset: 16px;
+  border: 2px dashed rgba(25,23,19,.20);
+  border-radius: 26px 18px 30px 20px;
+}
+.stage.creator-design-dna-stage .scene-motion-board header em {
+  padding: 8px 14px;
+  border: 3px solid var(--creator-orange);
+  border-radius: 999px;
+  color: var(--creator-orange);
+  transform: rotate(2deg);
+}
+.stage.creator-design-dna-stage .scene-motion-board header strong {
+  display: none;
+}
+.stage.creator-design-dna-stage .scene-motion-board footer {
+  border-top: 3px solid rgba(25,23,19,.20);
+}
+.stage.creator-design-dna-stage .scene-motion-board footer b {
+  border: 3px solid var(--creator-ink);
+  background: var(--creator-orange);
+  box-shadow: 5px 6px 0 rgba(25,23,19,.10);
+}
+.stage.creator-design-dna-stage .template-timeline-track article,
+.stage.creator-design-dna-stage .template-proof-stack article,
+.stage.creator-design-dna-stage .template-contrast-grid article {
+  border: 3px solid var(--creator-ink);
+  border-radius: 18px 12px 22px 14px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 7px 8px 0 rgba(25,23,19,.08);
+}
+.stage.creator-design-dna-stage .template-timeline-track article:nth-of-type(even) {
+  transform: translateX(30px) rotate(.7deg);
+}
+.stage.creator-design-dna-stage .template-timeline-track article.is-active,
+.stage.creator-design-dna-stage .template-contrast-grid article.is-target {
+  border-color: var(--creator-orange);
+  background: color-mix(in srgb, #fff, var(--creator-orange) 9%);
+}
+.stage.creator-design-dna-stage .template-semantic-path path {
+  stroke: var(--creator-blue);
+  stroke-width: 7;
+}
+@keyframes creatorUnderline { to { transform: rotate(-1.5deg) scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .creator-sketch-stroke,
+  .stage.creator-design-dna-stage .headline::after { animation: none; stroke-dashoffset: 0; transform: none; }
+}
 .scene-motion-board::before {
   content: "";
   position: absolute;
@@ -21706,8 +22104,11 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  isolation: isolate;
 }
 .template-proof-stack article {
+  position: relative;
+  z-index: 1;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -21732,9 +22133,11 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+  isolation: isolate;
 }
 .template-timeline-track article {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr);
   align-items: center;
@@ -21762,6 +22165,37 @@ body {
   font-size: 32px;
   line-height: 1.08;
   font-weight: 930;
+}
+.template-semantic-path {
+  position: absolute;
+  inset: 4px auto 4px 24px;
+  z-index: 0;
+  width: 72px;
+  height: calc(100% - 8px);
+  overflow: visible;
+  pointer-events: none;
+}
+.template-semantic-path.is-horizontal {
+  inset: 18% 2% auto 2%;
+  width: 96%;
+  height: 64%;
+}
+.template-semantic-path path {
+  fill: none;
+  stroke: ${palette.accent};
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: .72;
+  animation: templateSemanticPathDraw 1.15s cubic-bezier(.19,.82,.22,1) .44s both;
+}
+@keyframes templateSemanticPathDraw {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .template-semantic-path path { animation: none; stroke-dashoffset: 0; }
 }
 .template-resolution-mark {
   display: grid;
@@ -22936,6 +23370,11 @@ body {
   z-index: 2;
   pointer-events: none;
 }
+.ip-whiteboard-sketch-layer.whiteboard-foreground-layer {
+  inset: 230px 72px 280px;
+  z-index: 2;
+  opacity: .44;
+}
 .ip-whiteboard-sketch-layer {
   z-index: 5;
   opacity: .52;
@@ -23990,6 +24429,23 @@ ${canvas.vertical ? `
 .stage.has-template-scene-visual .template-timeline-track strong {
   font-size: 30px;
 }
+.stage.creator-design-dna-stage.has-template-scene-visual .headline,
+.stage.creator-design-dna-stage.has-template-scene-visual[class*="text-mode-"] .headline {
+  top: 210px !important;
+  width: 820px !important;
+  max-width: 820px !important;
+}
+.stage.creator-design-dna-stage.has-template-scene-visual .scene-motion-board {
+  top: 530px;
+  height: 820px;
+}
+.stage.creator-design-dna-stage.has-template-scene-visual .template-contrast-grid,
+.stage.creator-design-dna-stage.has-template-scene-visual .template-proof-stack,
+.stage.creator-design-dna-stage.has-template-scene-visual .template-timeline-track,
+.stage.creator-design-dna-stage.has-template-scene-visual .template-resolution-mark {
+  top: 112px;
+  bottom: 134px;
+}
 ` : ""}
 </style>
 </head>
@@ -23998,6 +24454,8 @@ ${canvas.vertical ? `
     ${chromeMarkup}
     ${platformOverlay}
     ${styleSignature}
+    ${creatorDesignDna}
+    ${whiteboardMarkup}
     ${galaceanMarkup}
     ${mainVisualMarkup}
     <div class="depth-strip"></div>
@@ -26745,7 +27203,14 @@ function personalIpNativeFinalRouteState(designPlan = {}) {
   };
 }
 
+function personalIpSemanticLayerRouteSelected(designPlan = {}) {
+  const route = personalIpNativeFinalRouteState(designPlan);
+  const animation = String(designPlan.ipDiagramCreatorPlan?.userChoices?.addHandDrawnImageAnimation || "off").trim().toLowerCase();
+  return route.requiredByPersonalIpRoute && animation !== "off";
+}
+
 function assertPersonalIpNativeFinalNotBlocked({ designPlan = {}, stage = "render" } = {}) {
+  if (personalIpSemanticLayerRouteSelected(designPlan)) return;
   const route = personalIpNativeFinalRouteState(designPlan);
   if (!route.requiredByPersonalIpRoute) return;
   if (!route.requestedNow || !route.selectedNow) {
@@ -26851,10 +27316,79 @@ function renderWithIpDiagramNativePages({ out, brief = {}, audio, designPlan }) 
     "--height", String(canvas.height),
     "--personal-ip", userChoices.makePersonalIp || "auto",
     "--hand-drawn-animation", userChoices.addHandDrawnImageAnimation || "subtle",
+    "--allow-incomplete-native-final", "true",
   ], { cwd: ROOT, category: "render-native-ip-diagram-pages", timeout: 1_800_000 });
   const finalPath = join(out, "renders", "final.mp4");
   if (!existsSync(finalPath)) throw new Error(`Native page renderer did not create expected final MP4: ${finalPath}`);
   return finalPath;
+}
+
+function copyDirectoryContents(source, destination) {
+  mkdirSync(destination, { recursive: true });
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    const from = join(source, entry.name);
+    const to = join(destination, entry.name);
+    if (entry.isDirectory()) copyDirectoryContents(from, to);
+    else copyFileSync(from, to);
+  }
+}
+
+function renderWithPersonalIpSemanticLayers({ out, brief = {}, frames = [], narration = "", audio, designPlan }) {
+  const audioPath = audio?.mixed || audio?.narrationM4a;
+  if (!audioPath || !existsSync(audioPath)) throw new Error("Personal-IP semantic-layer route requires normalized framework audio.");
+  const registry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry || {};
+  const persona = registry.existingPersona?.assets?.find((asset) => asset.kind === "mainAnchor")?.absolutePath
+    || registry.genericFallback?.mainAnchorPath;
+  if (!persona || !existsSync(persona)) throw new Error("Personal-IP semantic-layer route requires a verified fixed persona mainAnchor.");
+  const semanticPackage = join(out, "personal-ip-semantic-package");
+  const targetCanvas = canvasForBrief(brief);
+  const specPath = join(out, "workflow", "personal-ip-semantic-layer-spec.json");
+  const contentFrames = frames.filter((frame) => frame && (frame.label || frame.body || frame.subtitle));
+  const hookFrames = contentFrames.slice(0, 5);
+  const routeFrames = (contentFrames.length > 5 ? contentFrames.slice(5, 9) : contentFrames.slice(0, 4));
+  const icons = ["?", "!", "△", "♥", "◷"];
+  const routeIcons = ["◴", "⌁", "☎", "▣"];
+  const short = (value, max) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+  writeJson(specPath, {
+    schemaVersion: 1,
+    title: brief.title || "个人 IP 方法论",
+    eyebrow: "PERSONAL IP · SEMANTIC MOTION",
+    moduleLabel: "个人 IP · 真实语义分层",
+    hookSectionTitle: brief.semanticLayerSectionTitle || "核心内容分层",
+    routeSectionTitle: brief.semanticRouteSectionTitle || "动画呈现路径",
+    subtitle: short(brief.objective || narration, 38),
+    hookItems: hookFrames.map((frame, index) => ({
+      icon: icons[index] || "•",
+      label: short(frame.label || frame.headline?.[0] || `要素 ${index + 1}`, 6),
+      body: short(frame.body || frame.subtitle, 9),
+    })),
+    routeItems: routeFrames.map((frame, index) => ({
+      icon: routeIcons[index] || "•",
+      label: short(frame.label || frame.headline?.[0] || `步骤 ${index + 1}`, 6),
+      body: short(frame.body || frame.subtitle, 16),
+    })),
+    takeaway: short(brief.takeaway || contentFrames.at(-1)?.subtitle || narration, 26),
+    captions: contentFrames.slice(0, 4).map((frame) => short(frame.subtitle || frame.body || frame.label, 32)),
+  });
+  const exporter = join(SKILL_ROOT, "scripts", "export-personal-ip-semantic-layered-video.mjs");
+  run(process.execPath, [
+    exporter,
+    "--out", semanticPackage,
+    "--audio", audioPath,
+    "--persona", persona,
+    "--title", brief.title || "个人 IP 方法论",
+    "--spec", specPath,
+    "--aspect", targetCanvas.aspect,
+  ], { cwd: ROOT, category: "render-personal-ip-semantic-layers", timeout: 1_800_000 });
+  const packageVideo = join(semanticPackage, "renders", "final.mp4");
+  if (!existsSync(packageVideo)) throw new Error(`Semantic-layer renderer did not create expected final MP4: ${packageVideo}`);
+  mkdirSync(join(out, "renders"), { recursive: true });
+  copyFileSync(packageVideo, join(out, "renders", "final.mp4"));
+  copyDirectoryContents(join(semanticPackage, "layers"), join(out, "layers"));
+  copyFileSync(join(semanticPackage, "personal-ip-layered.svg"), join(out, "personal-ip-layered.svg"));
+  copyFileSync(join(semanticPackage, "index.html"), join(out, "personal-ip-layered.html"));
+  copyFileSync(join(semanticPackage, "workflow", "personal-ip-semantic-layer-manifest.json"), join(out, "workflow", "personal-ip-semantic-layer-manifest.json"));
+  return join(out, "renders", "final.mp4");
 }
 
 async function renderWithHtmlVideo({ out, brief, frames, narration, audio, designPlan }) {
@@ -27921,6 +28455,13 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   if (galaceanEffectsRequired) {
     requiredFiles.push("workflow/galacean-effects-plan.json");
   }
+  const publishingCoverRequiredFiles = new Set([
+    "workflow/cover-design.json",
+    "workflow/cover-image2-prompts.json",
+    "workflow/cover-image2-qc.json",
+    "workflow/cover-size-selection.json",
+  ]);
+  const requiredVideoFiles = requiredFiles.filter((file) => !publishingCoverRequiredFiles.has(file));
   const rejectedPremiumBackgrounds = new Set(
     (qualityContract.consistencyAnchors?.premiumPalettePolicy?.rejectedBackgrounds || [])
       .map((value) => String(value || "").toLowerCase())
@@ -27928,6 +28469,11 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const visualAssetTextAudit = auditVisualAssetVisibleText({ out, visualAssetManifest });
   writeJson(join(out, "workflow", "visual-asset-text-audit.json"), visualAssetTextAudit);
   const nativeFinalRenderer = renderer === "ip-diagram-native-final-pages";
+  const semanticLayerRenderer = renderer === "personal-ip-semantic-layers-svg-html-video";
+  const semanticLayerManifestPath = join(out, "workflow", "personal-ip-semantic-layer-manifest.json");
+  const semanticLayerManifest = semanticLayerRenderer && existsSync(semanticLayerManifestPath)
+    ? JSON.parse(readFileSync(semanticLayerManifestPath, "utf8"))
+    : {};
   const nativeFinalAuditAlreadyValid = nativeFinalRenderer
     && skillUsageAccuracyAudit.schemaVersion === 1
     && skillUsageAccuracyAudit.status === "pass"
@@ -28387,6 +28933,20 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
           && composite.active === true
           && Array.isArray(composite.layerGraph)
           && composite.layerGraph.some((layer) => layer.id === "subtitles-overlays" && layer.zIndex >= 20);
+      } catch {
+        return false;
+      }
+    })(),
+    layeredMotionPlanPresent: (() => {
+      try {
+        const plan = JSON.parse(readFileSync(join(out, "workflow", "layered-motion-plan.json"), "utf8"));
+        return plan.schemaVersion === 1
+          && ["active", "inactive"].includes(plan.status)
+          && Number(plan.zBands?.motion) < Number(plan.zBands?.content)
+          && Number(plan.zBands?.content) < Number(plan.zBands?.subtitle)
+          && Array.isArray(plan.scenePlans)
+          && plan.scenePlans.length === (Array.isArray(designPlan.pages) ? designPlan.pages.length : 0)
+          && plan.scenePlans.every((scene) => scene.finalStatePolicy === "all required content visible and complete");
       } catch {
         return false;
       }
@@ -30106,9 +30666,30 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
         && Number(frameLayoutOverlapAudit.uniqueCaptionRendererCount || 0) >= 1,
     blackdetectClean: !blackHits,
     requiredFilesPresent: requiredFiles.every((file) => existsSync(join(out, file))),
+    requiredVideoFilesPresent: requiredVideoFiles.every((file) => existsSync(join(out, file))),
     screenshotsPresent: ["frame-01.png", "frame-02.png", "frame-03.png"].every((file) => existsSync(join(screenshots, file))),
     rendererNotDegraded: renderer !== "ffmpeg-fallback" || allowDegradedRenderer,
   };
+  if (semanticLayerRenderer) {
+    Object.assign(checks, {
+      personalIpSemanticLayerManifestPresent: semanticLayerManifest.route === "personal-ip-semantic-layers-svg-html-video",
+      personalIpSemanticSourceOwnedByLayers: semanticLayerManifest.canonicalSource === "semantic-layer-scene"
+        && semanticLayerManifest.flatCompositeBaseForbidden === true,
+      personalIpIndependentSvgLayersPresent: Array.isArray(semanticLayerManifest.layers)
+        && semanticLayerManifest.layers.length >= 6
+        && semanticLayerManifest.layers.every((layer) => existsSync(join(out, layer.svg))),
+      personalIpSemanticHtmlPresent: existsSync(join(out, "personal-ip-layered.html")),
+      personalIpCombinedSvgPresent: existsSync(join(out, "personal-ip-layered.svg")),
+      personalIpMasterTimelinePresent: semanticLayerManifest.animationContract?.masterTimeline === "window.motion.setProgress(progress)",
+      personalIpSubtitleTopmost: semanticLayerManifest.animationContract?.subtitleTopmost === true
+        && semanticLayerManifest.layers?.at(-1)?.role === "subtitle-overlay",
+      personalIpReducedMotionFinalState: semanticLayerManifest.animationContract?.reducedMotionFinalState === true,
+      personalIpSemanticPackageQcPass: (() => {
+        const packageQcPath = join(out, "personal-ip-semantic-package", "logs", "qc.json");
+        return existsSync(packageQcPath) && JSON.parse(readFileSync(packageQcPath, "utf8")).pass === true;
+      })(),
+    });
+  }
   if (nativeFinalRenderer) {
     const nativeCoreOk = checks.nativePageProvenanceVerified
       && checks.ipDiagramFullScreenStable
@@ -30160,11 +30741,35 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const coverPublishingReady = checks.coverImage2FirstChainPresent
     && checks.coverImage2FinalQualityEligible
     && checks.coverNotLocalFallbackAsFinal;
+  const semanticVideoCheckIds = new Set([
+    "personalIpSemanticLayerManifestPresent",
+    "personalIpSemanticSourceOwnedByLayers",
+    "personalIpIndependentSvgLayersPresent",
+    "personalIpSemanticHtmlPresent",
+    "personalIpCombinedSvgPresent",
+    "personalIpMasterTimelinePresent",
+    "personalIpSubtitleTopmost",
+    "personalIpReducedMotionFinalState",
+    "personalIpSemanticPackageQcPass",
+    "resolution1080p",
+    "audibleAudio",
+    "audioVideoDurationDeltaOk",
+    "narrationContinuityOk",
+    "visualSubtitleSingleLine",
+    "blackdetectClean",
+    "rendererNotDegraded",
+  ]);
   const videoChecks = Object.fromEntries(
-    Object.entries(checks).filter(([id]) => ![
-      "coverImage2FinalQualityEligible",
-      "coverNotLocalFallbackAsFinal",
-    ].includes(id)),
+    Object.entries(checks).filter(([id]) => semanticLayerRenderer
+      ? semanticVideoCheckIds.has(id)
+      : ![
+          "coverDesignPresent",
+          "coverFilesPresent",
+          "coverImage2FirstChainPresent",
+          "coverImage2FinalQualityEligible",
+          "coverNotLocalFallbackAsFinal",
+          "requiredFilesPresent",
+        ].includes(id)),
   );
   const videoPass = Object.values(videoChecks).every(Boolean);
   const pass = videoPass && coverPublishingReady;
@@ -30435,6 +31040,14 @@ async function main() {
               : "brief.providedAudioGender",
     } : {}),
     generationMode,
+    ...(args["layered-motion"] ? {
+      layeredMotion: {
+        ...(brief.layeredMotion && typeof brief.layeredMotion === "object" ? brief.layeredMotion : {}),
+        enabled: !/^(?:off|none|disabled|false)$/i.test(String(args["layered-motion"])),
+        mode: args["layered-motion"],
+        intensity: args["layered-motion-intensity"] || brief.layeredMotion?.intensity || brief.layeredMotionIntensity || "balanced",
+      },
+    } : {}),
   };
   const defaultCoverIntroSeconds = Number.isFinite(Number(runtimeDefaults.coverIntroSeconds))
     ? Number(runtimeDefaults.coverIntroSeconds)
@@ -30955,7 +31568,10 @@ async function main() {
   let renderer = "html-video";
   let finalMp4;
   const personalIpNativeFinalRoute = personalIpNativeFinalRouteState(designPlan);
-  if (personalIpNativeFinalRoute.requiredByPersonalIpRoute) {
+  if (personalIpSemanticLayerRouteSelected(designPlan)) {
+    renderer = "personal-ip-semantic-layers-svg-html-video";
+    finalMp4 = renderWithPersonalIpSemanticLayers({ out, brief: finalBrief, frames, narration: spokenNarration, audio, designPlan });
+  } else if (personalIpNativeFinalRoute.requiredByPersonalIpRoute) {
     assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "native-page-final-render" });
     renderer = "ip-diagram-native-final-pages";
     finalMp4 = renderWithIpDiagramNativePages({ out, brief: finalBrief, audio, designPlan });

@@ -48,7 +48,7 @@ function parseArgs(argv) {
     fps: 30,
     subtitleMode: "both",
     personalIp: "auto",
-    handDrawnAnimation: "subtle",
+    handDrawnAnimation: "off",
     allowUnverifiedNativePages: "false",
     verticalTopSafeMode: "auto",
     verticalTopSafePx: String(DEFAULT_VERTICAL_TOP_SAFE_PX),
@@ -288,6 +288,61 @@ function resolveCanvas(args = {}) {
 function readJsonIfExists(path) {
   if (!existsSync(path)) return null;
   return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function loadSemanticMotionPlan(pagesDir, pages, handDrawnAnimation) {
+  if (handDrawnAnimation === "off") return null;
+  const planPath = [
+    join(pagesDir, "workflow", "personal-ip-semantic-motion-plan.json"),
+    join(dirname(pagesDir), "workflow", "personal-ip-semantic-motion-plan.json"),
+  ].find((candidate) => existsSync(candidate)) || join(dirname(pagesDir), "workflow", "personal-ip-semantic-motion-plan.json");
+  const plan = readJsonIfExists(planPath);
+  if (!plan) {
+    throw new Error([
+      "Personal-IP animation requires a page-specific semantic motion plan.",
+      `- Missing: ${planPath}`,
+      "- Do not fall back to generic progress rails, focus boxes, or connectors over a finished personal-IP page.",
+      "- Generate the plan together with the native pages. Every primitive must stay inside an explicit safeMotionRegion and outside persona/text/subtitle forbidden regions.",
+    ].join("\n"));
+  }
+  if (plan.coordinateSpace !== "canvas-normalized-after-base-transform") {
+    throw new Error("personal-ip-semantic-motion-plan.json must use coordinateSpace=canvas-normalized-after-base-transform");
+  }
+  const pageNames = new Set(pages.map((page) => page.name));
+  const plannedNames = new Set((plan.pages || []).map((page) => page.pageName));
+  const missingPages = [...pageNames].filter((name) => !plannedNames.has(name));
+  if (missingPages.length > 0) {
+    throw new Error(`Semantic motion plan does not cover native pages: ${missingPages.join(", ")}`);
+  }
+  for (const page of plan.pages || []) {
+    if (!pageNames.has(page.pageName)) continue;
+    if (!Array.isArray(page.safeMotionRegions) || page.safeMotionRegions.length === 0) {
+      throw new Error(`Semantic motion page ${page.pageName} has no safeMotionRegions`);
+    }
+    const primitives = [...(page.paths || []), ...(page.nodes || [])];
+    if (primitives.length === 0) {
+      throw new Error(`Semantic motion page ${page.pageName} has no semantic paths or nodes`);
+    }
+    const safeRegions = page.safeMotionRegions || [];
+    const forbiddenRegions = page.forbiddenRegions || [];
+    const contains = (rect, point) => point[0] >= rect[0] && point[0] <= rect[0] + rect[2]
+      && point[1] >= rect[1] && point[1] <= rect[1] + rect[3];
+    const pointsFor = (primitive) => primitive.points || (primitive.center ? [primitive.center] : []);
+    for (const primitive of primitives) {
+      for (const point of pointsFor(primitive)) {
+        if (!Array.isArray(point) || point.length !== 2 || point.some((value) => !Number.isFinite(Number(value)))) {
+          throw new Error(`Semantic motion page ${page.pageName} contains an invalid normalized point`);
+        }
+        if (!safeRegions.some((region) => contains(region.rect, point))) {
+          throw new Error(`Semantic motion primitive ${primitive.id || "unnamed"} escapes safeMotionRegions on ${page.pageName}`);
+        }
+        if (forbiddenRegions.some((region) => contains(region.rect, point))) {
+          throw new Error(`Semantic motion primitive ${primitive.id || "unnamed"} enters forbidden region on ${page.pageName}`);
+        }
+      }
+    }
+  }
+  return { ...plan, sourcePath: planPath };
 }
 
 function sha256File(path) {
@@ -718,27 +773,39 @@ function pageForTime(pages, start, totalDuration) {
   return pages[Math.max(0, Math.min(pages.length - 1, rawIndex))];
 }
 
-function buildFramePlan(cues, pages, totalDuration) {
-  return cues.map((cue, index) => {
-    const page = pageForTime(pages, cue.start, totalDuration);
-    const pageStart = (page.index - 1) * totalDuration / pages.length;
-    const pageEnd = page.index * totalDuration / pages.length;
-    const pageProgress = Math.max(0, Math.min(1, (cue.start - pageStart) / Math.max(0.001, pageEnd - pageStart)));
-    return {
-      id: `frame-${String(index + 1).padStart(4, "0")}`,
-      index: index + 1,
-      start: cue.start,
-      end: cue.end,
-      duration: cue.end - cue.start,
-      subtitle: cue.text,
-      subtitleLines: wrapCueText(cue.text),
-      pageId: page.id,
-      pageIndex: page.index,
-      pageName: page.name,
-      sourceImage: page.file,
-      pageProgress,
-    };
-  });
+function buildFramePlan(cues, pages, totalDuration, handDrawnAnimation = "off", motionSampleFps = 12) {
+  const frames = [];
+  for (const cue of cues) {
+    const cueDuration = Math.max(0.05, cue.end - cue.start);
+    const sampleCount = Math.max(3, Math.ceil(cueDuration * motionSampleFps));
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+      const start = cue.start + cueDuration * sampleIndex / sampleCount;
+      const end = cue.start + cueDuration * (sampleIndex + 1) / sampleCount;
+      const page = pageForTime(pages, start, totalDuration);
+      const pageStart = (page.index - 1) * totalDuration / pages.length;
+      const pageEnd = page.index * totalDuration / pages.length;
+      const pageProgress = Math.max(0, Math.min(1, (start - pageStart) / Math.max(0.001, pageEnd - pageStart)));
+      frames.push({
+        id: `frame-${String(frames.length + 1).padStart(4, "0")}`,
+        index: frames.length + 1,
+        cueIndex: cue.index,
+        cueSampleIndex: sampleIndex + 1,
+        cueSampleCount: sampleCount,
+        motionProgress: sampleCount === 1 ? 1 : sampleIndex / Math.max(1, sampleCount - 1),
+        start,
+        end,
+        duration: end - start,
+        subtitle: cue.text,
+        subtitleLines: wrapCueText(cue.text),
+        pageId: page.id,
+        pageIndex: page.index,
+        pageName: page.name,
+        sourceImage: page.file,
+        pageProgress,
+      });
+    }
+  }
+  return frames;
 }
 
 function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sourceRun, sourceScript, sourceScenes, pageProvenance, canvas, pageCountPolicy }) {
@@ -759,7 +826,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
     mobileTopSafeArea: canvas.mobileTopSafeArea || null,
     noPerCueCropPanZoom: true,
     noVerticalCameraOffset: true,
-    allowedMotion: ["page cuts", "subtitles", "foreground hand-drawn accent layer", "progress stroke"],
+    allowedMotion: ["page cuts", "subtitles", "foreground semantic focus loop", "foreground connector trace", "foreground progress rail"],
     rejectedMotion: ["background bounce", "per-subtitle crop variants", "static-image push-in", "random y offset"],
   };
   const verticalPersonalIpDesignContract = canvas.vertical
@@ -998,7 +1065,10 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       id: page.id,
       sourceImage: page.file,
       stateCount: args.handDrawnAnimation === "off" ? 1 : 2,
-      visibleEvents: args.handDrawnAnimation === "off" ? ["full-screen page hold"] : ["full-screen page hold", "foreground progress/marker accent"],
+      visibleEvents: args.handDrawnAnimation === "off"
+        ? ["full-screen page hold"]
+        : ["full-screen page hold", "foreground semantic focus loop", "foreground connector trace", "foreground progress rail"],
+      requiredPerceptibility: args.handDrawnAnimation === "off" ? "none" : "visible-at-middle-frame-without-pixel-diff-tooling",
     })),
   };
   const qualityContract = {
@@ -1106,8 +1176,19 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       mobileTopSafeArea: canvas.mobileTopSafeArea || null,
     },
   };
-  writeJson(join(out, "brief.json"), brief);
-  writeJson(join(out, "workflow", "ip-diagram-creator-plan.json"), ipPlan);
+  const integratedBriefPath = join(out, "brief.json");
+  if (existsSync(integratedBriefPath)) {
+    writeJson(join(out, "workflow", "native-page-brief.json"), brief);
+  } else {
+    writeJson(integratedBriefPath, brief);
+  }
+  const integratedIpPlanPath = join(out, "workflow", "ip-diagram-creator-plan.json");
+  const integratedIpPlan = readJsonIfExists(integratedIpPlanPath);
+  if (integratedIpPlan?.nativeFinalVideoPlan) {
+    writeJson(join(out, "workflow", "native-page-ip-diagram-creator-plan.json"), ipPlan);
+  } else {
+    writeJson(integratedIpPlanPath, ipPlan);
+  }
   writeJson(join(out, "workflow", "ip-diagram-creator-vendor-usage.json"), vendorUsage);
   writeJson(join(out, "workflow", "ip-diagram-creator-native-jobs.json"), nativeJobs);
   writeJson(join(out, "workflow", "ip-diagram-layout-audit.json"), layoutAudit);
@@ -1142,6 +1223,7 @@ frames = config["frames"]
 frames_dir = Path(config["framesDir"])
 concat_path = Path(config["concatPath"])
 mode = config["handDrawnAnimation"]
+semantic_motion_plan = config.get("semanticMotionPlan") or {"pages": []}
 top_safe = config.get("topSafeArea") or {}
 top_safe_active = bool(top_safe.get("active"))
 top_safe_mode = str(top_safe.get("mode") or "off").lower()
@@ -1254,30 +1336,70 @@ def draw_handdrawn_accent(img, frame):
     base = img.convert("RGBA")
     overlay = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(overlay)
-    progress = max(0.02, min(1.0, float(frame.get("pageProgress", 0.0))))
-    page_index = int(frame.get("pageIndex", 1))
-    color_cycle = [(232, 92, 44, 220), (43, 105, 214, 210), (217, 48, 78, 210)]
-    color = color_cycle[(page_index - 1) % len(color_cycle)]
-    y = height - 15
-    x0 = 170
-    x1 = width - 170
-    length = x0 + int((x1 - x0) * progress)
-    # Slight hand wobble inside the foreground stroke only; the source page never moves.
-    pts = []
-    for i in range(0, max(2, length - x0), 18):
-        x = x0 + i
-        pts.append((x, y + int(math.sin((i + page_index * 9) / 22) * 2)))
-    pts.append((length, y))
-    if len(pts) >= 2:
-        draw.line(pts, fill=color, width=7, joint="curve")
-        draw.ellipse((length - 6, y - 6, length + 6, y + 6), fill=color)
-    if mode == "draw-reveal":
-        pulse = 0.5 + 0.5 * math.sin(progress * math.pi)
-        cx = width - 132
-        cy = 132
-        r = int(18 + 6 * pulse)
-        draw.arc((cx-r, cy-r, cx+r, cy+r), 8, 334, fill=color, width=4)
-        draw.line((cx + 14, cy + 16, cx + 38, cy + 42), fill=color, width=4)
+    progress = max(0.0, min(1.0, float(frame.get("pageProgress", 0.0))))
+    page_name = str(frame.get("pageName") or "")
+    page_plan = next((item for item in semantic_motion_plan.get("pages", []) if item.get("pageName") == page_name), None)
+    if page_plan is None:
+        raise RuntimeError(f"Missing semantic motion plan for {page_name}")
+
+    def rgba(raw, fallback):
+        values = list(raw or fallback)
+        while len(values) < 4:
+            values.append(220)
+        return tuple(int(value) for value in values[:4])
+
+    def px(point):
+        return (int(float(point[0]) * width), int(float(point[1]) * height))
+
+    def local_progress(start, end):
+        start = float(start if start is not None else 0)
+        end = float(end if end is not None else 1)
+        if end <= start:
+            return 1.0 if progress >= end else 0.0
+        raw = max(0.0, min(1.0, (progress - start) / (end - start)))
+        return 1 - ((1 - raw) ** 3)
+
+    def rough_line(points, fill, stroke=7, copies=2):
+        for copy_index in range(copies):
+            offset = copy_index * 2 - 1
+            shifted = [(x, y + int(math.sin((x + int(frame.get("index", 1)) * 19) / 34) * 1.4) + offset) for x, y in points]
+            draw.line(shifted, fill=fill, width=max(2, stroke - copy_index * 2), joint="curve")
+
+    # Paths are page-local reading cues. They never originate from a global rail and
+    # never cross into the persona/text lanes defined as forbidden by the plan.
+    for path in page_plan.get("paths", []):
+        amount = local_progress(path.get("start"), path.get("end"))
+        raw_points = [px(point) for point in path.get("points", [])]
+        if amount <= 0 or len(raw_points) < 2:
+            continue
+        segment_lengths = [math.dist(raw_points[index], raw_points[index + 1]) for index in range(len(raw_points) - 1)]
+        target = sum(segment_lengths) * amount
+        visible = [raw_points[0]]
+        walked = 0.0
+        for index, length in enumerate(segment_lengths):
+            start_point = raw_points[index]
+            end_point = raw_points[index + 1]
+            if walked + length <= target:
+                visible.append(end_point)
+                walked += length
+                continue
+            ratio = 0 if length <= 0 else max(0.0, min(1.0, (target - walked) / length))
+            visible.append((int(start_point[0] + (end_point[0] - start_point[0]) * ratio), int(start_point[1] + (end_point[1] - start_point[1]) * ratio)))
+            break
+        rough_line(visible, rgba(path.get("color"), (43, 105, 214, 190)), stroke=int(path.get("stroke", 6)), copies=2)
+
+    for node in page_plan.get("nodes", []):
+        amount = local_progress(node.get("start"), node.get("end"))
+        if amount <= 0:
+            continue
+        cx, cy = px(node.get("center", [0, 0]))
+        rx = max(2, int(float(node.get("radius", [0.03, 0.02])[0]) * width))
+        ry = max(2, int(float(node.get("radius", [0.03, 0.02])[1]) * height))
+        color = rgba(node.get("color"), (232, 92, 44, 176))
+        start_angle = -90
+        end_angle = start_angle + int(358 * amount)
+        draw.arc((cx-rx, cy-ry, cx+rx, cy+ry), start_angle, end_angle, fill=color, width=max(3, int(node.get("stroke", 5))))
+
     return Image.alpha_composite(base, overlay).convert("RGB")
 
 concat_lines = []
@@ -1642,7 +1764,9 @@ function main() {
   const lastCueEnd = Math.max(...cues.map((cue) => cue.end));
   const totalDuration = Math.max(audioDuration, lastCueEnd);
   const sourceScenes = loadSourceScenes(sourceRun);
-  const frames = buildFramePlan(cues, pages, totalDuration);
+  const semanticMotionPlan = loadSemanticMotionPlan(pagesDir, pages, args.handDrawnAnimation);
+  const motionSampleFps = 12;
+  const frames = buildFramePlan(cues, pages, totalDuration, args.handDrawnAnimation, motionSampleFps);
   const oneLineSrt = join(out, "script", "subtitles.srt");
   writeOneLineSrt(oneLineSrt, cues);
   createPlanArtifacts({
@@ -1671,9 +1795,49 @@ function main() {
     framesDir: join(out, "frames"),
     concatPath: join(out, "workflow", "frames.ffconcat"),
     handDrawnAnimation: args.handDrawnAnimation,
+    motionSampleFps,
+    continuousForegroundMotion: args.handDrawnAnimation !== "off",
+    semanticMotionPlan,
     topSafeArea: canvas.mobileTopSafeArea,
   };
   writeJson(join(out, "workflow", "native-page-render-config.json"), renderConfig);
+  writeJson(join(out, "workflow", "personal-ip-layered-motion-manifest.json"), {
+    schemaVersion: 1,
+    route: "native-personal-ip-base-plus-semantic-foreground-motion",
+    active: args.handDrawnAnimation !== "off",
+    mode: args.handDrawnAnimation,
+    baseLayer: {
+      owner: "verified-native-personal-ip-page",
+      transform: canvas.baseImageTransform,
+      stableAcrossMotionSamples: true,
+    },
+    semanticPlan: semanticMotionPlan ? {
+      sourcePath: semanticMotionPlan.sourcePath,
+      coordinateSpace: semanticMotionPlan.coordinateSpace,
+      pageCount: semanticMotionPlan.pages?.length || 0,
+      geometryValidatedBeforeRender: true,
+    } : null,
+    foregroundLayers: args.handDrawnAnimation === "off" ? [] : [
+      { id: "semantic-path", zIndex: 40, semanticJob: "draw a reading path only inside its page-local safe motion region" },
+      { id: "semantic-node-focus", zIndex: 42, semanticJob: "activate content-bound nodes without covering their labels" },
+    ],
+    subtitleLayer: { zIndex: 100, topmost: true },
+    timeline: {
+      sampleFps: motionSampleFps,
+      continuousForegroundMotion: args.handDrawnAnimation !== "off",
+      frameCount: frames.length,
+      cueCount: cues.length,
+      monotonicCueProgress: true,
+    },
+    rejectList: [
+      "single bottom-edge progress line presented as layered animation",
+      "per-cue static image presented as continuous animation",
+      "moving or cropping the native personal-IP base page",
+      "foreground marks covering subtitles",
+      "generic overlay geometry without a page-specific semantic plan",
+      "path or node outside its declared safe motion region",
+    ],
+  });
   renderFramesWithPython(join(out, "workflow", "native-page-render-config.json"), commands);
 
   const visualPath = join(out, "renders", "native-pages-hard-subtitles.mp4");

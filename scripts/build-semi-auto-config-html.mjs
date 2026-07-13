@@ -1380,6 +1380,7 @@ function buildContext(packageDir) {
   const designPlan = readJsonIfExists(join(workflowDir, "design-plan.json")) || {};
   const colorSystemPlan = readJsonIfExists(join(workflowDir, "color-system-plan.json")) || designPlan.colorSystemPlan || {};
   const motionPlan = readJsonIfExists(join(workflowDir, "motion-template-selection.json")) || {};
+  const layeredMotionPlan = readJsonIfExists(join(workflowDir, "layered-motion-plan.json")) || {};
   const motionStylePlan = readJsonIfExists(join(workflowDir, "motion-style-plan.json")) || {};
   const captionPlan = readJsonIfExists(join(workflowDir, "caption-style-plan.json")) || {};
   const mediaPlan = readJsonIfExists(join(workflowDir, "media-routing-plan.json")) || {};
@@ -1405,6 +1406,7 @@ function buildContext(packageDir) {
     designPlan,
     colorSystemPlan,
     motionPlan,
+    layeredMotionPlan,
     motionStylePlan,
     captionPlan,
     mediaPlan,
@@ -2777,6 +2779,18 @@ function buildConfigModel(context, outPath) {
         selected: selectedMotionIds.has(template.id),
       })),
     },
+    layeredMotion: {
+      active: context.layeredMotionPlan.status === "active",
+      status: context.layeredMotionPlan.status || "inactive",
+      mode: context.layeredMotionPlan.mode || "off",
+      intensity: context.layeredMotionPlan.intensity || "balanced",
+      revealOrder: context.layeredMotionPlan.revealOrder || "progressive",
+      trigger: context.layeredMotionPlan.trigger || {},
+      zBands: context.layeredMotionPlan.zBands || {},
+      personalIpPolicy: context.layeredMotionPlan.personalIpPolicy || "preserve-native-page-as-immutable-base",
+      scenePlans: arrayify(context.layeredMotionPlan.scenePlans),
+      plan: "workflow/layered-motion-plan.json",
+    },
     motionCapabilities: {
       count: context.motionCapabilities.length,
       selected: [...selectedMotionCapabilityIds],
@@ -2973,7 +2987,7 @@ function buildConfigModel(context, outPath) {
 	      plan: "workflow/ip-diagram-creator-plan.json",
 	      userChoices: context.ipPlan.userChoices || {
 	        makePersonalIp: ipActive ? "auto" : "off",
-	        addHandDrawnImageAnimation: ipActive ? "subtle" : "off",
+	        addHandDrawnImageAnimation: "off",
 	      },
 	      executionModes: Array.isArray(context.ipPlan.executionModes) ? context.ipPlan.executionModes : [],
 	      selectedExecutionModes: Array.isArray(context.ipPlan.executionModes)
@@ -3498,7 +3512,7 @@ function renderIpExecutionModeControls(personalIp = {}) {
           <p>${escapeHtml(mode.status || "available")}${mode.personaStatus ? ` / ${escapeHtml(mode.personaStatus)}` : ""}</p>
         </span>
       </label>`).join("")}
-    <em>makePersonalIp=${escapeHtml(choices.makePersonalIp || "auto")}；handDrawnAnimation=${escapeHtml(choices.addHandDrawnImageAnimation || "subtle")}。原生 final 只有在页面来源证明通过后才可作为最终视频画面。</em>
+    <em>makePersonalIp=${escapeHtml(choices.makePersonalIp || "auto")}；handDrawnAnimation=${escapeHtml(choices.addHandDrawnImageAnimation || "off")}。原生 final 只有在页面来源证明通过后才可作为最终视频画面。</em>
   </div>`;
 }
 
@@ -5323,6 +5337,24 @@ function renderMotionStyleCatalog(model) {
   </div>`;
 }
 
+function renderLayeredMotionPreview(model) {
+  const layered = model.layeredMotion || {};
+  const activeScenes = arrayify(layered.scenePlans).filter((scene) => scene.active);
+  return `<div class="layered-motion-discovery ${layered.active ? "selected" : ""}" data-layered-motion-preview>
+    <div class="layered-motion-copy">
+      <small>语义分层动效 · ${escapeHtml(layered.mode || "off")}</small>
+      <strong>分层动画线与路径揭示</strong>
+      <span>动画线固定在模块背景层，文字卡片在内容层，字幕永远最高；个人 IP 原生页面保持为不可变底图。</span>
+      <em>触发：说“分层动画 / 动画线 / 路径绘制 / 逐层展示”，或在 brief 中设置 layeredMotion.mode。</em>
+      <b>${layered.active ? `当前已启用 · ${activeScenes.length} 个场景` : "当前未启用，可通过提示词或 brief 开启"}</b>
+    </div>
+    <div class="layered-preview-stage" aria-label="动画线位于内容卡片下方的分层预览">
+      <svg class="layered-preview-line" viewBox="0 0 1000 180" preserveAspectRatio="none" aria-hidden="true"><path d="M30 94 C260 42 740 42 970 94" pathLength="1"/></svg>
+      ${["倒计时", "陌生世界", "失联来电", "证据检查"].map((label, index) => `<article class="layered-preview-card" style="--i:${index}"><i>${index + 1}</i><strong>${label}</strong><span>${["明确时限", "规则成谜", "打破常识", "线索收束"][index]}</span></article>`).join("")}
+    </div>
+  </div>`;
+}
+
 function renderMotionSection(model) {
   const featureDefaults = model.featureCompatibility.defaults || {};
   const templateItems = model.motionTemplates.templates.map((template) => ({
@@ -5367,6 +5399,7 @@ function renderMotionSection(model) {
       <button type="button" data-motion-pane-tab="whiteboard">白板绘制</button>
     </div>
     <div class="motion-pane active" data-motion-pane="motion">
+      ${renderLayeredMotionPreview(model)}
       ${renderMotionStyleCatalog(model)}
       <div class="motion-table-grid">
         ${items.map((item) => `
@@ -6243,6 +6276,23 @@ function renderStyles() {
     .feature-toggle input, .ip-enable-row input, .whiteboard-enable-row input { width: 18px; height: 18px; }
     .feature-toggle span, .ip-enable-row strong, .whiteboard-enable-row strong { font-weight: 900; }
     .ip-enable-row em, .whiteboard-enable-row em { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; font-style: normal; margin-top: 3px; }
+    .layered-motion-discovery { display: grid; grid-template-columns: minmax(280px,.78fr) minmax(480px,1.22fr); gap: 14px; margin-bottom: 16px; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(236,243,255,.78)); }
+    .layered-motion-discovery.selected { border-color: color-mix(in srgb, var(--accent), transparent 42%); box-shadow: 0 14px 34px rgba(34,75,130,.09); }
+    .layered-motion-copy { display: grid; align-content: center; gap: 7px; }
+    .layered-motion-copy small { color: var(--accent); font-weight: 950; letter-spacing: .08em; }
+    .layered-motion-copy strong { font-size: 21px; line-height: 1.14; }
+    .layered-motion-copy span, .layered-motion-copy em { color: var(--muted); font-size: 13px; line-height: 1.55; font-style: normal; }
+    .layered-motion-copy b { color: var(--ink); font-size: 12px; }
+    .layered-preview-stage { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; align-items: center; min-height: 200px; padding: 28px 14px 18px; overflow: hidden; border-radius: 9px; background: linear-gradient(150deg,#f9fbff,#edf3fb); border: 1px solid rgba(35,64,105,.1); }
+    .layered-preview-line { position: absolute; left: 7%; right: 7%; top: 44px; z-index: 0; width: 86%; height: 92px; pointer-events: none; overflow: visible; }
+    .layered-preview-line path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: .72; animation: layeredPreviewDraw 2.8s cubic-bezier(.19,.82,.22,1) 1 forwards; }
+    .layered-preview-card { position: relative; z-index: 1; display: grid; align-content: center; min-width: 0; min-height: 116px; padding: 20px 10px 13px; border-radius: 9px; border: 1px solid rgba(30,51,80,.12); background: rgba(255,255,255,.97); box-shadow: 0 10px 24px rgba(35,54,82,.08); animation: layeredPreviewCardIn 2.8s cubic-bezier(.19,.82,.22,1) calc(var(--i) * .13s) 1 both; }
+    .layered-preview-card i { position: absolute; left: 10px; top: -11px; display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-style: normal; font-weight: 950; }
+    .layered-preview-card strong { font-size: 13px; line-height: 1.2; }
+    .layered-preview-card span { margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.25; }
+    @keyframes layeredPreviewDraw { 0%,12% { stroke-dashoffset: 1; } 58%,100% { stroke-dashoffset: 0; } }
+    @keyframes layeredPreviewCardIn { 0%,10% { opacity: 0; transform: translateY(12px); } 28%,82% { opacity: 1; transform: none; } 100% { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .layered-preview-line path, .layered-preview-card { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; } }
     .feature-combo-bar p { grid-column: 1 / -1; margin: 0; padding: 11px 12px; border-radius: 8px; background: rgba(255,255,255,.58); border: 1px dashed rgba(49,95,125,.28); color: var(--muted); line-height: 1.45; }
     .motion-pane-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
     .motion-pane-tabs button { border: 1px solid var(--line); background: var(--surface-strong); color: var(--ink); border-radius: 8px; min-height: 38px; padding: 0 14px; font-weight: 900; cursor: pointer; }
@@ -7712,7 +7762,7 @@ function renderStyles() {
     .compose-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 14px; border-radius: 8px; background: rgba(237,242,239,.76); border: 1px solid var(--line); }
     .compose-bar span { color: var(--muted); }
     @media (max-width: 1180px) {
-      .cols-3, .motion-grid, .palette-list, .caption-table, .voice-layout, .ip-composite-grid, .whiteboard-layout, .tds-grid, .cover-config-grid, .cover-review-board, .motion-style-summary { grid-template-columns: 1fr; }
+      .cols-3, .motion-grid, .palette-list, .caption-table, .voice-layout, .ip-composite-grid, .whiteboard-layout, .tds-grid, .cover-config-grid, .cover-review-board, .motion-style-summary, .layered-motion-discovery { grid-template-columns: 1fr; }
       .motion-table-grid, .capability-motion-grid, .speaker-match-table, .cover-style-list, .cover-resolution-grid, .cover-sample-grid, .style-review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	      .cover-example-brief { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .feature-combo-bar { grid-template-columns: repeat(3, minmax(140px, 1fr)); }

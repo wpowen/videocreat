@@ -39,12 +39,14 @@ The native-final route can be used directly when it is better suited to the requ
 For this route Planner must expose two user-facing choices, and record the resolved values in `workflow/ip-diagram-creator-plan.json`:
 
 - `makePersonalIp`: `on | off | auto`. `on` or `auto` means the single fixed-persona personal-IP chain is active: the run must resolve one saved user-material-library persona manifest before final personal-IP delivery. `off` keeps the page/director route but does not request a role/persona asset.
-- `addHandDrawnImageAnimation`: `off | subtle | draw-reveal`. This controls only foreground hand-drawn marks, progress strokes, semantic highlights, or reveal accents. It must never move, crop, scale, bounce, or redraw the generated page itself.
+- `addHandDrawnImageAnimation`: `off | subtle | draw-reveal`. A plain personal-IP request resolves to `off`; only an explicit combined personal-IP + animation signal or field enables `subtle` / `draw-reveal`. This controls only foreground hand-drawn marks, progress strokes, semantic highlights, or reveal accents. It must never move, crop, scale, bounce, or redraw the generated page itself.
 - `personalIpAssetRegistry`: a user-material-library manifest path. If a saved user-specific persona exists, it must be reused before any new persona generation. If no user-specific persona or authorized input is provided, use the fixed default non-likeness hosts under `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/{male,female}/manifest.json` and record `doNotClaimUserLikeness`. The default host gender must follow the actual package audio gender after audio generation/reuse/provided-audio normalization: `workflow/voice-subtitle-manifest.json.audioGender: "female"` uses the female host manifest, `"male"` uses the male host manifest. For local TTS, derive this from the actual selected backend speaker/default voice metadata, not only the pre-audio brief. For user-provided audio, require `brief.audioGender` / `brief.voiceGender` or `--audio-gender` when the gender is not otherwise recorded. If the user requires their own likeness, the semi-auto configuration page must guide them to provide an authorized photo, avatar, character sheet, or existing manifest and create it once.
 
 The old framework-drawn personal-IP presenter template is retired. Final personal-IP video frames must not render `ip-persona-svg`, `template-fallback`, or any locally invented presenter as the personal IP. The active route must bind a fixed manifest-backed persona: either a saved user-specific manifest or the default male/female non-likeness host manifest. When native-final is selected, verified native page images with `image_gen`/`source_generated_image` provenance are required. When native-final is not selected, integrated composition must still render `fixed-persona-manifest` evidence in the HTML frames and must not use the retired local SVG/template fallback.
 
-Recommended teaching default: `makePersonalIp: "auto"` and `addHandDrawnImageAnimation: "subtle"` for creator-led explainer videos. User-provided explicit choices override the default.
+Routing default: `makePersonalIp: "auto"`. A plain personal-IP request uses `personalIpAnimation: "off"` and may retain verified native bitmap pages. `个人 IP + 动画` or `personalIpAnimation: "semantic-layers"` selects a different renderer contract: preserve the fixed persona anchor and the personal-IP design system, but reconstruct each page as separately owned semantic SVG layers and compose them through one HTML timeline. Compatibility values `subtle` and `draw-reveal` resolve to the same semantic-layer route; they no longer authorize generic foreground geometry over a flattened page. The active route writes `workflow/personal-ip-semantic-layer-manifest.json`, exports `layers/*.svg`, `personal-ip-layered.svg`, `index.html`, and a video rendered from `window.motion.setProgress(progress)`. Missing layers, incomplete final state, path-above-card ordering, caption occlusion, or use of a flat composite animation base is a hard failure. Non-personal-IP teaching routes may borrow the same visual design grammar without activating a personal identity.
+
+The semantic-layer renderer owns two native aspect layouts: `9:16` renders 1080x1920 with vertically stacked semantic modules, while `16:9` renders 1920x1080 with a dedicated horizontal two-module layout. Horizontal output must never be produced by cropping, squeezing, scaling down, or letterboxing the vertical composition. Manifest and QC evidence must prove the requested aspect, selected layout, exact dimensions, collision-free checkpoints, and caption-safe final state.
 
 ## Stable Full-Screen Native Page Contract
 
@@ -265,7 +267,7 @@ Minimum shape:
   "sceneAssignments": [],
   "userChoices": {
     "makePersonalIp": "auto",
-    "addHandDrawnImageAnimation": "subtle"
+    "addHandDrawnImageAnimation": "off"
   },
   "stableFullScreenContract": {
     "generatedImagesAreFullScreen": true,

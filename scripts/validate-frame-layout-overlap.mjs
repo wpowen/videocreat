@@ -287,6 +287,14 @@ async function auditFrame(page, framePath, out) {
       return String(element.textContent || "").replace(/\s+/g, " ").trim();
     }
 
+    function isTransparentWhiteboardLayerBehind(foreground, readable) {
+      if (foreground?.dataset?.layerOwner !== "whiteboard-layered-reveal") return false;
+      const foregroundZ = Number.parseInt(getComputedStyle(foreground).zIndex || "0", 10) || 0;
+      const readableZ = Number.parseInt(getComputedStyle(readable).zIndex || "0", 10) || 0;
+      return getComputedStyle(foreground).pointerEvents === "none"
+        && foregroundZ < readableZ;
+    }
+
     function classListFor(element) {
       return [...(element?.classList || [])];
     }
@@ -533,6 +541,7 @@ async function auditFrame(page, framePath, out) {
       for (const visual of visualElements) {
         if (text.element === visual.element) continue;
         if (text.element.contains(visual.element) || visual.element.contains(text.element)) continue;
+        if (isTransparentWhiteboardLayerBehind(visual.element, text.element)) continue;
         const visualRect = rectFor(visual.element);
         const overlap = intersection(textRect, visualRect);
         const minArea = Math.max(1, Math.min(area(textRect), area(visualRect)));
@@ -559,6 +568,7 @@ async function auditFrame(page, framePath, out) {
       for (const foreground of captionAvoidanceElements) {
         if (captionArea.element === foreground.element) continue;
         if (captionArea.element.contains(foreground.element) || foreground.element.contains(captionArea.element)) continue;
+        if (isTransparentWhiteboardLayerBehind(foreground.element, captionArea.element)) continue;
         const foregroundRect = rectFor(foreground.element);
         const overlap = intersection(captionRect, foregroundRect);
         const minArea = Math.max(1, Math.min(area(captionRect), area(foregroundRect)));

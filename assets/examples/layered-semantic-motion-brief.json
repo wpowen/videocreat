@@ -1,0 +1,42 @@
+{
+  "title": "钩子升级路径",
+  "objective": "用分层动画和动画线逐步展示钩子如何从倒计时升级到证据检查，避免画面像静态 PPT。",
+  "audience": "内容创作者",
+  "language": "zh",
+  "videoType": "tutorial-explainer",
+  "generationMode": "semi-auto",
+  "layeredMotion": {
+    "enabled": true,
+    "mode": "semantic-path",
+    "intensity": "balanced",
+    "revealOrder": "progressive"
+  },
+  "scenes": [
+    {
+      "id": "hook-elements",
+      "label": "钩子五要素",
+      "headline": ["先建立压力", "再制造未知"],
+      "body": "谜团、威胁、风险、欲望与截止时间分别承担不同的叙事任务。",
+      "subtitle": "先建立五个钩子要素。",
+      "palette": "blue"
+    },
+    {
+      "id": "upgrade-route",
+      "label": "钩子升级路径",
+      "headline": ["倒计时", "陌生世界", "失联来电", "证据检查"],
+      "body": "动画线只在步骤卡片背后逐段绘制，卡片与文字始终位于更高层。",
+      "subtitle": "再让压力沿着路径逐步升级。",
+      "palette": "orange",
+      "motionRole": "semantic-path"
+    },
+    {
+      "id": "final-rule",
+      "label": "最终规则",
+      "headline": ["信息差", "情绪杠杆", "时间压力"],
+      "body": "最终态必须保留全部内容，并让字幕保持在最上层。",
+      "subtitle": "最后把路径收束成一条可执行规则。",
+      "palette": "ink"
+    }
+  ],
+  "narration": "先建立五个钩子要素。再让压力沿着路径逐步升级。最后把路径收束成一条可执行规则。"
+}
