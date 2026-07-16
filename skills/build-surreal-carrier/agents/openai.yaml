@@ -1,0 +1,4 @@
+interface:
+  display_name: "超现实载体设计"
+  short_description: "Design elegant surreal metaphors and transition frames"
+  default_prompt: "Use $build-surreal-carrier to create a single-carrier surreal metaphor for a video transition."

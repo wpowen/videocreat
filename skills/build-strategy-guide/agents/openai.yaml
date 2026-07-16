@@ -1,0 +1,4 @@
+interface:
+  display_name: "步骤攻略设计"
+  short_description: "Design polished tutorials, checklists, and pitfall boards"
+  default_prompt: "Use $build-strategy-guide to turn a tutorial into a polished step-by-step guide board."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "多状态演进拼贴"
+  short_description: "Design identity-locked multi-state progression collages"
+  default_prompt: "Use $build-progression-collage to create a consistency-locked multi-state progression collage."

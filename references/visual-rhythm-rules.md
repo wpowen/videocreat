@@ -13,8 +13,9 @@ Audio owns semantic timing; visuals must create visible events inside that timin
 - Do not split TTS only to force visual cuts.
 - Do not divide total duration evenly across unrelated visuals.
 - Use actual per-frame TTS durations from `workflow/voice-subtitle-manifest.json`.
-- For each narration-bound scene, generate a `visualRhythm` plan with at least two visible states.
-- No visible state should remain unchanged beyond `MAX_SCENE_WITHOUT_VISUAL_CHANGE_SECONDS`.
+- For each narration-bound scene, generate a `visualRhythm` plan with at least two meaningful states: an intentional reveal/build and a fully readable resolved state.
+- `MAX_SCENE_WITHOUT_VISUAL_CHANGE_SECONDS` is a planning trigger for photographs, footage, unfinished diagrams, and weak compositions; it must not force a complete teaching page or semantic composition to keep crawling, pulsing, or revealing until narration ends.
+- For personal-IP semantic animation, finish the main reveal in a bounded opening window (normally 0.45-4.8 seconds), then hold the completed page steadily while subtitles continue. A stable resolved state is valid; an unfinished animation stretched across the scene is not.
 - If a scene is abstract/process-oriented, use deterministic visual events such as countdown state changes, chart growth, comparison swaps, card cascades, cursor traces, type punches, or diagram builds instead of inserting a generated bitmap, unless `visualAssetDecision.explainerBoard.active` approves a text-safe Image2 storyboard plate.
 
 ## Scene Beat Pattern
@@ -58,6 +59,15 @@ When a generated image is a complete teaching page, PPT-style diagram page, or `
 - Do not add a visible card, shadow, matte, frame, or border around the page to make it feel like a slide inside the video.
 - Create visible events with semantic page changes, foreground marker strokes, progress indicators, highlights, reveal masks, subtitles, or deterministic overlays that do not move the base page pixels.
 - If the complete page has layout overlap or unreadable generated text, repair/regenerate the page before video render instead of shrinking, reframing, or bouncing it.
+
+## Semantic Page Reveal Rule
+
+For independently layered personal-IP or teaching pages, motion is an explanation tool, not a requirement to keep every element moving.
+
+- Select the page layout from the current content structure; do not reuse one card board for quote, scorecard, causal chain, resource map, and checklist scenes.
+- Reveal the principal semantic relationship promptly, then enter a stable reading hold before narration ends.
+- Captions may continue to change during the stable hold, but cards, paths, and presenter do not need periodic pulses or one-pixel progress.
+- QC must prove `timingModel: bounded-scene-reveal-then-stable-hold`, `allMainRevealsCompleteBeforeSceneEnd: true`, and sampled scenes reaching `revealComplete: true`.
 
 ## QC Expectations
 

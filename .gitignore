@@ -18,6 +18,15 @@ coverage/
 # Codex video workflow generated artifacts
 /research/
 /.video-maker/
+/output/
+
+# Local Codex/OMX session state
+/.omx/
+
+# One-off local personal-IP assembly helpers with private project inputs
+/scripts/build-personal-ip-native-brief.mjs
+/scripts/build-personal-ip-native-package.mjs
+/scripts/build-personal-ip-native-prompts.mjs
 
 # Renderer/runtime outputs that may appear outside research/
 /.html-video/

@@ -4,9 +4,9 @@ The workflow supports two product-level generation modes. These are separate fro
 
 ## Full Auto
 
-`full-auto` is explicit opt-in only.
+`full-auto` is the default whenever the user does not explicitly request semi-auto/custom configuration or page review.
 
-- Entry: `--generation-mode full-auto`, `--full-auto`, `--auto`, or a matching `brief.generationMode`.
+- Entry: no generation-mode signal, `--generation-mode full-auto`, `--full-auto`, `--auto`, or a matching `brief.generationMode`.
 - Input: brief, topic, script,素材稿, and any authorized local material.
 - Behavior: preserve the existing one-pass workflow: planning, script, assets, voice, subtitles, render, QC, package, and delivery.
 - Stop condition: `renders/final.mp4`, `delivery.html`, `logs/qc.json`, and all required workflow evidence are written.
@@ -14,9 +14,9 @@ The workflow supports two product-level generation modes. These are separate fro
 
 ## Semi Auto / Custom
 
-`semi-auto` is the default for ordinary topic/script intake.
+`semi-auto` is explicit opt-in only.
 
-- Entry: no generation-mode flag, `--generation-mode semi-auto`, `--generation-mode custom`, or a matching `brief.generationMode`.
+- Entry: an explicit user request for semi-auto/半自动/custom configuration/page review, `--generation-mode semi-auto`, `--generation-mode custom`, or a matching `brief.generationMode`.
 - Input: topic,口播稿,素材稿, or user constraints.
 - Behavior: prepare planning/material/image evidence, generate a configuration page, then stop before final composition unless the caller explicitly composes.
 - Stop condition before compose: `semi-auto-config.html`, `workflow/semi-auto-config.json`, and `workflow/generation-mode-contract.json` exist.
@@ -62,8 +62,10 @@ Every generated package writes `workflow/generation-mode-contract.json` with:
 
 ## Rules
 
-- Full-auto requires explicit user or caller opt-in.
-- Topic-only or口播稿-only intake defaults to the configuration page so the user can choose full-auto, personal-IP, hand-drawn, vertical short-form, motion template, caption style, material source, voice, cover targets, and compose timing before final render.
+- Full-auto is unconditional when no explicit semi-auto/custom signal exists. Topic-only and口播稿-only intake continue through planning, rendering, QC, packaging, and final delivery.
+- Recoverable full-auto gates are internal workflow stages, not completion points. For personal-IP native-final runs, missing page provenance requires the workflow to first generate `workflow/context-image2-persona-page-requests.json`; it must also prepare `workflow/cover-image2-dispatch-plan.json` for pending covers and write `workflow/full-auto-continuation.json`. Codex then generates and ingests every planned Context Image2 / built-in `image_gen` page and cover and resumes render/QC; do not return the blocked package to the user as the result.
+- `workflow/presentation-route-lock.json` is written before planning. Plain personal IP locks to native final pages. Semantic-layer animation and any retry route change require literal user authorization; agent-authored brief fields, a new output directory, or a renderer convenience choice are not authorization.
+- Semi-auto/custom requires explicit user or caller opt-in and is the only mode allowed to stop at the configuration/page-review surface.
 - Horizontal 16:9 stays the default video canvas. Only explicit vertical/short-form requests switch to 9:16. If the user intent is ambiguous, ask before rendering.
 - Semi-auto must stop at the configuration/page-review gate unless composition was explicitly requested.
 - Final video frames must not show page numbers, scene counters, renderer names, framework/library names, capability labels, or technical implementation badges.

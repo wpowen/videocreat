@@ -1,0 +1,4 @@
+interface:
+  display_name: "东方水墨氛围设计"
+  short_description: "Design restrained cultural pacing and ending frames"
+  default_prompt: "Use $build-oriental-ink to create a restrained new-Chinese ink atmosphere frame."

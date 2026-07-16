@@ -33,7 +33,7 @@ function main() {
         id: "idea-pool",
         label: "灵感池",
         headline: ["十个灵感", "先别急着写"],
-        body: "先建立十条人物加异常处境的原始灵感。",
+        body: "先建立十条人物加异常处境的原始灵感；候选人物可以包含欲望和误信念，但它们不能覆盖本期的选题决策主题。",
         subtitle: "先建立十条原始灵感，再进入筛选。"
       },
       {
@@ -51,7 +51,7 @@ function main() {
         subtitle: "最后留下一个能写完的主项目和一个备用项目。"
       }
     ],
-    narration: "先建立十条原始灵感，再进入筛选。每个候选项目都要通过故事发动、读者承诺、展开能力和作者资源四层检查。最后留下一个能写完的主项目和一个备用项目。"
+    narration: "先建立十条原始灵感，人物可以有欲望和误信念，但这一步仍然是在做选题决策。每个候选项目都要通过故事发动、读者承诺、展开能力和作者资源四层检查。最后留下一个能写完的主项目和一个备用项目。"
   };
   writeFileSync(briefPath, `${JSON.stringify(brief, null, 2)}\n`);
   const result = spawnSync(process.execPath, [
@@ -86,7 +86,16 @@ function main() {
   for (const internalPhrase of ["Prompt-library adaptation", "Methodology driver", "Primary click motivation", "UI quality bars"]) {
     if (prompt.includes(internalPhrase)) failures.push(`internal prompt methodology leaked: ${internalPhrase}`);
   }
-  if (requests.requests.length !== 1) failures.push(`single-platform run requested ${requests.requests.length} platform covers instead of 1`);
+  if (requests.requests.length !== 9) failures.push(`default cover run requested ${requests.requests.length} platform covers instead of all 9 planned targets`);
+  if (requests.requestCountContract?.expectedRequestCount !== 9
+    || requests.requestCountContract?.actualRequestCount !== 9
+    || requests.requestCountContract?.pass !== true) {
+    failures.push(`cover request-count contract is incomplete: ${JSON.stringify(requests.requestCountContract)}`);
+  }
+  if (requests.parallelGenerationPolicy?.defaultMaxConcurrency !== 2
+    || requests.requestCountContract?.actualRequestCount <= requests.parallelGenerationPolicy.defaultMaxConcurrency) {
+    failures.push("cover concurrency is no longer proven independent from total request count");
+  }
   if (requests.generationContract?.skill !== "system-imagegen") failures.push(`cover skill route=${requests.generationContract?.skill}`);
   if (requests.generationContract?.executionMode !== "built-in-image_gen") failures.push(`cover executionMode=${requests.generationContract?.executionMode}`);
   if (!Array.isArray(primary?.inputImages) || !primary.inputImages.some((image) => image.role === "main-anchor" && image.path)) {

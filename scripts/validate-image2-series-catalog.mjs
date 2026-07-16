@@ -10,6 +10,7 @@ const VALID_ASPECTS = new Set(["9:16", "16:9"]);
 const VALID_SERIES_STATUS = new Set(["candidate", "approved"]);
 const REQUIRED_SERIES_FIELDS = [
   "seriesId",
+  "skillContractPath",
   "name",
   "status",
   "axes",
@@ -127,6 +128,33 @@ function validateSeries(series, index, catalog, issues) {
   }
   if (Array.isArray(series.pageRoles) && series.pageRoles.length < 4) {
     issues.push(`${label}: pageRoles needs at least 4 entries to support multi-page sets`);
+  }
+  if (series.skillContractPath) {
+    const contractPath = resolve(SKILL_ROOT, series.skillContractPath);
+    if (!existsSync(contractPath)) {
+      issues.push(`${label}: skillContractPath not found: ${contractPath}`);
+    } else {
+      try {
+        const contract = JSON.parse(readFileSync(contractPath, "utf8"));
+        if (contract.seriesId !== series.seriesId) issues.push(`${label}: leaf contract seriesId mismatch`);
+        if (!contract.skillId) issues.push(`${label}: leaf contract skillId is required`);
+        if (!contract.contractId) issues.push(`${label}: leaf contract contractId is required`);
+        if (!Array.isArray(contract.contentSchema) || contract.contentSchema.length < 3) issues.push(`${label}: leaf contract needs at least 3 contentSchema entries`);
+        if (!Array.isArray(contract.layoutFamilies) || contract.layoutFamilies.length < 2) issues.push(`${label}: leaf contract needs at least 2 layout families`);
+        for (const family of contract.layoutFamilies || []) {
+          for (const field of ["id", "topology", "readingPath", "cameraAndScale", "moduleCount"]) {
+            if (!family[field]) issues.push(`${label}: layout family ${family.id || "unknown"} missing ${field}`);
+          }
+        }
+        for (const field of ["material", "lighting", "color", "typography"]) {
+          if (!contract.physicalVisualSystem?.[field]) issues.push(`${label}: leaf contract physicalVisualSystem.${field} is required`);
+        }
+        if (!Array.isArray(contract.forbiddenElements) || contract.forbiddenElements.length < 4) issues.push(`${label}: leaf contract needs at least 4 failure-specific forbiddenElements`);
+        if (!Array.isArray(contract.qcAssertions) || contract.qcAssertions.length < 4) issues.push(`${label}: leaf contract needs at least 4 qcAssertions`);
+      } catch (error) {
+        issues.push(`${label}: leaf contract is invalid JSON: ${error.message}`);
+      }
+    }
   }
   const text = collectSeriesText(series);
   for (const token of RIGHTS_UNSAFE_TOKENS) {

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  validateContextImage2PromptParity,
+  validateCoverRequestScopeContract,
+} from "./lib/cover-generation-workflow.mjs";
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -23,12 +27,12 @@ function targetKey(id = "") {
 
 function main() {
   const out = resolve(argValue("--out", process.cwd()));
-  const requireAll = process.argv.includes("--require-all-platform-covers");
   const failures = [];
   const requestPath = join(out, "workflow", "context-image2-cover-requests.json");
   const selectionPath = join(out, "workflow", "cover-size-selection.json");
   const qcPath = join(out, "workflow", "cover-image2-qc.json");
-  for (const [path, label] of [[requestPath, "request manifest"], [selectionPath, "cover selection"], [qcPath, "cover QC"]]) {
+  const promptsPath = join(out, "workflow", "cover-image2-prompts.json");
+  for (const [path, label] of [[requestPath, "request manifest"], [selectionPath, "cover selection"], [qcPath, "cover QC"], [promptsPath, "cover prompt plan"]]) {
     if (!existsSync(path)) failures.push(`missing ${label}: ${path}`);
   }
   if (failures.length) {
@@ -37,8 +41,14 @@ function main() {
   }
 
   const manifest = readJson(requestPath);
+  const promptParity = validateContextImage2PromptParity({ topicDir: out, manifest });
+  failures.push(...promptParity.failures);
+  const scopeContract = validateCoverRequestScopeContract({ manifest, coverImage2Prompts: readJson(promptsPath) });
+  failures.push(...scopeContract.failures);
   const selection = readJson(selectionPath);
   const qc = readJson(qcPath);
+  const explicitRequireAll = process.argv.includes("--require-all-platform-covers");
+  const requireAll = explicitRequireAll || manifest.requestCountContract?.mode !== "explicit-primary-only";
   const primaryTargetId = targetKey(manifest.primaryPlatformUploadCoverTargetId || selection.primaryPlatformUploadCoverTargetId || "");
   const request = (manifest.requests || []).find((item) => targetKey(item.targetId || item.id || "") === primaryTargetId);
   const entry = (selection.entries || []).find((item) => targetKey(item.targetId || item.id || "") === primaryTargetId);
@@ -57,16 +67,26 @@ function main() {
   if (!finalPng.startsWith("最终成品/") || !existsSync(join(out, finalPng))) failures.push(`primary platform cover is missing from 最终成品/: ${finalPng || "not recorded"}`);
   if (entry?.uploadReady !== true || entry?.image2NativeTargetRatioReady !== true) failures.push("primary platform cover selection is not native-ratio upload-ready");
   if (manifest.primaryPlatformUploadCoverReady !== true || qc.primaryPlatformUploadCoverReady !== true || qc.platformSubmissionCoverReady !== true) failures.push("canonical primary platform cover readiness flags are not true");
-  if (requireAll && (manifest.allRequestedPlatformUploadCoversReady !== true || qc.finalCoverQualityEligible !== true)) failures.push("not all requested platform cover targets are complete");
+  if (requireAll && (manifest.allRequestedPlatformUploadCoversReady !== true
+    || qc.finalCoverQualityEligible !== true
+    || Number(manifest.completedRequestCount) !== (manifest.requests || []).length
+    || Number(manifest.pendingRequestCount) !== 0)) {
+    failures.push(`not all requested platform cover targets are complete: ${Number(manifest.completedRequestCount || 0)}/${(manifest.requests || []).length}`);
+  }
 
   const report = {
     ok: failures.length === 0,
     out,
+    explicitRequireAllPlatformCovers: explicitRequireAll,
     requireAllPlatformCovers: requireAll,
     primaryPlatformUploadCoverTargetId: primaryTargetId,
     primaryPlatformUploadCoverReady: manifest.primaryPlatformUploadCoverReady === true,
     allRequestedPlatformUploadCoversReady: manifest.allRequestedPlatformUploadCoversReady === true,
     actualOutput,
+    promptParityPass: promptParity.pass,
+    plannedTargetCount: scopeContract.plannedTargetCount,
+    requestedTargetCount: scopeContract.requestedTargetCount,
+    requestScopePass: scopeContract.pass,
     failures,
   };
   console.log(JSON.stringify(report, null, 2));

@@ -10,6 +10,8 @@ This applies to covers, target-ratio cover variants, scene stills, explainer boa
 
 `image2-dryrun`, local SVG/HTML rasters, direct OpenAI Images API output, stock/provider media, or user-imported files may support drafts, deterministic layers, external material, explicit non-Codex automation, or user-approved imports. They must not be labeled as this workflow's generated Image2 output, must not satisfy generated-image provenance, and must not make a final package pass when a Codex Image2 bitmap is required.
 
+In full-auto, `image2-dryrun` is a planning stage rather than a terminal mode. If it creates pending personal-IP pages or covers, the workflow must prepare the complete dispatch manifests, write `workflow/full-auto-continuation.json`, invoke built-in `image_gen`, ingest the outputs, and resume. A pending manifest must never be summarized as a completed image lane.
+
 ## Research Snapshot
 
 Primary references checked:
@@ -59,8 +61,8 @@ The ip-diagram-creator repository is used as a planner/prompt/native-source/QC r
 Image generation may run concurrently only when the request artifact explicitly says it is safe:
 
 - Valid manifests use `parallelGenerationPolicy.allowed: true`, a default concurrency, a maximum concurrency, and a request-level stable id plus expected output path.
-- Default concurrency is 2. Use `CODEX_VIDEO_IMAGE2_CONCURRENCY` or a script flag such as `--concurrency 2` to tune it; do not use unbounded `Promise.all` against provider calls.
-- Parallelism applies to independent generation calls only. Artifact mutation, resize/export, ingestion, and final QC should run after outputs are saved, or otherwise preserve deterministic request-to-output mapping.
+- For standalone covers, the default concurrency is the complete pending count capped at 9. Use an explicit lower concurrency only to reduce provider pressure; never slice the request list or use `--limit` to redefine scope. Other Image2 lanes may declare a lower bounded policy in their own manifest.
+- Parallelism applies to independent generation calls only. Use a bounded worker pool plus all-settled failure isolation. Artifact mutation, resize/export, and cover QC run through one locked batch-ingest coordinator after outputs are saved; full-video QC is separate.
 - Do not parallelize a page that depends on another freshly generated page as its reference. If identity or style consistency is needed, every request must attach the same fixed context image set or style lock from the manifest.
 - If any output cannot be matched back to its request id, prompt path, target id, and expected dimensions, treat the batch as incomplete and regenerate or ingest manually.
 
@@ -98,7 +100,7 @@ Use this route when `workflow/ip-diagram-creator-plan.json` is active.
 - Active routes must also write `workflow/ip-diagram-creator-native-jobs.json`. These jobs are valid inputs for directly using the original framework to produce role sheets, knowledge cards, PPT-style diagram pages, or source plates before video assembly.
 - Generated images may be role reference assets, expression/action sheets, small creator scenes, visual metaphor plates, knowledge-card source boards, or PPT-style background/source plates.
 - Prompt priority should follow the active plan's `characterAssetPolicy`: user-authorized role assets first, project-owned generated assets second, generic style references last.
-- Prompt visual DNA should follow the active `characterAssetPlan`: white/near-white canvas, black minimal hand-drawn line art, slight pen wobble, adult IP presenter, lots of whitespace, sparse orange/red/blue annotations, and concrete execution Agents when useful.
+- Prompt visual DNA should follow the active `characterAssetPlan`: white/near-white canvas, black minimal hand-drawn line art, slight pen wobble, adult IP presenter, lots of whitespace, sparse orange/red/blue annotations, and concrete execution Agents when useful. For native personal-IP pages, the white/near-white canvas is a hard background contract; topic-driven palettes such as newsprint, warm paper, cream, or beige cannot override it unless the brief explicitly specifies a background/color system.
 - Generated images may include blank plaques, icons, arrows, panels, and non-readable sketch marks. They must not contain final exact Chinese claims, subtitles, labels, metrics, or UI copy; those remain deterministic HTML/SVG/CSS layers.
 - Agent collaboration diagram prompts may ask for 2-6 small helper characters only when each helper has a concrete execution job. Avoid anonymous decorative mascots.
 - If the environment has no image tool, write prompts and repair prompts only and mark image generation as pending; do not imply that a role asset or diagram was generated.
@@ -132,9 +134,9 @@ Final upload-ready covers in Codex App must use Context Image2 / Codex built-in 
 
 - Core logic first: `workflow/cover-design.json` owns click strategy, category, title/script truth, platform variants, target dimensions, exact visible-text whitelist, and QC. `workflow/cover-image2-prompts.json` owns the GPT Image 2 prompt text.
 - Handoff second: `workflow/context-image2-cover-requests.json` lists the current missing or non-upload-ready targets, provider `codex-context-image2`, tool `image_gen`, prompt file paths under `prompts/context-image2-covers/`, expected dimensions, and ingest commands.
-- Generation third: the agent calls Context Image2 / `image_gen` for each request, using the manifest's bounded `parallelGenerationPolicy` when present, saves each PNG to the request's expected output, and runs `scripts/ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>`.
+- Generation third: the agent prepares one all-pending dispatch plan, calls Context Image2 / `image_gen` through a bounded worker pool, saves each PNG, and records every target-bound result. After request-bound receipts and independent inspection records exist for the complete generated set, it runs the standalone locked batch-ingest coordinator once.
 - Validation last: ingest may mark `uploadReady: true` only when the source bitmap matches the target ratio and is recorded as a real Codex/Image2 asset. Review SVG/HTML covers stay review-only.
-- Submission-cover completion is explicit: the agent must invoke the installed `imagegen` Skill / built-in `image_gen`, inspect the result, and ingest with `--inspection-status passed-human-or-vision-review`. A request file with `status: pending`, an in-video opening frame, or a native-page review cover is not evidence that the platform upload thumbnail was generated. Run `scripts/validate-platform-submission-cover.mjs --out <topic-dir>` before final delivery.
+- Submission-cover completion is explicit: the agent must invoke the installed `imagegen` Skill / built-in `image_gen`, persist a request/prompt/output-hash generation receipt, persist a separate human/vision inspection record, and complete the standalone batch ingest. `--inspection-status` alone, a pending request, an in-video opening frame, or a native-page review cover is not evidence of a generated platform thumbnail. Batch ingest proves `coversVerified`; the parent workflow runs full package QC before promotion.
 - Native-final personal-IP packages must not treat pending Context Image2 requests as final cover generation. Their QC must report `coverNativeImage2Ready:false` until an upload-ready native Image2/Codex cover target is ingested.
 - Missing non-16:9 target covers such as `4:3`, `3:4`, square, Reels, and Bilibili common must not be backfilled with target-size local review drafts. Leave them pending for Context Image2/Image2 and list them in the regeneration manifest so users do not receive a cropped or locally recomposed file as the apparent 4:3 result.
 

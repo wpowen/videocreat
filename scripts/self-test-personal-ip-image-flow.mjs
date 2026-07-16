@@ -45,6 +45,10 @@ function assert(condition, message, failures) {
   if (!condition) failures.push(message);
 }
 
+function longNarrationFixture(cueCount) {
+  return Array.from({ length: cueCount }, (_, index) => `第${index + 1}个连续口播要点解释人物欲望、误信念、行动选择与必须承担的代价。`).join("");
+}
+
 function testAspect(root, aspect, prefix) {
   const out = join(root, prefix);
   runNode([
@@ -103,9 +107,11 @@ function testAspect(root, aspect, prefix) {
   assert(contextRequests.parallelGenerationPolicy?.defaultMaxConcurrency === 2, `${prefix}: Context Image2 bounded parallel default should be 2`, failures);
   assert(contextRequests.parallelGenerationPolicy?.maxConcurrency === 3, `${prefix}: personal-IP parallel generation max should be 3`, failures);
   assert(contextRequests.parallelGenerationPolicy?.consistencyGroup === "fixed-persona-main-anchor-page-set", `${prefix}: Context Image2 parallel policy must use the fixed persona consistency group`, failures);
+  assert(contextRequests.generationAcceptance?.visualInspectionRequired === true, `${prefix}: visual inspection must remain required after prompt lint`, failures);
   assert(Array.isArray(contextRequests.contextImages) && contextRequests.contextImages.some((image) => image.role === "main-anchor" && image.required === true), `${prefix}: Context Image2 context images missing required main-anchor`, failures);
   assert(contextRequests.contextImages.every((image) => image.role !== "source-generated-persona"), `${prefix}: Context Image2 context images include retired source-generated-persona role`, failures);
   assert(contextRequests.requests.every((request) => request.parallelSafe === true && request.consistencyGroup === "fixed-persona-main-anchor-page-set"), `${prefix}: every Context Image2 page request must be marked parallel-safe inside the fixed persona group`, failures);
+  assert(contextRequests.requests.every((request) => request.visualInspectionRequired === true && request.inspectionRecordPath), `${prefix}: every page request must reserve a visual inspection record`, failures);
   assert(contextRequests.requests.every((request) => request.provider === "codex-context-image2" && request.tool === "image_gen"), `${prefix}: every Context Image2 page request must use codex-context-image2/image_gen`, failures);
   assert(contextRequests.requests.every((request) => request.requiredContextImageRoles?.length === 1 && request.requiredContextImageRoles[0] === "main-anchor"), `${prefix}: every Context Image2 page request must require only main-anchor`, failures);
   assert(contextRequests.requests.every((request) => request.contextImages?.some((image) => image.role === "main-anchor" && image.required === true && image.path.includes("/versions/v3/"))), `${prefix}: every Context Image2 page request must attach the clean v3 main-anchor`, failures);
@@ -115,9 +121,13 @@ function testAspect(root, aspect, prefix) {
     assert(qc.checks?.verticalTopSafeAreaPrompted === true, `${prefix}: QC missing vertical top safe-area prompt check`, failures);
     assert(qc.checks?.verticalBottomSubtitleSafeAreaPrompted === true, `${prefix}: QC missing vertical bottom subtitle safe-area prompt check`, failures);
     assert(firstPrompt.includes("top 220px") && firstPrompt.includes("phone status/navigation bars"), `${prefix}: prompt missing explicit mobile top safe-area instructions`, failures);
+  } else {
+    assert(firstPrompt.includes("bottom 22%") && firstPrompt.includes("physically blank pure white space") && firstPrompt.includes("uninterrupted pure white pixels"), `${prefix}: prompt missing measurable horizontal subtitle-safe blank-band contract`, failures);
   }
   assert(promptIndex.includes(`requires ${countPlan.resolvedImageCount} generated images`), `${prefix}: prompt index missing image count`, failures);
   assert(firstPrompt.includes("Fixed personal-IP persona reference (mandatory):"), `${prefix}: prompt missing fixed persona section`, failures);
+  assert(firstPrompt.includes("White or near-white background"), `${prefix}: prompt must preserve the original white or near-white personal-IP background`, failures);
+  assert(!firstPrompt.includes("warm off-white") && !firstPrompt.includes("warm uncoated paper"), `${prefix}: prompt must not inherit the non-persona warm-paper palette`, failures);
   assert(firstPrompt.includes(registry.manifestPath), `${prefix}: prompt missing manifest path`, failures);
   assert(!firstPrompt.includes("Source generated image:"), `${prefix}: prompt should not present legacy role sheet as source generated image`, failures);
   assert(firstPrompt.includes("Legacy source role sheet (provenance only"), `${prefix}: prompt should label old role sheet as provenance only`, failures);
@@ -147,12 +157,39 @@ function testContentMatchedCount(root) {
   const imageJobs = readJson(join(out, "workflow", "horizontal-personal-ip-image-image-jobs.json"));
   const failures = [];
 
-  assert(countPlan.maxImageCount === 48, "default max image count should be the reasonable guardrail 48", failures);
-  assert(countPlan.resolvedImageCount > 12, "long content should not be capped at 12 images", failures);
-  assert(countPlan.resolvedImageCount < countPlan.maxImageCount, "long content should not blindly fill the max image count", failures);
+  assert(countPlan.maximumPolicy === "duration-band-default-user-maximum-hard-cap", "default personal-IP page planning must use the duration safety band", failures);
+  assert(countPlan.requestedMaxImageCount === null, "no explicit maximum should remain null instead of silently becoming 48", failures);
+  assert(countPlan.resolvedImageCount > countPlan.minImageCount, "longer content should grow beyond the minimum page set", failures);
+  assert(countPlan.resolvedImageCount <= countPlan.maxImageCount, "resolved count should stay inside the duration safety band", failures);
   assert(countPlan.contentMetrics?.contentMatchCeiling >= countPlan.resolvedImageCount, "resolved count should be bounded by matchable narration beats", failures);
   assert(imageJobs.jobs.length === countPlan.resolvedImageCount, "image jobs do not match content-matched count", failures);
 
+  return failures;
+}
+
+function testThirtyFiveMinuteCountUsesPageCapacity(root) {
+  const out = join(root, "thirty-five-minute-count");
+  runNode([
+    SCRIPT,
+    "--out", out,
+    "--aspect", "16:9",
+    "--title", "35分钟自适应页数测试",
+    "--core-idea", "长视频不能因为输入摘要较短或遗留最大值而被压缩成固定页数。",
+    "--content", longNarrationFixture(113),
+    "--duration-seconds", "2133.117",
+    "--subtitle-cue-count", "113",
+    "--max-image-count", "48",
+    "--required-text", "自适应页数;时长驱动;字幕驱动;完整呈现",
+    "--agent-jobs", "读取时长;读取字幕;提升旧上限;生成完整页组",
+  ]);
+
+  const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
+  const failures = [];
+  assert(countPlan.contentMetrics?.durationBasedTarget === 24, "2133.117 seconds should resolve to 24 horizontal page-capacity windows", failures);
+  assert(countPlan.resolvedImageCount >= 24 && countPlan.resolvedImageCount <= 32, "35-minute content should stay inside the 24-32 page safety band", failures);
+  assert(countPlan.requestedMaxImageCount === 48, "the explicit maximum should remain recorded for audit", failures);
+  assert(countPlan.maxImageCountUnderAutomaticPolicy === false, "a 48-page maximum should not be treated as under the new capacity target", failures);
+  assert(countPlan.maxImageCountRaisedToAutomaticPolicy === false, "user maxima must never be raised", failures);
   return failures;
 }
 
@@ -164,6 +201,7 @@ function testDurationAwareCount(root) {
     "--aspect", "16:9",
     "--title", "长视频摘要数量测试",
     "--core-idea", "这是一个十多分钟个人 IP 口播视频的摘要，不能因为摘要很短就只生成几张图。",
+    "--content", longNarrationFixture(72),
     "--duration-seconds", "720",
     "--subtitle-cue-count", "72",
     "--required-text", "长视频;个人IP;图解页;持续解释",
@@ -174,16 +212,16 @@ function testDurationAwareCount(root) {
   const contextRequests = readJson(join(out, "workflow", "context-image2-persona-page-requests.json"));
   const failures = [];
 
-  assert(countPlan.resolvedImageCount >= 24, "12-minute personal-IP video should plan at least one source page per 30 seconds", failures);
-  assert(countPlan.contentMetrics?.durationBasedTarget === 24, "duration target should be recorded as 24 pages for 720s/30s", failures);
+  assert(countPlan.resolvedImageCount === 8, "12-minute horizontal personal-IP video should fit into eight 90-second explanation pages", failures);
+  assert(countPlan.contentMetrics?.durationBasedTarget === 8, "duration target should be recorded as eight pages for 720s/90s", failures);
   assert(countPlan.contentMetrics?.subtitleCueBasedTarget === 18, "subtitle cue target should be recorded as 18 pages for 72 cues/4", failures);
-  assert(countPlan.durationDensityRule?.targetSecondsPerImage === 30, "duration density rule should record 30 seconds per image", failures);
+  assert(countPlan.durationDensityRule?.targetSecondsPerImage === 90, "duration density rule should record 90 seconds per horizontal page", failures);
   assert(contextRequests.requests.length === countPlan.resolvedImageCount, "Context Image2 requests should match duration-aware image count", failures);
 
   return failures;
 }
 
-function testExplicitTargetCannotUndercutAutomaticPolicy(root) {
+function testExplicitTargetIsHonored(root) {
   const out = join(root, "explicit-target-raised");
   runNode([
     SCRIPT,
@@ -191,9 +229,10 @@ function testExplicitTargetCannotUndercutAutomaticPolicy(root) {
     "--aspect", "16:9",
     "--title", "显式数量不能压低规则",
     "--core-idea", "这是一个十多分钟个人 IP 口播视频的摘要，不能因为手动传了 12 张就压过内容和时长规则。",
+    "--content", longNarrationFixture(72),
     "--duration-seconds", "720",
     "--subtitle-cue-count", "72",
-    "--target-image-count", "12",
+    "--target-image-count", "6",
     "--required-text", "长视频;个人IP;自动页数;不能压低",
     "--agent-jobs", "按规则拆页;拒绝低配;保证角色一致;生成完整页组",
   ]);
@@ -201,16 +240,16 @@ function testExplicitTargetCannotUndercutAutomaticPolicy(root) {
   const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
   const failures = [];
 
-  assert(countPlan.explicitRequestedTarget === 12, "explicit requested target should be recorded as 12", failures);
+  assert(countPlan.explicitRequestedTarget === 6, "explicit requested target should be recorded as 6", failures);
   assert(countPlan.explicitTargetUnderAutomatic === true, "explicit under-count should be detected", failures);
-  assert(countPlan.explicitTargetRaisedToAutomatic === true, "under-count should be raised by default", failures);
-  assert(countPlan.resolvedImageCount >= 24, "under-count target should not reduce a 12-minute video below duration-aware target", failures);
-  assert(countPlan.resolvedImageCount === countPlan.automaticResolvedTarget, "resolved count should follow automatic policy when explicit target is too low", failures);
+  assert(countPlan.explicitTargetRaisedToAutomatic === false, "an explicit target must not be silently raised", failures);
+  assert(countPlan.resolvedImageCount === 6, "explicit target should control unique generation count while coverage moves to in-page beats", failures);
+  assert(countPlan.contentMetrics?.subtitleCueBasedTarget === 18, "subtitle cadence must remain available after reducing unique pages", failures);
 
   return failures;
 }
 
-function testMaxImageCountCannotUndercutAutomaticPolicy(root) {
+function testMaxImageCountIsHardCap(root) {
   const out = join(root, "max-count-raised");
   runNode([
     SCRIPT,
@@ -218,9 +257,10 @@ function testMaxImageCountCannotUndercutAutomaticPolicy(root) {
     "--aspect", "9:16",
     "--title", "最大数量不能压低规则",
     "--core-idea", "这是一个十多分钟个人 IP 竖屏口播视频的摘要，不能因为手动传了最大 12 张就压过内容和时长规则。",
+    "--content", longNarrationFixture(72),
     "--duration-seconds", "720",
     "--subtitle-cue-count", "72",
-    "--max-image-count", "12",
+    "--max-image-count", "8",
     "--required-text", "竖屏;个人IP;自动页数;最大值不能压低",
     "--agent-jobs", "按规则拆页;拒绝低配;保证角色一致;生成完整页组",
   ]);
@@ -228,11 +268,12 @@ function testMaxImageCountCannotUndercutAutomaticPolicy(root) {
   const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
   const failures = [];
 
-  assert(countPlan.requestedMaxImageCount === 12, "requested max image count should be recorded as 12", failures);
+  assert(countPlan.requestedMaxImageCount === 8, "requested max image count should be recorded as 8", failures);
   assert(countPlan.maxImageCountUnderAutomaticPolicy === true, "max under automatic policy should be detected", failures);
-  assert(countPlan.maxImageCountRaisedToAutomaticPolicy === true, "under-count max should be raised by default", failures);
-  assert(countPlan.resolvedImageCount >= 24, "max-image-count should not reduce a 12-minute video below duration-aware target", failures);
-  assert(countPlan.maxImageCount >= countPlan.automaticResolvedTarget, "effective max should not undercut automatic resolved target", failures);
+  assert(countPlan.maxImageCountRaisedToAutomaticPolicy === false, "an explicit maximum must never be raised", failures);
+  assert(countPlan.requestedMaximumApplied === true, "hard maximum application should be auditable", failures);
+  assert(countPlan.resolvedImageCount === 8, "max-image-count must cap unique generated pages", failures);
+  assert(countPlan.maxImageCount === 8, "effective maximum must equal the user cap", failures);
 
   return failures;
 }
@@ -271,6 +312,37 @@ function testRejectReferenceAssetAsSourceImage(root) {
   return failures;
 }
 
+function testNarrationBeatsDoNotMixPlanningMetadata(root) {
+  const out = join(root, "narration-beat-purity");
+  const narration = [
+    "第一句只讲页面变形。",
+    "第二句只讲前景分层。",
+    "第三句只讲句界换页。",
+    "第四句只讲最终放行。",
+  ];
+  runNode([
+    SCRIPT,
+    "--out", out,
+    "--aspect", "9:16",
+    "--title", "口播分段纯度测试",
+    "--content", narration.join(""),
+    "--core-idea", "这是规划元数据，不能混入口播分页。",
+    "--required-text", "页面故障;前景分层;安全换页;最终放行",
+    "--min-image-count", "4",
+    "--max-image-count", "4",
+    "--target-image-count", "4",
+    "--allow-under-count", "true",
+  ]);
+  const countPlan = readJson(join(out, "workflow", "personal-ip-image-count-plan.json"));
+  const failures = [];
+  assert(countPlan.slots.length === 4, "narration purity fixture should produce four pages", failures);
+  countPlan.slots.forEach((slot, index) => {
+    assert(slot.contentBeat === narration[index], `page ${index + 1} must contain exactly its narration sentence`, failures);
+    assert(!slot.contentBeat.includes("规划元数据") && !slot.contentBeat.includes("页面故障"), `page ${index + 1} mixed core-idea or required-text metadata into narration`, failures);
+  });
+  return failures;
+}
+
 function main() {
   const root = mkdtempSync(join(tmpdir(), "personal-ip-image-flow-"));
   try {
@@ -279,9 +351,11 @@ function main() {
       ...testAspect(root, "9:16", "vertical"),
       ...testContentMatchedCount(root),
       ...testDurationAwareCount(root),
-      ...testExplicitTargetCannotUndercutAutomaticPolicy(root),
-      ...testMaxImageCountCannotUndercutAutomaticPolicy(root),
+      ...testThirtyFiveMinuteCountUsesPageCapacity(root),
+      ...testExplicitTargetIsHonored(root),
+      ...testMaxImageCountIsHardCap(root),
       ...testRejectReferenceAssetAsSourceImage(root),
+      ...testNarrationBeatsDoNotMixPlanningMetadata(root),
     ];
     const mismatchError = runNodeExpectFailure([
       SCRIPT,

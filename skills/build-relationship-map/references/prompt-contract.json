@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "relationship-map-structured-prompt-v2",
+  "skillId": "build-relationship-map",
+  "seriesId": "relationship-map-poster-v1",
+  "outputIntent": "Render only the supplied nodes, clusters, and typed edges as an editorial map with one immediately legible focal relationship.",
+  "positioning": "Not decorative network art or an inferred fandom chart; it is a faithful information visualization whose semantics can be audited edge by edge.",
+  "contentSchema": ["stable node IDs and labels", "explicit directed or undirected typed edges", "fixed legend semantics", "explicit cluster membership", "one focal relationship per page"],
+  "layoutFamilies": [
+    {"id":"clustered-orbit-map","roles":["full-map-overview","faction-cluster","legend-recap"],"topology":"two or three soft containment fields orbit a focal node pair; edges route around label zones and enter node frames at distinct ports","readingPath":"focus pair -> cluster membership -> typed edges -> legend","cameraAndScale":"orthographic editorial map with one focal node scale and one supporting node scale","moduleCount":"all supplied nodes for the page, all supplied edges, two or three clusters, one legend"},
+    {"id":"relationship-axis","roles":["core-pair-zoom","conflict-axis","relation-timeline"],"topology":"two opposing or sequential anchors define a strong axis; secondary nodes attach on perimeter lanes; the highlighted edge owns the center","readingPath":"anchor A -> focal edge -> anchor B -> supporting feedback","cameraAndScale":"wide diagram view with generous central whitespace and perimeter edge routing","moduleCount":"two anchors, supplied supporting nodes, exact focal edge set, one compact legend"}
+  ],
+  "physicalVisualSystem": {"material":"restrained editorial vector print with soft paper grain, uniform node frames, precise edge ports, and subtle containment fields","lighting":"flat print light with minimal depth; no 3D globes or glowing cyber lines","color":"ivory ground, graphite nodes, one neutral frame accent, fixed semantic edge colors only","typography":"compact Chinese node labels and legend keys with consistent weights and no auto-generated captions"},
+  "allowedVariations":["node placement within collision-free lanes","focus relationship emphasis","cluster field geometry"],
+  "forbiddenElements":["invented or missing edges","wrong arrow direction","edges crossing labels or nodes","hairball center","legend mismatch","isolated node unless explicitly intentional"],
+  "qcAssertions":["every expected node appears once","every expected edge appears once with correct type and direction","cluster membership matches input","legend matches visible edge semantics","map remains readable at phone size and above the safe band"]
+}

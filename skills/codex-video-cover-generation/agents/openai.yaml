@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex 视频封面生成"
+  short_description: "Standalone video cover generation, evidence, ingest, and QC"
+  default_prompt: "Use $codex-video-cover-generation to generate, inspect, ingest, and validate the pending platform covers for this video package."

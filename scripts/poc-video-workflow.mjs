@@ -22,6 +22,32 @@ import {
   personalIpIntentForBrief,
   stripNegatedPersonalIpText,
 } from "./lib/visual-route-planner.mjs";
+import { enforcePresentationRouteLock } from "./lib/presentation-route-lock.mjs";
+import { resolveStandaloneCoverSkillRoot } from "./lib/cover-skill-runtime.mjs";
+import { buildPersonalIpSemanticScenePlan } from "./lib/personal-ip-semantic-scene-planner.mjs";
+import {
+  FINAL_SPEECH_DELIVERY_FILTER,
+  SEGMENT_SPEECH_NORMALIZE_FILTER,
+  normalizeSpeechSegmentsForConcat,
+  probeSegmentMeanVolumes,
+} from "./lib/audio-dynamics.mjs";
+import {
+  buildAdaptiveCountPlan,
+  buildMethodologyVisualCoverage,
+  buildPersonalIpPageCapacityPlan,
+  expandScenesAdaptively,
+  extractMethodologyVisualUnits,
+  selectCanonicalContentUnits,
+} from "./lib/adaptive-content-scene-planner.mjs";
+import {
+  buildCoverGenerationWorkflowContract,
+  buildCoverStatusSnapshot,
+  formatContextImage2CoverPromptDocument,
+  resolveCoverRequestScope,
+  resolveTitleFirstWritingMethodCoverHook,
+  sha256Text as sha256CoverText,
+  validateContextImage2PromptParity,
+} from "./lib/cover-generation-workflow.mjs";
 
 const ROOT = process.cwd();
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -61,7 +87,7 @@ const DEFAULT_SPEED_PROFILE = "standard";
 const DEFAULT_FINAL_AUDIO_MODE = "reencode-video";
 const MIN_AUDIBLE_MEAN_DB = -20;
 const MIN_AUDIBLE_MAX_DB = -8;
-const FINAL_AUDIO_NORMALIZE_FILTER = "highpass=f=70,lowpass=f=14000,loudnorm=I=-15:TP=-1.5:LRA=8,alimiter=limit=0.95";
+const FINAL_AUDIO_NORMALIZE_FILTER = FINAL_SPEECH_DELIVERY_FILTER;
 const DELIVERY_AUDIO_SAMPLE_RATE = 48000;
 const DELIVERY_AUDIO_CHANNELS = 2;
 const DELIVERY_AUDIO_CHANNEL_LAYOUT = "stereo";
@@ -71,7 +97,7 @@ const SHORT_PUNCTUATION_PAUSE_SECONDS = 0.5;
 const SENTENCE_END_PAUSE_SECONDS = "tts-default";
 const DEFAULT_COVER_INTRO_SECONDS = 0;
 const REQUESTED_COVER_INTRO_SECONDS = 2;
-const DEFAULT_MAX_VISUAL_FRAMES = 24;
+const DEFAULT_MAX_VISUAL_FRAMES = null;
 const FULL_CONTENT_MIN_COVERAGE_RATIO = 0.72;
 const MIN_FINAL_VIDEO_BITRATE = 9_000_000;
 const HTML_VIDEO_TEXT_CRISP_BITRATE = "26000k";
@@ -831,12 +857,12 @@ function resolveAccelerationOptions({ args = {}, brief = {}, runtimeDefaults = {
 
 function normalizeGenerationMode(value) {
   const text = String(value || "").trim().toLowerCase();
-  if (!text) return "semi-auto";
+  if (!text) return "full-auto";
   if (/^(semi|semi-auto|custom|manual|configure|config|review|customized)$/i.test(text)
     || /半自动|自定义|人工配置|配置页|页面级|逐页编辑/.test(text)) return "semi-auto";
   if (/^(auto|full-auto|automatic|default|final)$/i.test(text)
     || /全自动|自动生成|一键生成/.test(text)) return "full-auto";
-  return "semi-auto";
+  return "full-auto";
 }
 
 function generationModeForRun({ args = {}, brief = {}, runtimeDefaults = {} }) {
@@ -850,10 +876,7 @@ function generationModeForRun({ args = {}, brief = {}, runtimeDefaults = {} }) {
     brief.videoGenerationMode,
   );
   if (explicitMode) return normalizeGenerationMode(explicitMode);
-  if (runtimeDefaults.generationModeRequiresExplicitFullAuto === false && runtimeDefaults.generationMode) {
-    return normalizeGenerationMode(runtimeDefaults.generationMode);
-  }
-  return "semi-auto";
+  return "full-auto";
 }
 
 function writeRuntimeConfigArtifact({ out, runtimeConfig, args = {}, brief = {}, resolved = {} }) {
@@ -962,7 +985,7 @@ function usage() {
     [--free-stock-engine] [--free-stock-provider-order <providers>] [--allow-free-stock-fixture]
     [--max-visual-frames <count>] [--allow-scene-truncation] [--allow-condensed-source]
     [--qc-only] [--final-mp4 <path>] [--renderer html-video|fallback]
-    [--compose] [--no-open-delivery-page]
+    [--compose] [--no-open-output]
   `);
 }
 
@@ -1448,8 +1471,133 @@ function startDeliveryService(pagePath) {
   return null;
 }
 
+function uiAutoOpenAllowed(args = {}) {
+  return !(
+    args["no-open-delivery-page"]
+    || args["no-open-output"]
+    || process.env.CI
+    || process.env.CODEX_VIDEO_WORKFLOW_HEADLESS === "1"
+    || process.env.NODE_ENV === "test"
+  );
+}
+
+function coverOnlyMutablePackageFile(relativePath = "") {
+  const normalized = String(relativePath).replaceAll("\\", "/");
+  return normalized.startsWith("cover/")
+    || normalized === "workflow/cover-design.json"
+    || normalized === "workflow/cover-image2-prompts.json"
+    || normalized === "workflow/cover-image2-qc.json"
+    || normalized === "workflow/cover-size-selection.json"
+    || normalized === "workflow/cover-generation-workflow.json"
+    || normalized === "workflow/cover-parallel-execution.json"
+    || normalized === "workflow/context-image2-cover-requests.json"
+    || normalized.startsWith("workflow/context-image2-cover-evidence/");
+}
+
+function snapshotExistingVideoPackageForCoverOnly(out, args = {}) {
+  if (!args["cover-only"] || !existsSync(join(out, "renders", "final.mp4"))) return null;
+  const files = new Map();
+  const capture = (absolutePath) => {
+    if (!existsSync(absolutePath)) return;
+    const stat = statSync(absolutePath);
+    if (stat.isDirectory()) {
+      for (const entry of readdirSync(absolutePath, { withFileTypes: true })) {
+        capture(join(absolutePath, entry.name));
+      }
+      return;
+    }
+    if (!stat.isFile()) return;
+    const rel = relative(out, absolutePath).replaceAll("\\", "/");
+    if (!coverOnlyMutablePackageFile(rel)) files.set(rel, readFileSync(absolutePath));
+  };
+  for (const directory of ["workflow", "script", "logs"]) capture(join(out, directory));
+  for (const file of [
+    "brief.json",
+    "AUTHORIZATION.md",
+    "delivery-service.mjs",
+    "delivery-manifest.json",
+    "review-manifest.json",
+    "delivery.html",
+  ]) capture(join(out, file));
+  return { files };
+}
+
+function restoreExistingVideoPackageAfterCoverOnly(out, snapshot) {
+  if (!snapshot) return false;
+  for (const [rel, contents] of snapshot.files.entries()) {
+    const destination = join(out, rel);
+    ensureDir(dirname(destination));
+    writeFileSync(destination, contents);
+  }
+  return true;
+}
+
+function synchronizeExistingVideoPackageCoverState(out, imageSource = "") {
+  const coverDesign = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
+  const coverImage2Qc = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
+  const coverSizeSelection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+  const requestManifest = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  const platformReadiness = readPlatformCoverSubmissionReadiness(out);
+  const coverStatus = {
+    ...buildCoverStatusSnapshot({
+      imageSource,
+      platformReadiness,
+      coverImage2Qc,
+      coverSizeSelection,
+      requestManifest,
+      coverDesign,
+    }),
+    videoProductionMayCompleteWhileCoverPending: true,
+    contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+  };
+  const coverReady = coverStatus.platformSubmissionCoverReady === true
+    && coverStatus.finalCoverQualityEligible === true
+    && coverStatus.pendingRequestCount === 0;
+  const publishingBlockers = coverReady
+    ? []
+    : [...new Set([
+      ...(coverStatus.blockers || []),
+      ...(platformReadiness.failures || []),
+      ...(coverStatus.pendingRequestCount > 0 ? [`${coverStatus.pendingRequestCount} standalone platform cover request(s) remain pending`] : []),
+    ])];
+  for (const name of ["delivery-manifest.json", "review-manifest.json"]) {
+    const path = join(out, name);
+    if (!existsSync(path)) continue;
+    const manifest = readJsonIfExists(path) || {};
+    manifest.coverStatus = coverStatus;
+    if (!coverReady) {
+      manifest.ok = false;
+      manifest.publishingReady = false;
+      manifest.promotedToFinalDelivery = false;
+      manifest.deliveryClass = manifest.videoPass === false ? "render-qc-failed" : "video-review-ready";
+      manifest.publishingBlockers = publishingBlockers;
+    }
+    writeJson(path, manifest);
+  }
+  const qcPath = join(out, "logs", "qc.json");
+  if (existsSync(qcPath)) {
+    const qc = readJsonIfExists(qcPath) || {};
+    qc.checks = {
+      ...(qc.checks || {}),
+      coverNativeImage2Ready: coverReady,
+      platformSubmissionCoverReady: coverReady,
+      coverRequestCompletionComplete: coverStatus.pendingRequestCount === 0,
+      coverImage2FinalQualityEligible: coverStatus.finalCoverQualityEligible === true,
+    };
+    if (!coverReady) {
+      qc.pass = false;
+      qc.publishingReady = false;
+      qc.publishingBlockers = publishingBlockers;
+      qc.requiresFullQcRerun = true;
+      qc.status = "pending-cover-generation";
+    }
+    writeJson(qcPath, qc);
+  }
+  return { coverReady, coverStatus, publishingBlockers };
+}
+
 function openDeliveryPage(pagePath, args) {
-  if (args["no-open-delivery-page"] || process.env.CI) return false;
+  if (!uiAutoOpenAllowed(args)) return false;
   const href = startDeliveryService(pagePath) || pathToFileURL(pagePath).href;
   if (process.platform === "darwin") {
     return run("open", [href], { cwd: dirname(pagePath), check: false, timeout: 30_000 }).status === 0;
@@ -1465,7 +1613,7 @@ function openDeliveryPage(pagePath, args) {
 // evidence) directly. Runs alongside openDeliveryPage and honors the same
 // --no-open-delivery-page / CI opt-out gate.
 function openProjectFolder(out, args) {
-  if (args["no-open-delivery-page"] || process.env.CI) return false;
+  if (!uiAutoOpenAllowed(args) || args["no-open-project-folder"]) return false;
   const target = resolve(out);
   if (!existsSync(target)) return false;
   if (process.platform === "darwin") {
@@ -1790,6 +1938,12 @@ function writeDeliveryPage({ out, brief, manifest, qc = null, frames = [], rende
   const coverDesign = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
   const designPlan = readJsonIfExists(join(out, "workflow", "design-plan.json")) || {};
   const voiceManifest = readJsonIfExists(join(out, "workflow", "voice-subtitle-manifest.json")) || {};
+  const speechSegmentLoudness = readJsonIfExists(join(out, "workflow", "speech-segment-loudness.json")) || {};
+  const finalAudioNormalization = readJsonIfExists(join(out, "workflow", "final-audio-normalization.json")) || {};
+  const pronunciationPreflight = readJsonIfExists(join(out, "workflow", "chinese-pronunciation-preflight.json")) || {};
+  const effectivePronunciationPlan = readJsonIfExists(join(out, "workflow", "effective-pronunciation-plan.json")) || {};
+  const pronunciationApplicationVerification = readJsonIfExists(join(out, "workflow", "pronunciation-application-verification.json")) || {};
+  const providedAudioPronunciationLineage = readJsonIfExists(join(out, "workflow", "provided-audio-pronunciation-lineage.json")) || {};
   const timingSummary = readJsonIfExists(join(out, "workflow", "timing-summary.json")) || {};
   writeDeliveryService(out);
   const assets = collectDeliveryAssets(out, manifest, coverDesign);
@@ -2265,7 +2419,30 @@ function buildColorSystemPlan({ brief = {}, frames = [], videoType = "", stylePr
     const scored = scoreColorSystem(system, { brief, frames, videoType, styleProfile });
     return { ...system, ...scored, hasBlack: colorSystemHasNearBlack(system) };
   }).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
-  const selected = ranked[0] || COLOR_SYSTEM_CATALOG[0];
+  const explicitBackgroundOrColor = [
+    brief.background,
+    brief.backgroundColor,
+    brief.colorSystem,
+    brief.colorPalette,
+    brief.palette,
+    brief.visualTheme,
+    brief.themeKey,
+    brief.personalIp?.background,
+    brief.personalIp?.backgroundColor,
+    brief.personalIp?.colorSystem,
+    brief.personalIp?.visualDna?.background,
+    brief.ipDiagramCreator?.visualDna?.background,
+  ].some((value) => value !== undefined && value !== null && String(value).trim() !== "");
+  const personalIpNativeRoute = briefRequestsPersonalIpNativeSkillRoute(brief) && !explicitBackgroundOrColor;
+  const selected = personalIpNativeRoute
+    ? ranked.find((system) => system.id === "clear-whiteboard") || ranked[0] || COLOR_SYSTEM_CATALOG[0]
+    : ranked[0] || COLOR_SYSTEM_CATALOG[0];
+  const selectedReasons = personalIpNativeRoute
+    ? [
+        "个人 IP 原生路线锁定纯白/近白画布与黑色手绘线稿；题材关键词不得覆盖个人 IP visual DNA。",
+        ...selected.reasons.filter((reason) => !/数据|图表|趋势|证据|指标/.test(reason)),
+      ]
+    : selected.reasons;
   const sceneBindings = frames.map((frame, index) => ({
     sceneId: frame.id || `scene-${index + 1}`,
     order: index + 1,
@@ -2296,7 +2473,7 @@ function buildColorSystemPlan({ brief = {}, frames = [], videoType = "", stylePr
       colors: selected.colors,
       hasBlack: selected.hasBlack,
       score: selected.score,
-      reasons: selected.reasons.length ? selected.reasons : ["按题材、口播和页面内容进行稳定哈希兜底选择"],
+      reasons: selectedReasons.length ? selectedReasons : ["按题材、口播和页面内容进行稳定哈希兜底选择"],
     },
     rankedCandidates: ranked.slice(0, 8).map((system) => ({
       id: system.id,
@@ -2321,6 +2498,7 @@ function buildColorSystemPlan({ brief = {}, frames = [], videoType = "", stylePr
       overrideScope: "whole-video first; page-level override only through page TDS review",
       guardrails: [
         "未显式要求时不自动选择纯黑/深色体系",
+        "个人 IP 原生路线默认锁定纯白/近白背景；只有 brief 显式指定背景或色系时才允许覆盖",
         "色系必须写入 design-plan 和 quality-consistency-contract",
         "生成图片提示词和 HTML 动效元素必须引用同一套色系语义",
       ],
@@ -2515,10 +2693,120 @@ function assertContentCoverage({ out, coverage }) {
   }
 }
 
+function buildMethodologyCoverageForFrames({ brief = {}, frames = [], args = {} } = {}) {
+  const requiredUnits = methodologyVisualUnitsFromBrief(brief);
+  const coverage = buildMethodologyVisualCoverage({
+    requiredUnits,
+    visualScenes: frames,
+    condensedAllowed: condensedSourceExplicitlyAllowed(brief, args),
+  });
+  return {
+    ...coverage,
+    sourceMaterialPresent: Boolean(sourceMaterialTextFromBrief(brief)),
+    sourceMaterialPathReferences: sourceMaterialPathReferences(brief),
+    applicable: requiredUnits.length > 0,
+    status: requiredUnits.length > 0 ? coverage.status : "not-applicable",
+  };
+}
+
+function assertMethodologyVisualCoverage({ out, coverage }) {
+  ensureDir(join(out, "workflow"));
+  writeJson(join(out, "workflow", "methodology-visual-coverage.json"), coverage);
+  if (coverage.applicable && coverage.status === "fail") {
+    fail(`Methodology visual coverage failed: ${coverage.missingUnitCount} required step/table/scorecard/checklist unit(s) are absent from final visual scenes. Use explicit condensed mode only when a summary video is intended.`);
+  }
+}
+
+function buildRouteFinalMethodologyCoverage({ out, brief = {}, renderer = "", fallbackFrames = [], args = {} } = {}) {
+  const requiredUnits = methodologyVisualUnitsFromBrief(brief);
+  let visualScenes = [];
+  let evidenceArtifact = null;
+  let evidenceKind = "none";
+  if (/personal-ip-semantic-layers/.test(renderer)) {
+    const spec = readJsonIfExists(join(out, "workflow", "personal-ip-semantic-layer-spec.json")) || {};
+    visualScenes = Array.isArray(spec.scenes) ? spec.scenes.map((scene) => ({
+      id: scene.id,
+      methodologyText: scene.methodologyText || "",
+      requiredVisualUnitIds: Array.isArray(scene.requiredVisualUnitIds) ? scene.requiredVisualUnitIds : [],
+      visualText: [
+        scene.title,
+        scene.subtitle,
+        ...(scene.hookItems || []).flatMap((item) => [item.label, item.body]),
+        ...(scene.routeItems || []).flatMap((item) => [item.label, item.body]),
+        scene.takeaway,
+      ].filter(Boolean).join(" "),
+    })) : [];
+    evidenceArtifact = "workflow/personal-ip-semantic-layer-spec.json";
+    evidenceKind = "route-final-semantic-layer-spec";
+  } else if (/ip-diagram-native-final-pages/.test(renderer)) {
+    const audit = readJsonIfExists(join(out, "workflow", "native-page-provenance-audit.json")) || {};
+    visualScenes = Array.isArray(audit.perPage) ? audit.perPage.map((page) => ({
+      id: page.pageId,
+      methodologyText: page.methodologyText || "",
+      requiredVisualUnitIds: page.requiredVisualUnitIds || [],
+    })) : [];
+    evidenceArtifact = "workflow/native-page-provenance-audit.json";
+    evidenceKind = "route-final-native-page-manifest";
+  } else if (/html-video/.test(renderer)) {
+    const files = htmlFrameFiles(out);
+    visualScenes = files.map((file, index) => ({
+      id: `rendered-html-frame-${index + 1}`,
+      visualText: extractHtmlVisibleText(readFileSync(file, "utf8")).join(" "),
+    }));
+    evidenceArtifact = ".html-video/projects/*/frames/*.html";
+    evidenceKind = "route-final-rendered-html-frames";
+  } else {
+    visualScenes = fallbackFrames;
+    evidenceArtifact = "workflow/design-plan.json";
+    evidenceKind = "degraded-render-input-only";
+  }
+  const coverage = buildMethodologyVisualCoverage({
+    requiredUnits,
+    visualScenes,
+    condensedAllowed: condensedSourceExplicitlyAllowed(brief, args),
+  });
+  return {
+    ...coverage,
+    sourceMaterialPresent: Boolean(sourceMaterialTextFromBrief(brief)),
+    sourceMaterialPathReferences: sourceMaterialPathReferences(brief),
+    applicable: requiredUnits.length > 0,
+    status: requiredUnits.length > 0 ? coverage.status : "not-applicable",
+    stage: "post-route-materialization-methodology-visual-coverage",
+    evidenceStage: "post-route-materialization",
+    renderer,
+    evidenceKind,
+    evidenceArtifact,
+    materializedVisualSceneCount: visualScenes.length,
+  };
+}
+
 function visualFrameLimitFromBrief(brief, args = {}, runtimeDefaults = {}) {
   const requested = Number(firstDefined(args["max-visual-frames"], brief.maxVisualFrames, runtimeDefaults.maxVisualFrames, 0));
   if (Number.isFinite(requested) && requested >= 3) return Math.floor(requested);
   return DEFAULT_MAX_VISUAL_FRAMES;
+}
+
+function methodologyVisualUnitsFromBrief(brief = {}) {
+  return extractMethodologyVisualUnits(sourceMaterialTextFromBrief(brief));
+}
+
+function attachMethodologyVisualUnits(scenes = [], units = []) {
+  if (!scenes.length || !units.length) return scenes;
+  const next = scenes.map((scene) => ({ ...scene, methodologyVisualUnits: [] }));
+  units.forEach((unit, index) => {
+    const targetIndex = Math.min(next.length - 1, Math.floor(index * next.length / units.length));
+    next[targetIndex].methodologyVisualUnits.push(unit);
+  });
+  return next.map((scene) => {
+    const methodologyText = scene.methodologyVisualUnits.map((unit) => unit.text).join("；");
+    return methodologyText
+      ? {
+          ...scene,
+          methodologyText,
+          body: [scene.body, methodologyText].filter(Boolean).join("\n"),
+        }
+      : scene;
+  });
 }
 
 function sceneStyleValue(scene = {}) {
@@ -2600,15 +2888,35 @@ function inferredPaletteForScene({ brief, scene, index, paletteOrder, previousPa
 }
 
 function normalizeFrames(brief, duration, options = {}) {
-  const raw = Array.isArray(brief.scenes) && brief.scenes.length >= 3 ? brief.scenes : [];
-  const maxFrames = Number(options.maxFrames || DEFAULT_MAX_VISUAL_FRAMES);
-  if (raw.length > maxFrames && !options.allowSceneTruncation) {
-    fail(`Brief contains ${raw.length} scenes but max visual frames is ${maxFrames}. Refusing to silently truncate scenes; raise --max-visual-frames or set allowSceneTruncation only for an explicit draft.`);
-  }
+  const sourceScenes = Array.isArray(brief.scenes) && brief.scenes.length >= 3 ? brief.scenes : [];
+  const methodologyUnits = methodologyVisualUnitsFromBrief(brief);
+  const effectiveDuration = Math.max(
+    Number(duration || 0),
+    Number(brief.durationSeconds || 0),
+    Number(brief.audioDurationSeconds || 0),
+    Number(brief.videoDurationSeconds || 0),
+  );
+  const adaptivePlan = sourceScenes.length
+    ? expandScenesAdaptively({
+        scenes: sourceScenes,
+        narration: brief.narration || brief.spokenNarration || brief.voiceover || sourceScenes.map((scene) => scene.narration || scene.voiceover || scene.subtitle || scene.body || "").join(""),
+        durationSeconds: effectiveDuration,
+        subtitleCueCount: Number(brief.subtitleCueCount || brief.narrationSegmentCount || brief.voiceoverSegmentCount || 0),
+        requestedTarget: Math.max(Number(brief.adaptiveSceneCount || 0), Math.ceil(methodologyUnits.length / 4)),
+        requestedMaximum: Number(options.maxFrames || 0),
+        minCount: sourceScenes.length,
+      })
+    : null;
+  const expandedScenes = adaptivePlan?.scenes || sourceScenes;
+  const maxFrames = Number(options.maxFrames || 0);
+  const raw = attachMethodologyVisualUnits(
+    maxFrames >= 3 && options.allowSceneTruncation ? expandedScenes.slice(0, maxFrames) : expandedScenes,
+    methodologyUnits,
+  );
   const paletteOrder = paletteOrderForBrief(brief);
-  const styleOverridePolicy = styleOverridePolicyForScenes(brief, raw.slice(0, maxFrames));
+  const styleOverridePolicy = styleOverridePolicyForScenes(brief, raw);
   let previousPalette = "";
-  const frames = raw.slice(0, maxFrames).map((scene, index) => {
+  const frames = raw.map((scene, index) => {
     const rawVisualStyle = sceneStyleValue(scene);
     const visualStyleLocked = sceneStyleIsLocked(brief, scene);
     const ignoreVisualStyle = styleOverridePolicy.ignoreSceneStyleOverrides && !visualStyleLocked;
@@ -2625,6 +2933,13 @@ function normalizeFrames(brief, duration, options = {}) {
       body: scene.body || scene.subtitle || "",
       subtitle: scene.subtitle || scene.body || "",
       narration: scene.narration || scene.voiceover || "",
+      spokenText: scene.spokenText || scene.narration || scene.voiceover || "",
+      sourceSceneId: scene.sourceSceneId || scene.id || null,
+      sourceSceneOrder: scene.sourceSceneOrder || index + 1,
+      beatIndex: scene.beatIndex || 1,
+      beatCount: scene.beatCount || 1,
+      methodologyText: scene.methodologyText || "",
+      methodologyVisualUnits: Array.isArray(scene.methodologyVisualUnits) ? scene.methodologyVisualUnits : [],
       visualStyle: ignoreVisualStyle ? "" : rawVisualStyle,
       visualStyleHint: ignoreVisualStyle ? rawVisualStyle : "",
       visualStyleLocked,
@@ -2657,6 +2972,19 @@ function normalizeFrames(brief, duration, options = {}) {
     value: styleOverridePolicy,
     enumerable: false,
   });
+  Object.defineProperty(frames, "adaptiveScenePlan", {
+    value: adaptivePlan ? {
+      ...adaptivePlan,
+      scenes: adaptivePlan.scenes.map((scene) => ({
+        id: scene.id,
+        sourceSceneId: scene.sourceSceneId,
+        beatIndex: scene.beatIndex,
+        beatCount: scene.beatCount,
+      })),
+      methodologyVisualUnitCount: methodologyUnits.length,
+    } : null,
+    enumerable: false,
+  });
   if (!frames.length) fail("Brief must contain at least three scenes for this video workflow.");
   const total = Math.max(MIN_DURATION_SECONDS, Number(duration) || DEFAULT_DURATION);
   let cursor = 0;
@@ -2672,6 +3000,10 @@ function normalizeFrames(brief, duration, options = {}) {
     value: styleOverridePolicy,
     enumerable: false,
   });
+  Object.defineProperty(timedFrames, "adaptiveScenePlan", {
+    value: frames.adaptiveScenePlan,
+    enumerable: false,
+  });
   return timedFrames;
 }
 
@@ -2679,16 +3011,31 @@ function textComparable(value) {
   return String(value || "").replace(/\s+/g, "");
 }
 
-function countNonOverlappingOccurrences(text, phrase) {
-  let count = 0;
-  let cursor = 0;
-  while (phrase && cursor <= text.length - phrase.length) {
-    const index = text.indexOf(phrase, cursor);
-    if (index < 0) break;
-    count += 1;
-    cursor = index + phrase.length;
+function countPronunciationPhraseMatchesByLongestPolicy(text, phrases) {
+  const occupied = new Set();
+  const counts = new Map();
+  const ordered = [...phrases].sort((left, right) => right.length - left.length || left.localeCompare(right));
+  for (const phrase of ordered) {
+    let cursor = 0;
+    while (phrase && cursor <= text.length - phrase.length) {
+      const start = text.indexOf(phrase, cursor);
+      if (start < 0) break;
+      const end = start + phrase.length;
+      let overlaps = false;
+      for (let index = start; index < end; index += 1) {
+        if (occupied.has(index)) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (!overlaps) {
+        for (let index = start; index < end; index += 1) occupied.add(index);
+        counts.set(phrase, (counts.get(phrase) || 0) + 1);
+      }
+      cursor = start + 1;
+    }
   }
-  return count;
+  return counts;
 }
 
 function assertPronunciationMatchesPreservedInSegments(pronunciationPlan, segments) {
@@ -2697,10 +3044,16 @@ function assertPronunciationMatchesPreservedInSegments(pronunciationPlan, segmen
   for (const match of pronunciationPlan.phraseMatches || []) {
     expected.set(match.phrase, (expected.get(match.phrase) || 0) + 1);
   }
+  const preserved = new Map();
+  const phrases = [...expected.keys()];
+  for (const segment of segments) {
+    const segmentCounts = countPronunciationPhraseMatchesByLongestPolicy(String(segment.text || ""), phrases);
+    for (const [phrase, count] of segmentCounts) preserved.set(phrase, (preserved.get(phrase) || 0) + count);
+  }
   for (const [phrase, count] of expected) {
-    const preserved = segments.reduce((sum, segment) => sum + countNonOverlappingOccurrences(String(segment.text || ""), phrase), 0);
-    if (preserved !== count) {
-      throw new Error(`TTS segmentation split or lost controlled pronunciation phrase ${phrase}: whole-document matches=${count}, segment-contained matches=${preserved}. Rebuild cue boundaries before TTS.`);
+    const segmentCount = preserved.get(phrase) || 0;
+    if (segmentCount !== count) {
+      throw new Error(`TTS segmentation split or lost controlled pronunciation phrase ${phrase}: whole-document matches=${count}, segment-contained matches=${segmentCount}. Rebuild cue boundaries before TTS.`);
     }
   }
 }
@@ -2843,6 +3196,22 @@ function subtitleCueNarrationSegments(frameSegments) {
     throw new Error("Cue-level narration segmentation did not preserve spoken narration exactly.");
   }
   return cueSegments;
+}
+
+function writeNarrationSegmentArtifacts({ out, narrationSegments, cueNarrationSegments, pass }) {
+  writeJson(join(out, "script", "frame-narration-segments.json"), {
+    source: "spoken narration split once and bound to visual frames before TTS",
+    preservation: "The concatenated segment text must match script/narration-spoken.txt except whitespace.",
+    audioDurationReplanPass: pass,
+    segments: narrationSegments,
+  });
+  writeJson(join(out, "script", "subtitle-cue-narration-segments.json"), {
+    source: "frame narration segments split into sentence-complete subtitle cues before TTS",
+    preservation: "Concatenating all spoken cue text must match script/narration-spoken.txt except whitespace; cue durations come from actual generated audio files.",
+    timingContract: "Each sentence-complete subtitle cue owns one local TTS segment. Visual line breaks are stored separately as captionText and must not create extra TTS cuts.",
+    audioDurationReplanPass: pass,
+    segments: cueNarrationSegments,
+  });
 }
 
 function applyAudioTimingsToFrames(frames, segmentTimings) {
@@ -3087,45 +3456,6 @@ function deriveCoverTexts({ coverPromise, coverTitle, frames, language = "zh" })
     if (/小说|读者|章节|写作/.test(text)) return "承诺才留人";
     return "看完能行动";
   };
-  const writingMethodHook = (raw) => {
-    const text = String(raw || "");
-    const rules = [
-      [/选题决策|灵感转化为小说主题|十个灵感|10个灵感|主项目|备用项目|作者资源|资源匹配|四层检查|四层筛选/, ["灵感怎么选?", "10个只留1个", "先筛再写"]],
-      [/小说不是灵感产品|不是灵感|灵感产品|灵感/, ["灵感不够", "读者买承诺", "别等灵感"]],
-      [/题材|平台|读者画像|读者/, ["写给谁看?", "题材先匹配", "别选错战场"]],
-      [/一句话卖点|卖点|核心循环|循环/, ["一句话卖点", "追更靠循环", "先卖清楚"]],
-      [/故事发动机|发动机/, ["故事会自转", "欲望冲突供能", "别靠硬推"]],
-      [/冲突三层|三层冲突|冲突/, ["冲突不止吵", "三层一起压", "压力从哪来"]],
-      [/筹码|压迫/, ["筹码上桌", "压迫逼选择", "代价够不够"]],
-      [/钩子系统|钩子/, ["钩子别断", "每段给追问", "一直想看"]],
-      [/爽点|压缩释放|释放/, ["爽点要蓄压", "压住再释放", "爆点才爽"]],
-      [/黄金开篇|开篇|开头|第一章/, ["开头没人看?", "第一章留人", "为什么翻走"]],
-      [/长篇规划|规划|大纲|长篇/, ["写着写着崩?", "先搭骨架", "后面不塌"]],
-      [/雪花法|递进规划|递进/, ["一句话变全书", "从小到大", "别一上来硬写"]],
-      [/场景|最小故事单元/, ["每场都要变", "别写流水账", "一场一推动"]],
-      [/章纲|Scene Contract|场景契约/, ["章纲别空写", "每章有合同", "写前先锁定"]],
-      [/伏笔|契诃夫|Payoff Ledger|回收/, ["埋了就兑现", "伏笔别失踪", "回收才爽"]],
-      [/反转|误导/, ["反转别硬拧", "骗读者要公平", "真正原因"]],
-      [/角色三支柱|角色支柱/, ["角色立不住?", "三根柱子", "别只写人设"]],
-      [/角色弧线|关系债/, ["关系债推进", "人物会变", "别原地打转"]],
-      [/反派|对手/, ["对手越强越稳", "反派别工具化", "压力才好看"]],
-      [/对话声纹|声纹|对白|对话/, ["一听就知道谁", "对白别同腔", "声音有身份"]],
-      [/画面感|文采/, ["先让人看见", "文采别堆词", "画面压过形容"]],
-      [/去\s*AI\s*味|AI味|AI 味/, ["别像模板文", "去掉AI腔", "让句子像人写"]],
-      [/节奏|信息编排/, ["信息给太早?", "节奏会控场", "别一次说完"]],
-      [/审稿|修稿|闭环/, ["修完再复检", "审稿有闭环", "别只改错字"]],
-      [/脑洞|连载样稿|样稿/, ["脑洞变样稿", "先写可连载", "别停在设定"]],
-    ];
-    const match = rules.find(([pattern]) => pattern.test(text));
-    if (!match) return null;
-    const [hookText, payoffText, gapText] = match[1];
-    return {
-      hookText,
-      payoffText,
-      curiosityGap: `为什么「${coverTitleDescription(text).replace(/^写小说方法论[：:]?/u, "") || text}」决定读者会不会继续看？`,
-      viewerDecision: `一秒内看懂：这不是课程PPT，而是解决「${hookText.replace("?", "")}」的写作封面承诺。`,
-    };
-  };
   const workflowHook = (raw) => {
     const text = String(raw || "");
     if (!/codex\s*video\s*workflow|视频生成工作流|视频生成\s*skill|视频自动生成|全链路.*(?:视频|封面|QC)|(?:封面|字幕|动效|页面).*(?:合成|QC|质量门禁)/i.test(text)) return null;
@@ -3155,10 +3485,16 @@ function deriveCoverTexts({ coverPromise, coverTitle, frames, language = "zh" })
   };
   const rawTitle = coverTitleDescription(coverTitle);
   const raw = String(rawTitle || coverPromise || (language === "en" ? "Proof, not just render" : "核心承诺"));
+  const frameSemanticText = frames
+    .map((frame) => [frame.label, ...(frame.headline || []), frame.body, frame.subtitle, frame.spokenText].filter(Boolean).join(" "))
+    .join(" ");
   if (language !== "en") {
-    const workflow = workflowHook(raw);
+    const workflow = workflowHook(raw) || workflowHook(frameSemanticText);
     if (workflow) return workflow;
-    const methodHook = writingMethodHook(raw);
+    const methodHook = resolveTitleFirstWritingMethodCoverHook({
+      titleText: raw,
+      frameText: frameSemanticText,
+    });
     if (methodHook) return methodHook;
   }
   if (language === "en") {
@@ -3550,6 +3886,34 @@ function coverTitleSystem({ coverTitle = "", coverTexts = {}, platformStrategy =
       visualKeywords: ["假线索", "真相", "回看"],
       visualHook: "真假线索撕开、隐藏真相、可回看的公平证据",
       visualDirective: "Show a premium mystery-reveal writing desk scene: a torn false clue layer reveals the true answer underneath, with marked manuscript evidence and a spotlight on the fair clue trail. The visual should communicate fair misdirection and satisfying reversal.",
+    };
+  }
+  if (/关系债|关系压力|债务账本|三打白骨精/.test(text)) {
+    return {
+      seriesLabel: "小说实践",
+      mainTitle: "关系债",
+      subtitle: "过去怎样改变今天的选择",
+      methodPoint: "七步把旧账写成场景压力",
+      actionBadge: "直接套用",
+      visualKeywords: ["关系债", "选择", "代价"],
+      visualHook: "旧承诺、旧伤害与保护责任形成关系账本，让人物明明想走，最后仍被代价和牵挂拉回",
+      visualDirective: "Show a premium narrative-craft cover about relationship debt: a female writing mentor studies an orange-thread relationship ledger connecting two separated character markers, with visible choice cards for leave and return, old promises, protection duty, misunderstanding, and a rising cost meter. Keep the visual warm, editorial, hand-drawn, and inspectable; do not make it a generic classroom slide or a software UI.",
+      headlineLettering: platformFamily === "short-video-vertical" ? "mobile-sticker-hook" : "bilibili-bold-method-hook",
+      textMood: "关系拉扯 + 选择代价",
+    };
+  }
+  if (/人物欲望|误信念|人物选择系统|选择系统/.test(text)) {
+    return {
+      seriesLabel: "小说实践",
+      mainTitle: "人物活起来",
+      subtitle: "欲望 + 误信念 + 选择",
+      methodPoint: "七张表，写出会主动犯错和反制的人物",
+      actionBadge: "直接套用",
+      visualKeywords: ["欲望", "误信念", "选择"],
+      visualHook: "人物被欲望与保护性策略拉扯，连续错误选择逐步升级，对手用资源实施反制",
+      visualDirective: "Show a cinematic character-choice system on a writer's desk: one protagonist is pulled toward a visible desire while a protective misbelief drives three escalating choice markers; an opponent counteracts with concrete resource cards. Make causality and cost inspectable, not a generic story poster or classroom slide.",
+      headlineLettering: platformFamily === "short-video-vertical" ? "mobile-sticker-hook" : "bilibili-bold-method-hook",
+      textMood: "人物行动 + 错误升级",
     };
   }
   if (/角色|反派|对手|关系|弧线/.test(text)) {
@@ -4732,51 +5096,33 @@ function coverImage2QualityGate({ coverSubjectAsset, coverSubjectAssets = [], co
   };
 }
 
-function requestedPlatformCoverTargetIds({ brief = {}, coverSizeSelection = {}, prompts = [] } = {}) {
-  const availableIds = new Set(prompts.map((item) => String(item.targetId || "").replace(/-image2-integrated-cover$/, "")));
-  const explicit = [
-    ...(Array.isArray(brief.coverTargetIds) ? brief.coverTargetIds : []),
-    ...(Array.isArray(brief.coverTargets) ? brief.coverTargets : []),
-  ].map(String).filter((id) => availableIds.has(id));
-  if (explicit.length) return [...new Set(explicit)];
-  if (brief.coverAllPlatforms === true || brief.generateAllPlatformCovers === true) return [...availableIds];
-  const openingEntry = (coverSizeSelection.entries || []).find((entry) => String(entry.targetId || entry.id || "") === "video-opening");
-  const primary = Number(openingEntry?.height || 0) > Number(openingEntry?.width || 0)
-    ? "vertical-1080x1920"
-    : "youtube-1280x720";
-  return availableIds.has(primary) ? [primary] : [[...availableIds][0]].filter(Boolean);
-}
-
 function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverImage2Prompts, coverSizeSelection, inputImages = [] }) {
   const requestDir = join(out, "prompts", "context-image2-covers");
   ensureDir(requestDir);
   const entries = Array.isArray(coverSizeSelection?.entries) ? coverSizeSelection.entries : [];
-  const pendingEntryIds = new Set(entries.filter((entry) => entry.uploadReady !== true).map((entry) => entry.id || entry.targetId).filter(Boolean));
-  const pendingPromptIds = new Set((coverSizeSelection?.needsRegeneration || []).map((entry) => entry.id || entry.targetId).filter(Boolean));
-  const pendingIds = new Set([...pendingEntryIds, ...pendingPromptIds]);
   const prompts = Array.isArray(coverImage2Prompts) ? coverImage2Prompts : [];
-  const requestedIds = new Set(requestedPlatformCoverTargetIds({ brief, coverSizeSelection, prompts }));
+  const openingEntry = entries.find((entry) => String(entry.targetId || entry.id || "") === "video-opening");
+  const preferredPrimaryTargetId = Number(openingEntry?.height || 0) > Number(openingEntry?.width || 0)
+    ? "vertical-1080x1920"
+    : "youtube-1280x720";
+  const scope = resolveCoverRequestScope({
+    brief,
+    availableTargetIds: prompts.map((item) => item.targetId),
+    primaryTargetId: preferredPrimaryTargetId,
+  });
+  const requestedIds = new Set(scope.requestedTargetIds);
   const selectedPrompts = prompts.filter((prompt) => {
     const id = String(prompt.targetId || "").replace(/-image2-integrated-cover$/, "");
-    return requestedIds.has(id) && (!pendingIds.size || pendingIds.has(id));
+    return requestedIds.has(id);
   });
   const requests = selectedPrompts.map((promptItem) => {
     const targetId = String(promptItem.targetId || "").replace(/-image2-integrated-cover$/, "");
     const promptFileName = `${safeFileStem(targetId || "cover")}.txt`;
     const promptPath = join(requestDir, promptFileName);
-    const promptText = [
-      `Context Image2 cover request: ${targetId}`,
-      `Cover title: ${coverTitle || ""}`,
-      `Target: ${promptItem.width}x${promptItem.height} (${promptItem.ratio || ""})`,
-      "Use Codex Context Image2 / image_gen. Generate a complete native-ratio cover bitmap with integrated Chinese thumbnail typography from the prompt below.",
-      "Do not create a local SVG/HTML substitute. After generation, save the PNG in this package and ingest it with the command recorded in workflow/context-image2-cover-requests.json.",
-      "",
-      promptItem.prompt || "",
-    ].join("\n");
-    write(promptPath, promptText);
-    return {
+    const request = {
       targetId,
       promptTargetId: promptItem.targetId,
+      coverTitle: coverTitle || "",
       status: "pending",
       provider: "codex-context-image2",
       tool: "image_gen",
@@ -4794,24 +5140,46 @@ function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverIma
       inputImages: inputImages.map((item) => ({ ...item })),
       contextImages: inputImages.map((item) => item.path),
       expectedOutput: `cover/context-image2-${targetId}.png`,
-      ingestCommand: `node scripts/ingest-codex-image2-cover-target.mjs --topic ${out} --target ${targetId} --source <codex-imagegen-png>`,
+      generationReceiptPath: `workflow/context-image2-cover-evidence/${safeFileStem(targetId)}-generation-receipt.json`,
+      inspectionRecordPath: `workflow/context-image2-cover-evidence/${safeFileStem(targetId)}-inspection-record.json`,
+      ingestCommand: `node scripts/ingest-codex-image2-cover-target.mjs --topic ${out} --target ${targetId} --source <codex-imagegen-png> --generation-receipt <generation-receipt.json> --inspection-record <inspection-record.json>`,
       sourceCoreLogic: [
         "workflow/cover-design.json",
         "workflow/cover-image2-prompts.json",
         "workflow/cover-size-selection.json",
       ],
     };
+    const promptText = formatContextImage2CoverPromptDocument({ request, coverTitle });
+    request.promptSha256 = sha256CoverText(request.prompt);
+    request.promptFileSha256 = sha256CoverText(promptText);
+    request.sourceStagingPolicy = "external-imagegen-output-until-ingest";
+    write(promptPath, promptText);
+    return request;
   });
-  const openingEntry = entries.find((entry) => String(entry.targetId || entry.id || "") === "video-opening");
-  const preferredPrimaryTargetId = Number(openingEntry?.height || 0) > Number(openingEntry?.width || 0)
-    ? "vertical-1080x1920"
-    : "youtube-1280x720";
   const primaryPlatformUploadCoverTargetId = requests.some((request) => request.targetId === preferredPrimaryTargetId)
     ? preferredPrimaryTargetId
     : requests[0]?.targetId || "";
+  const requestedTargetIds = [...requestedIds];
+  const actualTargetIds = requests.map((request) => request.targetId);
+  const requestCountContract = {
+    mode: scope.mode,
+    plannedTargetCount: scope.plannedTargetIds.length,
+    plannedTargetIds: scope.plannedTargetIds,
+    expectedRequestCount: requestedTargetIds.length,
+    actualRequestCount: requests.length,
+    requestedTargetIds,
+    actualTargetIds,
+    concurrencyIsThroughputOnly: true,
+    scopeAuthorizationRequired: scope.scopeAuthorizationRequired,
+    scopeAuthorizationPass: scope.scopeAuthorizationPass,
+    scopeAuthorization: scope.scopeAuthorization,
+    pass: requestedTargetIds.length === requests.length
+      && requestedTargetIds.every((targetId) => actualTargetIds.includes(targetId)),
+  };
   const requestManifest = {
     schemaVersion: 1,
     stage: "context-image2-cover-requests",
+    coverTitle: coverTitle || "",
     status: requests.length ? "required-pending" : "satisfied",
     provider: "codex-context-image2",
     tool: "image_gen",
@@ -4824,7 +5192,7 @@ function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverIma
       tool: "image_gen",
       executionMode: "built-in-image_gen",
       invocation: "Invoke the system imagegen Skill and its built-in image_gen tool with the package-bound structured prompt and every role-labelled input image. Do not route through the legacy API-key CLI by default.",
-      completion: "Only scripts/ingest-codex-image2-cover-target.mjs may move a request from pending to completed after native-ratio inspection.",
+      completion: "Only scripts/ingest-codex-image2-cover-target.mjs may complete a request after validating the request-bound generation receipt, output/prompt hashes, native ratio, and independent human/vision inspection record; package promotion still requires a full QC rerun.",
     },
     videoInternalCoverDoesNotSatisfyRequest: true,
     primaryPlatformUploadCoverTargetId,
@@ -4834,6 +5202,7 @@ function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverIma
     pendingRequestCount: requests.length,
     completedTargetIds: [],
     pendingTargetIds: requests.map((request) => request.targetId),
+    requestCountContract,
     coreLogicSource: [
       "workflow/cover-design.json",
       "workflow/cover-image2-prompts.json",
@@ -4843,11 +5212,13 @@ function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverIma
     fallbackRule: "Local SVG/HTML cover exports are review-only when a real Context Image2 or GPT Image 2 bitmap is absent; they must not be marked upload-ready final covers.",
     parallelGenerationPolicy: {
       allowed: true,
-      defaultMaxConcurrency: 2,
-      maxConcurrency: 4,
+      strategy: "all-pending-worker-pool",
+      failureMode: "all-settled-target-isolation",
+      defaultMaxConcurrency: 9,
+      maxConcurrency: 9,
       concurrencyEnv: "CODEX_VIDEO_IMAGE2_CONCURRENCY",
-      scope: "missing cover targets only",
-      rule: "Requests may be generated concurrently because each target writes a distinct expectedOutput. Preserve request targetId/promptPath mapping, then run the recorded ingest command per completed bitmap and validate cover-size-selection after all ingests.",
+      scope: "all requested cover targets; workers skip targets already restored as completed",
+      rule: "Prepare and submit the complete pending request set through the standalone cover Skill. Concurrency controls simultaneous work only and must never cap or slice the total request list. Use all-settled failure isolation, preserve request targetId/promptPath mapping, then batch-ingest inspected outputs and run cover QC once.",
       notAllowedWhen: [
         "a request depends on the pixels produced by another request",
         "the generation tool cannot attach the package-bound prompt/context per request",
@@ -4858,6 +5229,14 @@ function writeContextImage2CoverRequests({ out, brief = {}, coverTitle, coverIma
     requests,
   };
   writeJson(join(out, "workflow", "context-image2-cover-requests.json"), requestManifest);
+  const promptParity = validateContextImage2PromptParity({ topicDir: out, manifest: requestManifest });
+  if (!promptParity.pass) {
+    fail(`Context Image2 cover prompt parity failed: ${promptParity.failures.join("; ")}`);
+  }
+  writeJson(
+    join(out, "workflow", "cover-generation-workflow.json"),
+    buildCoverGenerationWorkflowContract({ requestManifest }),
+  );
   return requestManifest;
 }
 
@@ -4868,14 +5247,22 @@ function readPlatformCoverSubmissionReadiness(out) {
   const manifest = readJsonIfExists(requestPath) || {};
   const selection = readJsonIfExists(selectionPath) || {};
   const qc = readJsonIfExists(qcPath) || {};
+  const normalizeTargetId = (value) => ({
+    "youtube-1280x720": "horizontal-16x9-1280x720",
+    "bilibili-1920x1080": "horizontal-16x9-1920x1080",
+    "bilibili-1146x717": "bilibili-common-1146x717",
+    "instagram-reels-420x654": "instagram-reels-cover",
+    "master-16x9-3840x2160": "master-16x9-4k",
+  }[String(value || "")] || String(value || ""));
   const targetId = String(manifest.primaryPlatformUploadCoverTargetId || selection.primaryPlatformUploadCoverTargetId || "");
-  const request = (manifest.requests || []).find((item) => String(item.targetId || item.id || "") === targetId);
-  const entry = (selection.entries || []).find((item) => String(item.targetId || item.id || "") === targetId);
+  const normalizedTargetId = normalizeTargetId(targetId);
+  const request = (manifest.requests || []).find((item) => normalizeTargetId(item.targetId || item.id) === normalizedTargetId);
+  const entry = (selection.entries || []).find((item) => normalizeTargetId(item.targetId || item.id) === normalizedTargetId);
   const actualOutput = String(request?.actualOutput || "");
   const outputExists = Boolean(actualOutput && existsSync(join(out, actualOutput)));
   const finalOutput = (entry?.files || []).find((item) => item?.format === "png")?.file || "";
   const finalOutputExists = Boolean(finalOutput && finalOutput.startsWith("最终成品/") && existsSync(join(out, finalOutput)));
-  const ready = Boolean(
+  const primaryReady = Boolean(
     manifest.provider === "codex-context-image2"
       && manifest.tool === "image_gen"
       && manifest.purpose === "platform-submission-cover"
@@ -4895,6 +5282,20 @@ function readPlatformCoverSubmissionReadiness(out) {
       && qc.primaryPlatformUploadCoverReady === true
       && qc.platformSubmissionCoverReady === true,
   );
+  const requests = Array.isArray(manifest.requests) ? manifest.requests : [];
+  const requiresAllRequestedTargets = manifest.requestCountContract?.mode !== "explicit-primary-only";
+  const allRequestedTargetsReady = Boolean(
+    requests.length > 0
+      && manifest.allRequestedPlatformUploadCoversReady === true
+      && qc.finalCoverQualityEligible === true
+      && Number(manifest.completedRequestCount) === requests.length
+      && Number(manifest.pendingRequestCount) === 0
+      && requests.every((item) => item.status === "completed"
+        && item.inspectionPassed === true
+        && item.actualOutput
+        && existsSync(join(out, item.actualOutput))),
+  );
+  const ready = primaryReady && (!requiresAllRequestedTargets || allRequestedTargetsReady);
   const failures = [];
   if (!targetId) failures.push("primaryPlatformUploadCoverTargetId is missing");
   if (request?.status !== "completed") failures.push("the primary standalone cover request is still pending");
@@ -4904,7 +5305,23 @@ function readPlatformCoverSubmissionReadiness(out) {
   if (!finalOutputExists) failures.push("the primary cover is not present under the topic-scoped 最终成品/ upload directory");
   if (entry?.uploadReady !== true || entry?.image2NativeTargetRatioReady !== true) failures.push("the primary cover is not a native target-ratio upload asset");
   if (manifest.primaryPlatformUploadCoverReady !== true || qc.primaryPlatformUploadCoverReady !== true || qc.platformSubmissionCoverReady !== true) failures.push("canonical cover readiness flags are not true");
-  return { ready, targetId, request, entry, actualOutput, outputExists, finalOutput, finalOutputExists, failures };
+  if (requiresAllRequestedTargets && !allRequestedTargetsReady) {
+    failures.push(`requested platform cover targets are incomplete: ${Number(manifest.completedRequestCount || 0)}/${requests.length}; pending=${Number(manifest.pendingRequestCount ?? requests.length)}`);
+  }
+  return {
+    ready,
+    primaryReady,
+    requiresAllRequestedTargets,
+    allRequestedTargetsReady,
+    targetId,
+    request,
+    entry,
+    actualOutput,
+    outputExists,
+    finalOutput,
+    finalOutputExists,
+    failures,
+  };
 }
 
 function outputFileForTitle({ titleStem, target, ext }) {
@@ -4953,6 +5370,15 @@ function captureCompletedCoverRequests(out) {
   return (manifest.requests || []).flatMap((request) => {
     const outputPath = request.actualOutput ? join(out, request.actualOutput) : "";
     if (request.status !== "completed" || request.inspectionPassed !== true || !outputPath || !existsSync(outputPath)) return [];
+    const receipt = request.generationReceipt || null;
+    const generatedSourceCandidates = [
+      receipt?.sourcePath || "",
+      request.codexGeneratedImageSource || "",
+      request.codexSourceCopy ? join(out, request.codexSourceCopy) : "",
+    ].filter(Boolean);
+    const generatedSourcePath = generatedSourceCandidates.find((candidate) => existsSync(candidate)
+      && (!receipt?.outputSha256 || binaryFileHash(candidate) === receipt.outputSha256));
+    if (!generatedSourcePath || !receipt || !request.inspectionRecord) return [];
     return [{
       targetId: request.targetId,
       width: request.width,
@@ -4960,7 +5386,9 @@ function captureCompletedCoverRequests(out) {
       prompt: request.prompt,
       inputImages: request.inputImages || [],
       inspectionStatus: request.inspectionStatus || "passed-human-or-vision-review",
-      bytes: readFileSync(outputPath),
+      generationReceipt: receipt,
+      inspectionRecord: request.inspectionRecord,
+      bytes: readFileSync(generatedSourcePath),
     }];
   });
 }
@@ -4977,16 +5405,28 @@ function restoreCompletedCoverRequests(out, snapshots = []) {
       && Number(request.height) === Number(snapshot.height)
       && JSON.stringify(request.inputImages || []) === JSON.stringify(snapshot.inputImages || []);
     if (!sameContract) continue;
-    const tempPath = join(out, "workflow", `.preserved-${safeFileStem(snapshot.targetId)}.png`);
+    if (!snapshot.generationReceipt || !snapshot.inspectionRecord) continue;
+    const tempPath = join(dirname(out), `.preserved-${safeFileStem(snapshot.targetId)}.png`);
+    const receiptPath = join(dirname(out), `.preserved-${safeFileStem(snapshot.targetId)}-generation-receipt.json`);
+    const inspectionPath = join(dirname(out), `.preserved-${safeFileStem(snapshot.targetId)}-inspection-record.json`);
     writeFileSync(tempPath, snapshot.bytes);
+    writeJson(receiptPath, {
+      ...snapshot.generationReceipt,
+      sourcePath: tempPath,
+      restoredFromGenerationReceipt: true,
+    });
+    writeJson(inspectionPath, snapshot.inspectionRecord);
     const result = spawnSync(process.execPath, [
       join(SCRIPT_DIR, "ingest-codex-image2-cover-target.mjs"),
       "--topic", out,
       "--target", snapshot.targetId,
       "--source", tempPath,
-      "--inspection-status", snapshot.inspectionStatus,
+      "--generation-receipt", receiptPath,
+      "--inspection-record", inspectionPath,
     ], { cwd: SKILL_ROOT, encoding: "utf8" });
     rmSync(tempPath, { force: true });
+    rmSync(receiptPath, { force: true });
+    rmSync(inspectionPath, { force: true });
     if (result.status !== 0) {
       throw new Error(`Failed to restore inspected cover ${snapshot.targetId}: ${result.stderr || result.stdout}`);
     }
@@ -5017,7 +5457,6 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
     const files = Array.isArray(variant?.files) ? variant.files : [];
     const rootPng = files.find((file) => file.format === "png" && file.rootFile)?.rootFile;
     const rootJpg = files.find((file) => file.format === "jpg" && file.rootFile)?.rootFile;
-    if (!rootPng && !rootJpg) continue;
     const label = chineseCoverSizeLabel(target);
     const group = chineseCoverSizeGroup(target);
     const asset = coverSubjectAssetsByTarget?.get?.(target.id) || null;
@@ -5141,7 +5580,7 @@ function writeCoverSizeSelection({ out, targets, titleStem, rasterExport, coverS
     hardCropIntegratedTypographyRejected: true,
     targetRatioNativeImage2Required: true,
     uploadReadyOnlyWhenNativeTargetRatio: true,
-    allEntriesUploadReady: entries.every((entry) => entry.uploadReady),
+    allEntriesUploadReady: entries.length > 0 && entries.every((entry) => entry.uploadReady),
     humanSelectionContainsOnlyUploadReady: true,
     nonUploadReadyVisualFilesCopied: false,
     reviewGradeCoverDirectory: reviewGradeCoverFiles.length > 0 ? `${selectionDirectoryName}/${reviewGradeDirName}` : null,
@@ -9763,8 +10202,9 @@ function captionSceneJobForContext({ brief = {}, videoType = "", page = {}, canv
   if (/“|”|quote|金句|引用|观点/.test(sceneText)) return "quote";
   if (hasDataSurface || (!negatesDataSurface && /数据|指标|增长|趋势|财经|图表|metric|data|chart|完播率|转化率|留存率|比例|百分比/.test(`${sceneText} ${planningText}`))) return "dataProof";
   if (/podcast|voice note|voice identity|voice|audio|旁白|播客|声音身份|声音|speaker/.test(`${globalText} ${sceneText}`)) return "voiceOrInterview";
-  if (/story|writing|documentary|narrative|故事|小说|纪录|档案/.test(`${videoType} ${globalText} ${sceneText}`)) return "documentary";
+  if (/story|writing|documentary|narrative|故事|小说|纪录|档案/.test(`${brief.videoType || ""} ${sceneText}`)) return "documentary";
   if (canvas.vertical || /douyin|抖音|tiktok|shorts|reels|竖屏|vertical/.test(globalText)) return "verticalShort";
+  if (/story|writing|documentary|narrative|故事|小说|纪录|档案/.test(`${globalText} ${planningText}`)) return "documentary";
   return "premium";
 }
 
@@ -12137,7 +12577,7 @@ function buildAestheticDirection({ brief, template, videoType, styleProfile, uiU
 }
 
 function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode = "recommended" }) {
-  const selectedMode = normalizeGenerationMode(brief.generationMode || brief.workflowMode || brief.videoGenerationMode || "semi-auto");
+  const selectedMode = normalizeGenerationMode(brief.generationMode || brief.workflowMode || brief.videoGenerationMode || "full-auto");
   const canvas = brief.canvas || designPlan.canvas || canvasForBrief(brief);
   const motionTemplateIds = Object.keys(MOTION_TEMPLATE_IMPLEMENTATION_PATHS);
   const motionStyleCatalog = loadMotionStyleCatalog();
@@ -12151,15 +12591,15 @@ function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode
     schemaVersion: 1,
     status: "active-generation-mode-contract",
     selectedMode,
-    defaultMode: "semi-auto",
-    defaultBehaviorPreserved: selectedMode === "semi-auto",
+    defaultMode: "full-auto",
+    defaultBehaviorPreserved: selectedMode === "full-auto",
     modeSelectionRule: {
-      default: "semi-auto-config",
+      default: "full-auto-render",
       horizontalDefault: "16:9 1920x1080 30fps local-review",
       verticalOnlyWhenExplicit: true,
       askWhenAmbiguous: true,
-      semiAutoTriggers: ["default topic/script intake without explicit full-auto", "--generation-mode semi-auto", "--generation-mode custom", "brief.generationMode: semi-auto/custom"],
-      fullAutoTriggers: ["--generation-mode full-auto", "--full-auto", "--auto", "brief.generationMode: full-auto"],
+      semiAutoTriggers: ["explicit user request for semi-auto/半自动/custom", "--generation-mode semi-auto", "--generation-mode custom", "brief.generationMode: semi-auto/custom"],
+      fullAutoTriggers: ["default when no explicit semi-auto request exists", "--generation-mode full-auto", "--full-auto", "--auto", "brief.generationMode: full-auto"],
     },
     canvasDecision: {
       width: canvas.width,
@@ -12175,22 +12615,23 @@ function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode
       {
         id: "full-auto",
         label: "全自动化",
-        default: false,
+        default: true,
         behavior: "User provides brief/script/materials, then the existing workflow plans, renders, QC-checks, packages, and outputs the final video in one pass.",
         entry: "poc-video-workflow.mjs --generation-mode full-auto",
         preservesExistingLogic: true,
-        explicitOptInRequired: true,
+        explicitOptInRequired: false,
         stopPoint: "after final MP4, delivery page, scorecard, and QC logs are written",
         requiredHumanAction: "none unless a hard gate fails",
       },
       {
         id: "semi-auto",
         label: "半自动化 / 自定义",
-        default: true,
+        default: false,
         behavior: "User provides topic/script, the workflow prepares research/plans/assets, stops at a configuration page, then continues only after page/config review.",
         entry: "poc-video-workflow.mjs --generation-mode semi-auto",
         stopPoint: "after semi-auto-config.html and page-level review artifacts are written",
         composeEntry: "rerun with approved config/page edits and --compose, or use the existing full-auto render path after the review package is accepted",
+        explicitOptInRequired: true,
       },
     ],
     semiAutoPipeline: {
@@ -12322,7 +12763,7 @@ function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode
       ],
     },
     decisionOwnership: {
-      modeDecision: "planner/user explicit generationMode; ordinary topic/script intake defaults to semi-auto config; full-auto is explicit opt-in",
+      modeDecision: "full-auto is the default; only an explicit user/caller semi-auto, custom, or configuration request may stop at the configuration page",
       contentDecision: "workflow/content-presentation-design.json and workflow/page-decision-contract.json",
       designDecision: "workflow/design-plan.json, workflow/theme-readability-audit.json, semi-auto-config.html",
       interactionDecision: "workflow/page-decision-contract.json interactionAnswer; rendered MP4 shows state, not live web interaction",
@@ -12336,6 +12777,12 @@ function buildGenerationModeContract({ brief = {}, designPlan = {}, rendererMode
       currentRendererMode: rendererMode,
       behaviorChanged: false,
       note: "generation mode is a product workflow mode; renderer mode recommended/fallback remains a separate low-level render choice.",
+    },
+    fullAutoContinuationPolicy: {
+      stopAtConfiguration: false,
+      recoverablePlannerBlockersAreTerminal: false,
+      personalIpNativePagePolicy: "Missing native page provenance is an internal generation stage in full-auto mode: generate and ingest every planned image_gen page, then resume native-page render, QC, and delivery.",
+      completionEvidence: ["renders/final.mp4", "delivery.html", "logs/qc.json"],
     },
     requiredArtifacts: [
       "workflow/generation-mode-contract.json",
@@ -12841,6 +13288,62 @@ function fileContentHash(path = "") {
   return text ? fileHash(text) : "";
 }
 
+function binaryFileHash(path = "") {
+  if (!path || !existsSync(path)) return "";
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function writeSkillRuntimeProvenance(out) {
+  const canonicalSkillRoot = join(
+    process.env.CODEX_HOME || join(process.env.HOME || "", ".codex"),
+    "skills",
+    "codex-video-workflow",
+  );
+  const currentSkillPath = join(SKILL_ROOT, "SKILL.md");
+  const currentRunnerPath = fileURLToPath(import.meta.url);
+  const canonicalSkillPath = join(canonicalSkillRoot, "SKILL.md");
+  const canonicalRunnerPath = join(canonicalSkillRoot, "scripts", "poc-video-workflow.mjs");
+  const current = {
+    skillRoot: SKILL_ROOT,
+    skillPath: currentSkillPath,
+    runnerPath: currentRunnerPath,
+    skillSha256: binaryFileHash(currentSkillPath),
+    runnerSha256: binaryFileHash(currentRunnerPath),
+  };
+  const canonical = {
+    skillRoot: canonicalSkillRoot,
+    skillPath: canonicalSkillPath,
+    runnerPath: canonicalRunnerPath,
+    available: existsSync(canonicalSkillPath) && existsSync(canonicalRunnerPath),
+    skillSha256: binaryFileHash(canonicalSkillPath),
+    runnerSha256: binaryFileHash(canonicalRunnerPath),
+  };
+  const executingCanonicalCopy = resolve(SKILL_ROOT) === resolve(canonicalSkillRoot);
+  const parity = executingCanonicalCopy || !canonical.available || (
+    current.skillSha256 === canonical.skillSha256
+    && current.runnerSha256 === canonical.runnerSha256
+  );
+  const artifact = {
+    schemaVersion: 1,
+    stage: "skill-runtime-provenance",
+    generatedAt: new Date().toISOString(),
+    executingCanonicalCopy,
+    parity,
+    current,
+    canonical,
+    policy: canonical.available
+      ? "Repository and active global Skill entrypoints must have identical SKILL.md and runner hashes."
+      : "Canonical global Skill copy is unavailable; current entrypoint is recorded but cannot be compared.",
+  };
+  writeJson(join(out, "workflow", "skill-runtime-provenance.json"), artifact);
+  if (!parity) {
+    throw new Error(
+      `Skill runtime drift detected. Sync ${current.skillRoot} with ${canonical.skillRoot} before generating video. See workflow/skill-runtime-provenance.json.`,
+    );
+  }
+  return artifact;
+}
+
 function extractMarkdownSection(text = "", heading = "") {
   if (!text || !heading) return "";
   const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -12938,11 +13441,13 @@ function ipDiagramCreatorVendorUsageReady(usage = {}, { active = false } = {}) {
     && usage.sourceRepo === IP_DIAGRAM_CREATOR_SOURCE.repo
     && usage.sourceCommit === IP_DIAGRAM_CREATOR_SOURCE.commit
     && usage.license === "MIT"
-    && (entrypoint === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/SKILL.md"
+    && (entrypoint === "vendor/ip-diagram-creator/SKILL.md"
+      || entrypoint === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/SKILL.md"
       || entrypoint.endsWith("/vendor/ip-diagram-creator/SKILL.md"))
-    && (manifestPath === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/VENDORED_SOURCE.json"
+    && (manifestPath === "vendor/ip-diagram-creator/VENDORED_SOURCE.json"
+      || manifestPath === ".agents/skills/codex-video-workflow/vendor/ip-diagram-creator/VENDORED_SOURCE.json"
       || manifestPath.endsWith("/vendor/ip-diagram-creator/VENDORED_SOURCE.json"))
-    && (Boolean(usage.skillSha256) || entrypoint.endsWith("/vendor/ip-diagram-creator/SKILL.md"))
+    && Boolean(usage.skillSha256)
     && references.length === IP_DIAGRAM_CREATOR_VENDOR_REFERENCE_FILES.length
     && references.every((item) => (item.exists === true || item.present === true) && Boolean(item.sha256))
     && promptAvailability.contentDiagram === true
@@ -13475,10 +13980,10 @@ function personalIpAnimationChoiceForBrief(brief = {}, active = false, personalI
       scene.motionStyle,
     ])),
   ].filter(Boolean).join(" ");
-  const withoutNegatedAnimation = text.replace(/(?:不要|无需|关闭|禁用|没有|无)\s*(?:个人\s*IP\s*)?(?:分层|手绘|路径|交互|语义)?\s*(?:动画|动效)/gi, " ");
+  const withoutNegatedAnimation = text.replace(/(?:不要|无需|不需要|不做|不用|别做|取消|关闭|禁用|没有|无)\s*(?:个人\s*IP\s*)?(?:分层|手绘|路径|交互|语义)?\s*(?:动画|动效)/gi, " ");
   const combinedSignal = /个人\s*IP[\s+＋加与和结合配合带]*?(?:分层|手绘|路径|交互|语义)?\s*(?:动画|动效)/i.test(withoutNegatedAnimation)
     || /(?:动画|动效)[\s+＋加与和结合配合带]*?个人\s*IP/i.test(withoutNegatedAnimation);
-  return combinedSignal ? "subtle" : "off";
+  return combinedSignal ? "semantic-layers" : "off";
 }
 
 function briefRequestsIpDiagramNativeFinalVideo(brief = {}) {
@@ -13566,10 +14071,14 @@ function inspectIpDiagramNativePageInput(candidate = {}, options = {}) {
   const manifestCandidates = stat.isFile() && /manifest\.json$/i.test(resolvedPath)
     ? [resolvedPath]
     : [
+        // A native-page input owns its own provenance and adaptive count
+        // contract. Prefer that manifest before any surrounding workflow
+        // manifest, which may describe the video package rather than the
+        // source page set.
+        join(pagesDir, "manifest.json"),
         join(pagesDir, "..", "workflow", "manifest.json"),
         join(pagesDir, "workflow", "manifest.json"),
         join(pagesDir, "..", "manifest.json"),
-        join(pagesDir, "manifest.json"),
       ];
   const manifestPath = manifestCandidates.find((path) => existsSync(path)) || null;
   const manifest = manifestPath ? readJsonIfExists(manifestPath) : null;
@@ -13584,8 +14093,12 @@ function inspectIpDiagramNativePageInput(candidate = {}, options = {}) {
     && !/placeholder|wireframe|PIL|local assets only/i.test(generationRoute);
   const pageCount = Math.max(imageFiles.length, entries.length);
   const minPageCount = Math.max(1, Number(options.minPageCount || 1));
-  const maxPageCount = Math.max(minPageCount, Number(options.maxPageCount || 99));
-  const pageCountWithinRange = pageCount >= minPageCount && pageCount <= maxPageCount;
+  const requestedMaxPageCount = Number(options.maxPageCount || 0);
+  const normalizedRequestedMaxPageCount = Number.isFinite(requestedMaxPageCount) && requestedMaxPageCount > 0
+    ? requestedMaxPageCount
+    : null;
+  const pageCountWithinRange = pageCount >= minPageCount
+    && (!normalizedRequestedMaxPageCount || pageCount <= normalizedRequestedMaxPageCount);
   const pass = pageCount > 0
     && Boolean(manifestPath)
     && generatedEntryCount >= pageCount
@@ -13603,7 +14116,10 @@ function inspectIpDiagramNativePageInput(candidate = {}, options = {}) {
     generationRoute,
     pageCountPolicy: {
       minPageCount,
-      maxPageCount,
+      requestedMaxPageCount: normalizedRequestedMaxPageCount,
+      maxPageCount: normalizedRequestedMaxPageCount,
+      maximumPolicy: "explicit-maximum-hard-cap-source-plan-exact-count",
+      requestedMaximumAdvisoryOnly: false,
       actualPageCount: pageCount,
       withinRange: pageCountWithinRange,
     },
@@ -13611,7 +14127,7 @@ function inspectIpDiagramNativePageInput(candidate = {}, options = {}) {
       ? "native page provenance and page count are available"
       : pageCountWithinRange
         ? "missing native image_gen/source_generated_image provenance"
-        : `native page count ${pageCount} is outside required range ${minPageCount}-${maxPageCount}`,
+        : `native page count ${pageCount} is outside the allowed range ${minPageCount}-${normalizedRequestedMaxPageCount || "source-plan target"}`,
   };
 }
 
@@ -13619,7 +14135,10 @@ function ipDiagramNativeFinalInputEvidence(brief = {}) {
   const personalIpRequired = briefRequestsPersonalIpNativeSkillRoute(brief);
   const pageCountPolicy = {
     minPageCount: personalIpRequired ? 4 : 1,
-    maxPageCount: Number(brief.ipDiagramCreatorNativeMaxPages || brief.personalIp?.maxImageCount || 48),
+    requestedMaxPageCount: Number(brief.ipDiagramCreatorNativeMaxPages || brief.personalIp?.maxImageCount || 0) || null,
+    maxPageCount: Number(brief.ipDiagramCreatorNativeMaxPages || brief.personalIp?.maxImageCount || 0) || null,
+    maximumPolicy: "explicit-maximum-hard-cap-source-plan-exact-count",
+    requestedMaximumAdvisoryOnly: false,
     personalIpRequired,
   };
   const candidates = collectIpDiagramNativePageInputCandidates(brief)
@@ -13638,7 +14157,7 @@ function ipDiagramNativeFinalInputEvidence(brief = {}) {
       "manifest.json next to pages-dir",
       "manifest source_generated_image entries for every final page",
       "built-in image_gen/native direct-generation route evidence",
-      "personal-IP native page count within min/max range",
+      "personal-IP native page count matches the semantic page-capacity source plan and any explicit hard maximum",
     ],
   };
 }
@@ -14360,12 +14879,12 @@ function buildIpDiagramCreatorCharacterAssetPlan({ brief = {}, active = false, p
       "scene interaction pose sheet",
     ],
     defaultImageCountPolicy: {
-      mode: "rich-by-default",
+      mode: "reuse-fixed-persona-assets",
       minimumRoleAssetImages: active ? (speakerRoleBindings.active ? 8 * Math.max(1, speakerRoleBindings.speakerCount || 1) : 6) : 0,
       targetRoleAssetImages: active ? (speakerRoleBindings.active ? 8 * Math.max(1, speakerRoleBindings.speakerCount || 1) : 8) : 0,
       reason: speakerRoleBindings.active
         ? "Dialogue personal-IP videos need separate stable role references per speaker and must not collapse multiple hosts into one presenter."
-        : "Personal-IP videos need enough consistent role references to avoid redesigning the presenter every scene.",
+        : "Personal-IP videos reuse the fixed manifest-backed role references; these references are not per-run generation jobs or content pages.",
     },
     genericFallbackPersona: registry.routePolicy?.fixedPersonaRequired === true || hasAuthorizedAssets
       ? null
@@ -14430,18 +14949,11 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
   const requestedMinimum = requestedPersonalIpImageMinimum(brief);
   const minImageCount = Math.max(4, requestedMinimum || 0);
   const requestedMaximum = requestedPersonalIpImageMaximum(brief);
-  const requestedMaxImageCount = Math.max(minImageCount, requestedMaximum || 48);
+  const requestedMaxImageCount = requestedMaximum > 0 ? Math.max(minImageCount, requestedMaximum) : null;
   const scriptUnits = Array.isArray(scriptMatchPlan.scriptUnits) ? scriptMatchPlan.scriptUnits : [];
   const charCount = scriptUnits.reduce((sum, unit) => sum + Array.from(String(unit.text || "").replace(/\s/g, "")).length, 0);
   const unitCount = Math.max(1, Number(scriptMatchPlan.scriptUnitCount || scriptUnits.length || 1));
   const growthStepChars = Math.max(80, Number(brief.personalIpImageGrowthStepChars || brief.personalIp?.imageGrowthStepChars || 160));
-  const secondsPerImage = Math.max(12, positiveNumber(
-    brief.personalIpImageSecondsPerPage
-      || brief.personalIpSecondsPerImage
-      || personalIp.imageSecondsPerPage
-      || personalIp.secondsPerImage,
-    30,
-  ));
   const subtitleCuesPerImage = Math.max(1, Number(
     brief.personalIpSubtitleCuesPerImage
       || personalIp.subtitleCuesPerImage
@@ -14474,47 +14986,41 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
     positiveNumber(personalIp.subtitleCueCount),
     positiveNumber(personalIp.scriptUnitCount),
   );
-  const charGrowthBucket = Math.max(0, Math.ceil(charCount / growthStepChars) - 1);
-  const unitGrowthBucket = Math.max(0, Math.ceil(unitCount / 4) - 1);
-  const semanticFloor = Math.ceil(unitCount / 1.5);
-  const boundedCharGrowthBucket = Math.min(4, charGrowthBucket);
-  const boundedUnitGrowthBucket = Math.min(4, unitGrowthBucket);
-  const exponentialByChars = minImageCount * (2 ** boundedCharGrowthBucket);
-  const exponentialByUnits = minImageCount * (2 ** boundedUnitGrowthBucket);
-  const clarityByChars = Math.ceil(charCount / 140);
-  const durationBasedTarget = effectiveDurationSeconds > 0 ? Math.ceil(effectiveDurationSeconds / secondsPerImage) : 0;
-  const subtitleCueBasedTarget = subtitleCueCount > 0 ? Math.ceil(subtitleCueCount / subtitleCuesPerImage) : 0;
-  const contentClarityTarget = Math.max(minImageCount, semanticFloor, clarityByChars);
-  const contentMatchTarget = Math.max(minImageCount, unitCount, clarityByChars);
-  const contentGrowthTarget = Math.min(
-    Math.max(exponentialByChars, exponentialByUnits),
-    Math.max(contentMatchTarget, Math.ceil(contentMatchTarget * 1.5)),
-  );
-  const automaticTarget = Math.max(
-    contentClarityTarget,
-    contentMatchTarget,
-    durationBasedTarget,
-    subtitleCueBasedTarget,
-    contentGrowthTarget,
-  );
-  const automaticMaxPolicyFloor = Math.min(48, Math.max(minImageCount, automaticTarget));
-  const maxImageCountUnderAutomaticPolicy = requestedMaxImageCount < automaticMaxPolicyFloor;
-  const maxImageCount = Math.max(requestedMaxImageCount, automaticMaxPolicyFloor);
-  const resolvedImageCount = clampPersonalIpCount(automaticTarget, minImageCount, maxImageCount);
-  const strongestAutomaticDriver = [
-    ["durationBasedTarget", durationBasedTarget],
-    ["subtitleCueBasedTarget", subtitleCueBasedTarget],
-    ["contentClarityTarget", contentClarityTarget],
-    ["contentMatchTarget", contentMatchTarget],
-    ["contentGrowthTarget", contentGrowthTarget],
-  ].sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0] || "minImageCount";
+  const adaptiveCount = buildPersonalIpPageCapacityPlan({
+    aspect: canvasForBrief(brief).aspect,
+    sourceCount: Math.max(1, Number(scriptMatchPlan.pageCardCount || 0)),
+    topicGroupCount: Math.max(1, Number(scriptMatchPlan.topicGroupCount || 0)),
+    durationSeconds: effectiveDurationSeconds,
+    subtitleCueCount,
+    charCount,
+    contentUnitCount: unitCount,
+    minCount: minImageCount,
+    requestedTarget: requestedMinimum,
+    requestedMaximum: requestedMaximum,
+  });
+  const durationBasedTarget = adaptiveCount.durationBasedTarget;
+  const subtitleCueBasedTarget = adaptiveCount.subtitleCueBasedTarget;
+  const contentClarityTarget = adaptiveCount.contentBasedTarget;
+  const contentMatchTarget = adaptiveCount.semanticUnitTarget;
+  const contentGrowthTarget = Math.max(contentClarityTarget, adaptiveCount.topicGroupTarget);
+  const automaticTarget = adaptiveCount.automaticTarget;
+  const automaticMaxPolicyFloor = automaticTarget;
+  const maxImageCountUnderAutomaticPolicy = adaptiveCount.requestedMaximumUnderAutomatic;
+  const maxImageCount = adaptiveCount.maxUniquePages;
+  const resolvedImageCount = adaptiveCount.uniqueGeneratedPageCount;
+  const strongestAutomaticDriver = adaptiveCount.strongestAutomaticDriver;
   return {
-    mode: "duration-aware-min-max",
+    mode: "semantic-page-capacity",
     minImageCount,
     maxImageCount,
     requestedMaxImageCount,
     maxImageCountUnderAutomaticPolicy,
-    maxImageCountRaisedToAutomaticPolicy: maxImageCountUnderAutomaticPolicy,
+    maxImageCountRaisedToAutomaticPolicy: false,
+    requestedMaximumApplied: adaptiveCount.requestedMaximumApplied,
+    coverageStrategy: adaptiveCount.coverageStrategy,
+    maxUniquePages: adaptiveCount.maxUniquePages,
+    repairVariantPolicy: adaptiveCount.repairVariantPolicy,
+    maxRepairGenerations: adaptiveCount.maxRepairGenerations,
     resolvedImageCount,
     contentMetrics: {
       charCount,
@@ -14524,38 +15030,47 @@ function buildPersonalIpNativePageCountPolicy({ brief = {}, scriptMatchPlan = {}
       durationSecondsSource: explicitDurationSeconds ? "brief/audio/video" : "estimated-from-script-chars",
       estimatedSpeechDurationSeconds,
       effectiveDurationSeconds,
-      secondsPerImage,
+      secondsPerImage: adaptiveCount.pageCapacity.secondsPerPage,
       subtitleCueCount,
       subtitleCuesPerImage,
-      charGrowthBucket,
-      unitGrowthBucket,
-      boundedCharGrowthBucket,
-      boundedUnitGrowthBucket,
-      semanticFloor,
-      clarityByChars,
+      charGrowthBucket: null,
+      unitGrowthBucket: null,
+      boundedCharGrowthBucket: null,
+      boundedUnitGrowthBucket: null,
+      semanticFloor: adaptiveCount.semanticUnitTarget,
+      semanticMicroBeatTarget: adaptiveCount.semanticUnitTarget,
+      clarityByChars: adaptiveCount.contentBasedTarget,
       durationBasedTarget,
       subtitleCueBasedTarget,
       contentClarityTarget,
       contentMatchTarget,
-      contentMatchCeiling: maxImageCount,
+      contentMatchCeiling: adaptiveCount.microVisualBeatTarget,
       requestedMaxImageCount,
       automaticMaxPolicyFloor,
       contentGrowthTarget,
-      exponentialByChars,
-      exponentialByUnits,
+      exponentialByChars: null,
+      exponentialByUnits: null,
       automaticTarget,
       strongestAutomaticDriver,
+      uniqueGeneratedPageCount: adaptiveCount.uniqueGeneratedPageCount,
+      microVisualBeatTarget: adaptiveCount.microVisualBeatTarget,
+      microVisualBeatDriver: adaptiveCount.microVisualBeatDriver,
+      topicGroupCount: adaptiveCount.topicGroupCount,
+      topicGroupTarget: adaptiveCount.topicGroupTarget,
     },
     durationDensityRule: {
-      targetSecondsPerImage: secondsPerImage,
+      targetSecondsPerImage: adaptiveCount.pageCapacity.secondsPerPage,
       subtitleCuesPerImage,
       speechCharsPerSecond,
       durationBasedTarget,
       subtitleCueBasedTarget,
-      reason: "Personal-IP native source pages scale with actual/estimated video duration so a long video cannot collapse to a few images when the planner only has summarized content.",
+      reason: "Personal-IP native pages are packed by spoken-content capacity; subtitle and semantic cadence is retained as in-page beats rather than extra Image2 jobs.",
     },
-    formula: "clamp(max(contentClarityTarget, contentMatchTarget, durationBasedTarget, subtitleCueBasedTarget, contentGrowthTarget), minImageCount, maxImageCount)",
-    matchingRule: "one native personal-IP source page per contiguous script/voiceover beat; generate enough pages for clear explanation, but do not add decorative pages that cannot map to a clear narration beat",
+    pageCapacity: adaptiveCount.pageCapacity,
+    durationBand: adaptiveCount.durationBand,
+    maximumPolicy: adaptiveCount.maximumPolicy,
+    formula: "uniqueGeneratedPageCount = semantic page-capacity target clamped to the duration safety band and any explicit user maximum; microVisualBeatTarget retains subtitle/semantic cadence inside those pages",
+    matchingRule: "one unique native personal-IP page per capacity-packed contiguous narration segment; subtitle and semantic units map to in-page emphasis or caption beats and do not create additional Image2 jobs",
   };
 }
 
@@ -14609,7 +15124,6 @@ function dedupePersonalIpScriptUnits(units = []) {
 }
 
 function collectPersonalIpScriptUnits({ brief = {}, pages = [] } = {}) {
-  const units = [];
   const structuredSources = [
     ["voiceover-segment", brief.voiceoverSegments],
     ["narration-segment", brief.narrationSegments],
@@ -14617,38 +15131,7 @@ function collectPersonalIpScriptUnits({ brief = {}, pages = [] } = {}) {
     ["subtitle-cue", brief.subtitleCueNarrationSegments],
     ["cue", brief.cues],
   ];
-  for (const [source, entries] of structuredSources) {
-    if (!Array.isArray(entries)) continue;
-    entries.forEach((entry, index) => {
-      const text = normalizePersonalIpScriptText(textFromPotentialScriptSegment(entry));
-      if (text) units.push({
-        id: `${source}-${String(index + 1).padStart(2, "0")}`,
-        source,
-        text,
-        sceneId: typeof entry === "object" ? entry.sceneId || entry.frameId || null : null,
-      });
-    });
-  }
   const briefScenes = Array.isArray(brief.scenes) ? brief.scenes : [];
-  briefScenes.forEach((scene, index) => {
-    const text = normalizePersonalIpScriptText(scene.narration || scene.voiceover || scene.spokenText || scene.subtitle || scene.body || scene.content || "");
-    if (text) units.push({
-      id: `brief-scene-${String(index + 1).padStart(2, "0")}`,
-      source: "brief.scene",
-      text,
-      sceneId: scene.id || null,
-    });
-  });
-  pages.forEach((page, index) => {
-    const frame = page.frame || {};
-    const text = normalizePersonalIpScriptText(frame.narration || frame.spokenText || frame.voiceover || frame.subtitle || frame.body || "");
-    if (text) units.push({
-      id: `page-frame-${String(index + 1).padStart(2, "0")}`,
-      source: "designPlan.page",
-      text,
-      sceneId: page.id || null,
-    });
-  });
   const textSources = [
     ["brief.narration", brief.narration],
     ["brief.spokenNarration", brief.spokenNarration],
@@ -14656,10 +15139,75 @@ function collectPersonalIpScriptUnits({ brief = {}, pages = [] } = {}) {
     ["brief.script", brief.script],
     ["brief.transcript", brief.transcript],
   ];
-  for (const [source, text] of textSources) {
-    units.push(...splitPersonalIpScriptText(text, source.replace(/[^\w.-]+/g, "-")));
+  const canonical = selectCanonicalContentUnits({
+    structuredGroups: structuredSources.map(([source, entries]) => ({ source, entries })),
+    scenes: briefScenes,
+    pages,
+    fullTexts: textSources.map(([source, text]) => ({ source, text })),
+  });
+  return dedupePersonalIpScriptUnits(canonical.units.map((unit) => ({ ...unit })));
+}
+
+function groupPersonalIpScriptUnits(units = [], targetCount = 1, source = "explicit-cue-count-group") {
+  if (!units.length || targetCount >= units.length) return units;
+  const groups = [];
+  let cursor = 0;
+  for (let index = 0; index < targetCount; index += 1) {
+    const remainingUnits = units.length - cursor;
+    const remainingGroups = targetCount - index;
+    const take = Math.ceil(remainingUnits / remainingGroups);
+    const chunk = units.slice(cursor, cursor + take);
+    groups.push({
+      id: `${source}-${String(index + 1).padStart(3, "0")}`,
+      order: index + 1,
+      source,
+      sceneId: chunk.find((unit) => unit.sceneId)?.sceneId || null,
+      text: chunk.map((unit) => unit.text).join(""),
+      groupedSourceUnitIds: chunk.map((unit) => unit.id),
+    });
+    cursor += take;
   }
-  return dedupePersonalIpScriptUnits(units);
+  return groups;
+}
+
+function fitPersonalIpScriptUnitsToPageCount(units = [], targetCount = 1, pages = []) {
+  const count = Math.max(1, Number(targetCount || 1));
+  if (units.length === count) return units;
+  if (units.length > count) return groupPersonalIpScriptUnits(units, count, "native-page-beat-group");
+  const text = units.map((unit) => unit.text).join("")
+    || pages.map((page) => page.frame?.narration || page.frame?.subtitle || page.frame?.body || page.id || "").join("");
+  const chars = Array.from(text);
+  const fitted = [];
+  let cursor = 0;
+  for (let index = 0; index < count; index += 1) {
+    const remainingChars = chars.length - cursor;
+    const remainingGroups = count - index;
+    const take = remainingChars > 0 ? Math.max(1, Math.ceil(remainingChars / remainingGroups)) : 0;
+    const page = pages[index % Math.max(1, pages.length)] || {};
+    fitted.push({
+      id: `native-page-beat-${String(index + 1).padStart(3, "0")}`,
+      order: index + 1,
+      source: "native-page-beat-fit",
+      sceneId: page.id || units[index % Math.max(1, units.length)]?.sceneId || null,
+      text: chars.slice(cursor, cursor + take).join("") || page.frame?.subtitle || page.frame?.body || `口播页面 ${index + 1}`,
+    });
+    cursor += take;
+  }
+  return fitted;
+}
+
+function attachMethodologyUnitsToScriptUnits(units = [], methodologyUnits = []) {
+  if (!units.length || !methodologyUnits.length) return units;
+  const next = units.map((unit) => ({ ...unit, methodologyVisualUnits: [] }));
+  methodologyUnits.forEach((methodologyUnit, index) => {
+    const targetIndex = Math.min(next.length - 1, Math.floor(index * next.length / methodologyUnits.length));
+    next[targetIndex].methodologyVisualUnits.push(methodologyUnit);
+  });
+  return next.map((unit) => ({
+    ...unit,
+    methodologyText: unit.methodologyVisualUnits.map((item) => item.text).join("；"),
+    requiredVisualUnitIds: unit.methodologyVisualUnits.map((item) => item.id),
+  }));
 }
 
 function buildPersonalIpScriptMatchPlan({ brief = {}, pages = [], sceneAssignments = [], active = false } = {}) {
@@ -14674,6 +15222,16 @@ function buildPersonalIpScriptMatchPlan({ brief = {}, pages = [], sceneAssignmen
     };
   }
   const sceneCount = Math.max(pages.length, sceneAssignments.length);
+  const briefScenes = Array.isArray(brief.scenes) ? brief.scenes : [];
+  const sourceTopicIds = new Set(briefScenes.map((scene, index) => String(scene?.id || `brief-scene-${index + 1}`)));
+  if (sourceTopicIds.size === 0) {
+    pages.forEach((page) => {
+      const sourceSceneId = page?.frame?.sourceSceneId;
+      if (sourceSceneId) sourceTopicIds.add(String(sourceSceneId));
+    });
+  }
+  const methodologyGroupFloor = Math.ceil(methodologyVisualUnitsFromBrief(brief).length / 4);
+  const topicGroupCount = Math.max(1, sourceTopicIds.size, methodologyGroupFloor);
   const collected = collectPersonalIpScriptUnits({ brief, pages });
   const explicitCountCandidates = [
     brief.voiceoverSegmentCount,
@@ -14683,15 +15241,19 @@ function buildPersonalIpScriptMatchPlan({ brief = {}, pages = [], sceneAssignmen
     brief.personalIp?.scriptUnitCount,
   ].map((value) => Number(value || 0)).filter((value) => Number.isFinite(value) && value > 0);
   const explicitCount = Math.max(0, ...explicitCountCandidates);
-  const targetCount = Math.max(sceneCount, collected.length, explicitCount);
+  const fullTextFallbackSelected = collected.length > 0 && collected.every((unit) => /^brief\.(?:narration|spokenNarration|voiceover|script|transcript)/.test(String(unit.source || "")));
+  const effectiveCollected = explicitCount > 0 && fullTextFallbackSelected && collected.length > explicitCount
+    ? groupPersonalIpScriptUnits(collected, explicitCount)
+    : collected;
+  const targetCount = Math.max(sceneCount, effectiveCollected.length, explicitCount);
   const scriptUnits = Array.from({ length: targetCount }, (_, index) => {
-    const collectedUnit = collected[index] || {};
+    const collectedUnit = effectiveCollected[index] || {};
     const assignment = sceneAssignments[index % Math.max(1, sceneAssignments.length)] || {};
     const page = pages[index % Math.max(1, pages.length)] || {};
     return {
       id: collectedUnit.id || `script-unit-${String(index + 1).padStart(2, "0")}`,
       order: index + 1,
-      source: collectedUnit.source || (collected.length ? "inferred-script-gap" : "page-card-fallback"),
+      source: collectedUnit.source || (effectiveCollected.length ? "inferred-script-gap" : "page-card-fallback"),
       sceneId: collectedUnit.sceneId || assignment.sceneId || page.id || null,
       text: normalizePersonalIpScriptText(collectedUnit.text || page.frame?.subtitle || page.frame?.body || assignment.sourceFrameLabel || `口播单元 ${index + 1}`),
     };
@@ -14699,12 +15261,15 @@ function buildPersonalIpScriptMatchPlan({ brief = {}, pages = [], sceneAssignmen
   return {
     active: true,
     matchingRule: "one-main-personal-ip-image-job-per-voiceover-script-unit",
-    source: collected.length
+    source: effectiveCollected.length
       ? "structured voiceover/script/page units"
       : "page cards fallback",
     pageCardCount: sceneCount,
+    topicGroupCount,
     explicitRequestedCount: explicitCount || null,
-    collectedUnitCount: collected.length,
+    rawCollectedUnitCount: collected.length,
+    collectedUnitCount: effectiveCollected.length,
+    fullTextFallbackGroupedToExplicitCueCount: effectiveCollected.length < collected.length,
     scriptUnitCount: scriptUnits.length,
     scriptUnits,
     samples: scriptUnits.slice(0, 8).map((unit) => ({
@@ -14719,36 +15284,46 @@ function buildPersonalIpScriptMatchPlan({ brief = {}, pages = [], sceneAssignmen
 function buildIpDiagramCreatorImageCountPolicy({ brief = {}, active = false, pages = [], sceneAssignments = [], characterAssetPlan = {} }) {
   const sceneCount = active ? Math.max(pages.length, sceneAssignments.length) : 0;
   const scriptMatchPlan = buildPersonalIpScriptMatchPlan({ brief, pages, sceneAssignments, active });
-  const roleAssetMinimum = active ? Math.max(8, Number(characterAssetPlan.defaultImageCountPolicy?.minimumRoleAssetImages || 0)) : 0;
-  const sceneVariantsPerScriptUnit = active ? 5 : 0;
-  const mainSceneImageJobs = active ? Math.max(sceneCount, Number(scriptMatchPlan.scriptUnitCount || 0)) : 0;
-  const supplementalSceneVariantCount = mainSceneImageJobs * sceneVariantsPerScriptUnit;
+  const roleAssetReferenceCount = active ? Math.max(1, Number(characterAssetPlan.defaultImageCountPolicy?.minimumRoleAssetImages || 0)) : 0;
+  const roleAssetMinimum = 0;
+  const sceneVariantsPerScriptUnit = 0;
   const requestedMinimum = requestedPersonalIpImageMinimum(brief);
   const nativeSourcePageCountPolicy = buildPersonalIpNativePageCountPolicy({ brief, scriptMatchPlan, active });
-  const targetTotal = active
-    ? Math.max(nativeSourcePageCountPolicy.resolvedImageCount || 0, requestedMinimum, roleAssetMinimum + mainSceneImageJobs + supplementalSceneVariantCount)
-    : 0;
+  const pageScriptUnits = active
+    ? fitPersonalIpScriptUnitsToPageCount(scriptMatchPlan.scriptUnits || [], nativeSourcePageCountPolicy.resolvedImageCount, pages)
+    : [];
+  const methodologyBoundScriptUnits = attachMethodologyUnitsToScriptUnits(pageScriptUnits, methodologyVisualUnitsFromBrief(brief));
+  const mainSceneImageJobs = methodologyBoundScriptUnits.length;
+  const supplementalSceneVariantCount = mainSceneImageJobs * sceneVariantsPerScriptUnit;
+  const targetTotal = active ? mainSceneImageJobs : 0;
   return {
-    mode: active ? "rich-by-default" : "not-applicable",
+    mode: active ? "capacity-controlled" : "not-applicable",
     currentLegacyLogic: "旧逻辑通常每个激活场景只规划一张页面主图，并附带一份角色设定简表。",
-    upgradedLogic: "新逻辑先按用户口播稿/字幕/页面内容拆出口播匹配单元，每个单元至少一张个人 IP 主图，再为同一单元补充动作、Agent、局部、白板描线和替代构图变体。",
+    upgradedLogic: "按横竖屏页面容量分析最终口播，把连续语义单元装入有限的独立页面；字幕、强调、指针和揭示作为页内节拍。默认不生成替代构图，只有页面 QC 失败时才在修复预算内补生成。",
     requestedMinimum,
     requestedMaximum: requestedPersonalIpImageMaximum(brief) || null,
     nativeSourcePageCountPolicy,
     roleAssetMinimum,
+    roleAssetReferenceCount,
+    roleAssetGenerationJobs: 0,
     sceneCount,
-    scriptUnitCount: scriptMatchPlan.scriptUnitCount,
+    rawScriptUnitCount: scriptMatchPlan.scriptUnitCount,
+    scriptUnitCount: methodologyBoundScriptUnits.length,
     scriptUnitSource: scriptMatchPlan.source,
     scriptUnitSamples: scriptMatchPlan.samples,
-    scriptUnits: scriptMatchPlan.scriptUnits,
+    rawScriptUnits: scriptMatchPlan.scriptUnits,
+    scriptUnits: methodologyBoundScriptUnits,
     mainSceneImageJobs,
+    microVisualBeatCount: nativeSourcePageCountPolicy.contentMetrics?.microVisualBeatTarget || mainSceneImageJobs,
     sceneVariantsPerScriptUnit,
     sceneVariantsPerPage: sceneVariantsPerScriptUnit,
     supplementalSceneVariantCount,
+    maxRepairGenerations: nativeSourcePageCountPolicy.maxRepairGenerations || 0,
+    repairVariantPolicy: nativeSourcePageCountPolicy.repairVariantPolicy || "on-demand-qc-failures-only",
     targetTotal,
     preserveContinuity: true,
-    matchingRule: scriptMatchPlan.matchingRule || "not-applicable",
-    capPolicy: "Planner 可以按口播单元规划更多图片任务，渲染和 QC 阶段再按页面质量下选；确定性文字层始终单独保留。",
+    matchingRule: active ? "one main native image job per adaptive grouped page beat" : "not-applicable",
+    capPolicy: "独立生成页遵循内容容量与时长安全带；用户显式 maximum 是硬上限。内容密度通过页内微节拍和语义合并承载，不通过批量生成变体扩张。",
   };
 }
 
@@ -14758,14 +15333,16 @@ function buildIpDiagramCreatorExecutionModes({
   primaryPlannerRoute = false,
   nativeFinalAvailable = false,
   personalIpAssetRegistry = {},
+  personalIpAnimationChoice = "off",
 } = {}) {
   const personalIpRouteRequested = active && briefRequestsPersonalIpNativeSkillRoute(brief);
+  const semanticLayerRequested = personalIpRouteRequested && personalIpAnimationChoice === "semantic-layers";
   const directRequested = briefRequestsIpDiagramNativeDirectUse(brief) || personalIpRouteRequested;
-  const nativeFinalRequested = active && (briefRequestsIpDiagramNativeFinalVideo(brief) || personalIpRouteRequested);
+  const nativeFinalRequested = active && (briefRequestsIpDiagramNativeFinalVideo(brief) || (personalIpRouteRequested && !semanticLayerRequested));
   const nativeFinalSelected = active && nativeFinalRequested && nativeFinalAvailable;
   const personaReady = !personalIpRouteRequested
     || ["ready-existing-persona", "ready-default-persona"].includes(personalIpAssetRegistry.status);
-  const nativeDirectSelected = active && directRequested && !nativeFinalRequested;
+  const nativeDirectSelected = active && directRequested && !nativeFinalRequested && !semanticLayerRequested;
   const integratedFinalSelected = active && !personalIpRouteRequested && !nativeFinalRequested && (primaryPlannerRoute || nativeDirectSelected);
   return [
     {
@@ -14786,6 +15363,18 @@ function buildIpDiagramCreatorExecutionModes({
         "workflow/skill-usage-accuracy-audit.json",
         "logs/qc.json",
       ],
+    },
+    {
+      id: "personal-ip-semantic-layers-svg-html-video",
+      status: semanticLayerRequested
+        ? nativeFinalAvailable
+          ? "selected-with-master-reference-and-semantic-decomposition"
+          : "blocked-needs-personal-ip-master-reference"
+        : "not-applicable",
+      selected: semanticLayerRequested && nativeFinalAvailable,
+      owner: "codex-video-workflow semantic SVG/HTML layers guided by the personal-IP Image2 master",
+      useWhen: "explicit personal-IP animation requests require title, content, path, presenter, Agent, annotation, and subtitle layers to animate independently",
+      evidence: ["workflow/personal-ip-semantic-decomposition.json", "workflow/personal-ip-semantic-layer-spec.json", "workflow/personal-ip-semantic-layer-manifest.json", "workflow/personal-ip-layer-ownership-audit.json", "personal-ip-layered.svg", "personal-ip-layered.html", "logs/qc.json"],
     },
     {
       id: "integrated-html-video-composition",
@@ -14845,6 +15434,11 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
     || personalIpNativeRouteRequested
   );
   const personalIpAssetRegistry = buildPersonalIpAssetRegistry({ brief, active });
+  const personalIpAnimationChoice = personalIpAnimationChoiceForBrief(brief, active, personalIpNativeRouteRequested);
+  // Preserve the historical native-page foreground-overlay meanings of
+  // `subtle` and `draw-reveal`. The new master-bound SVG/HTML route is entered
+  // only by its explicit enum or by natural language normalized to that enum.
+  const semanticLayerRequested = personalIpNativeRouteRequested && personalIpAnimationChoice === "semantic-layers";
   const characterAssetPlan = buildIpDiagramCreatorCharacterAssetPlan({ brief, active, personalIpAssetRegistry });
   const dialogueSpeakerBindings = characterAssetPlan.speakerRoleBindings || personalIpAssetRegistry.dialogueSpeakerBindings || {
     active: false,
@@ -14852,9 +15446,9 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
   };
   const nativeFinalRequested = active && (
     briefRequestsIpDiagramNativeFinalVideo(brief)
-    || personalIpNativeRouteRequested
+    || (personalIpNativeRouteRequested && !semanticLayerRequested)
   );
-  const nativeFinalInputEvidence = nativeFinalRequested
+  const nativeFinalInputEvidence = nativeFinalRequested || semanticLayerRequested
     ? ipDiagramNativeFinalInputEvidence(brief)
     : {
         schemaVersion: 1,
@@ -14870,12 +15464,14 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
     primaryPlannerRoute,
     nativeFinalAvailable,
     personalIpAssetRegistry,
+    personalIpAnimationChoice,
   });
   const personaRouteReady = !personalIpNativeRouteRequested
     || ["ready-existing-persona", "ready-default-persona"].includes(personalIpAssetRegistry.status);
   const nativeDirectSelected = active
     && !nativeFinalSelected
     && !nativeFinalRequested
+    && !semanticLayerRequested
     && (briefRequestsIpDiagramNativeDirectUse(brief) || personalIpNativeRouteRequested);
   const nativeDirectUsePlan = {
     status: active
@@ -14921,7 +15517,7 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
       : "not-applicable",
     requestedNow: nativeFinalRequested,
     selectedNow: nativeFinalSelected,
-    requiredByPersonalIpRoute: personalIpNativeRouteRequested,
+    requiredByPersonalIpRoute: personalIpNativeRouteRequested && !semanticLayerRequested,
     inputEvidence: nativeFinalInputEvidence,
     visualEngineOwner: "haloshin/ip-diagram-creator",
     finalFramePolicy: "ip-diagram-creator owns scene design, page cards, white-canvas hand-drawn board, character/Agent grammar, and final visible frame composition",
@@ -14942,6 +15538,27 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
       "workflow/html-video-render.json",
       "renders/final.mp4",
     ],
+  };
+  const semanticLayerVideoPlan = {
+    status: semanticLayerRequested
+      ? nativeFinalAvailable && personaRouteReady
+        ? "selected-with-master-reference-and-semantic-decomposition"
+        : !personaRouteReady
+          ? "blocked-needs-fixed-persona"
+          : "blocked-needs-personal-ip-master-reference"
+      : "not-applicable",
+    requestedNow: semanticLayerRequested,
+    selectedNow: semanticLayerRequested && nativeFinalAvailable && personaRouteReady,
+    requiredByPersonalIpAnimationRoute: semanticLayerRequested,
+    animationChoice: personalIpAnimationChoice,
+    visualEngineOwner: "semantic SVG/HTML content layers reconstructed from the personal-IP master design and exact brief content",
+    fixedPersonaRequired: true,
+    masterReferenceRequired: true,
+    flatCompositeBaseForbidden: true,
+    requiredLayerRoles: ["background", "headline", "content-group", "semantic-path", "annotation", "personal-ip", "execution-agent", "subtitle-overlay"],
+    allPlannedScenesRequired: true,
+    longFormSingleBoardForbidden: true,
+    outputEvidence: ["workflow/personal-ip-semantic-decomposition.json", "workflow/personal-ip-semantic-layer-spec.json", "workflow/personal-ip-semantic-layer-manifest.json", "workflow/personal-ip-layer-ownership-audit.json", "layers/*.svg", "personal-ip-layered.svg", "personal-ip-layered.html", "renders/final.mp4", "workflow/skill-usage-accuracy-audit.json", "logs/qc.json"],
   };
   const baseSceneAssignments = active
     ? pages.map((page, index) => {
@@ -15032,7 +15649,7 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
     sourceRepo: IP_DIAGRAM_CREATOR_SOURCE.repo,
     sourceCommit: IP_DIAGRAM_CREATOR_SOURCE.commit,
     sourceRelease: IP_DIAGRAM_CREATOR_SOURCE.release,
-    integrationMode: nativeFinalSelected ? "planner-routed-native-final-video-option" : "compatible-capability-portfolio-not-replacement",
+    integrationMode: nativeFinalRequested ? "ip-diagram-creator-native-page-base-plus-workflow-overlays" : "compatible-capability-portfolio-not-replacement",
     plannerRole: active
       ? primaryPlannerRoute
         ? "primary-teaching-visual-system"
@@ -15051,8 +15668,8 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
         "workflow/motion-template-selection.json",
         "workflow/image2-prompts.json",
       ],
-      visualEngineOwner: nativeFinalSelected ? "haloshin/ip-diagram-creator" : "codex-video-workflow with ip-diagram-creator design rules",
-      frameworkKeeps: nativeFinalSelected
+      visualEngineOwner: nativeFinalRequested ? "haloshin/ip-diagram-creator" : "codex-video-workflow with ip-diagram-creator design rules",
+      frameworkKeeps: nativeFinalRequested
         ? ["video assembly/export wrapper", "voice/subtitle timing", "cover packaging", "rights ledger", "QC gates"]
         : ["html-video renderer", "voice/subtitle timing", "deterministic text layers", "cover packaging", "rights ledger", "QC gates"],
     },
@@ -15060,7 +15677,7 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
 	    executionModes,
 	    userChoices: {
 	      makePersonalIp: active && personalIpNativeRouteRequested ? "auto" : "off",
-	      addHandDrawnImageAnimation: personalIpAnimationChoiceForBrief(brief, active, personalIpNativeRouteRequested),
+	      addHandDrawnImageAnimation: personalIpAnimationChoice,
 	      speakerPersonaPolicy: dialogueSpeakerBindings.active ? "bind-each-speaker-to-stable-persona" : "single-persona-or-none",
 	      resolvedBy: "brief-routing-signals",
 	      personalIpAssetRegistry: personalIpAssetRegistry.library?.manifestPath || null,
@@ -15070,6 +15687,7 @@ function buildIpDiagramCreatorPlan({ brief, designPlan = {} }) {
     dialogueSpeakerBindings,
     nativeDirectUsePlan,
     nativeFinalVideoPlan,
+    semanticLayerVideoPlan,
     routingSignals: signals,
     imageCountPolicy,
     directorPlan,
@@ -15390,7 +16008,7 @@ function assignmentForScriptUnit(scriptUnit = {}, index = 0, assignments = [], p
   return assignments[index % assignments.length];
 }
 
-function ipDiagramSupplementalSceneJobs({ pages = [], assignments = [], pageCardsByScene = new Map(), characterAssetPlan = {}, scriptUnits = [], variantsPerScriptUnit = 5 }) {
+function ipDiagramSupplementalSceneJobs({ pages = [], assignments = [], pageCardsByScene = new Map(), characterAssetPlan = {}, scriptUnits = [], variantsPerScriptUnit = 0 }) {
   const variantDefinitions = [
     ["source-plate", "primary diagram source plate", "生成本口播单元的主图解源板，保留大留白、人物/卡片分区和字幕安全区，长中文交给 HTML/SVG/CSS。"],
     ["foreground-action", "foreground action/gesture plate", "单独生成 IP 主讲人参与核心动作的前景姿态：指向、递交、圈画、连接流程或提醒风险。"],
@@ -15417,7 +16035,7 @@ function ipDiagramSupplementalSceneJobs({ pages = [], assignments = [], pageCard
     const personaLine = speakerBindings.length >= 2
       ? `双主播绑定：${speakerBindings.map((binding) => `${binding.speakerLabel || binding.displayName}=${binding.displayName || binding.personaId}`).join("；")}`
       : `${characterAssetPlan.personaName || "通用教学型 IP 主讲人"}`;
-    const base = `基于口播单元「${scriptUnit.text || headline}」和 ${personaLine}，使用 ip-diagram-creator 白底手绘图解视觉DNA。`;
+    const base = `基于口播单元「${scriptUnit.text || headline}」${scriptUnit.methodologyText ? `，并明确呈现课程方法论「${scriptUnit.methodologyText}」` : ""}和 ${personaLine}，使用 ip-diagram-creator 白底手绘图解视觉DNA。`;
     return variantDefinitions.slice(0, variantsPerScriptUnit).map(([suffix, role, directive]) => ({
       jobId: `ip-script-${String(unitIndex + 1).padStart(2, "0")}-${suffix}`,
       kind: "script-unit-variant",
@@ -15425,6 +16043,8 @@ function ipDiagramSupplementalSceneJobs({ pages = [], assignments = [], pageCard
       scriptUnitId: scriptUnit.id,
       scriptUnitOrder: scriptUnit.order || unitIndex + 1,
       scriptUnitText: scriptUnit.text || "",
+      methodologyText: scriptUnit.methodologyText || "",
+      requiredVisualUnitIds: scriptUnit.requiredVisualUnitIds || [],
       pageCardId: assignment.pageCardId || pageCard.cardId || null,
       role,
       prompt: `${base} ${directive}`,
@@ -15451,10 +16071,11 @@ function buildIpDiagramCreatorNativeJobs({ brief = {}, designPlan = {} }) {
     characterAssetPlan,
   });
   const scriptUnits = Array.isArray(imageCountPolicy.scriptUnits) ? imageCountPolicy.scriptUnits : [];
-  const variantsPerScriptUnit = Number(imageCountPolicy.sceneVariantsPerScriptUnit || imageCountPolicy.sceneVariantsPerPage || 5);
+  const variantsPerScriptUnit = Number(imageCountPolicy.sceneVariantsPerScriptUnit ?? imageCountPolicy.sceneVariantsPerPage ?? 0);
+  const roleAssetGenerationJobs = Number(imageCountPolicy.roleAssetGenerationJobs || 0);
   const supplementalImageJobs = plan.active
     ? [
-        ...ipDiagramRoleAssetJobs({ characterAssetPlan }),
+        ...(roleAssetGenerationJobs > 0 ? ipDiagramRoleAssetJobs({ characterAssetPlan }).slice(0, roleAssetGenerationJobs) : []),
         ...ipDiagramSupplementalSceneJobs({
           pages,
           assignments: plan.sceneAssignments || [],
@@ -15481,7 +16102,9 @@ function buildIpDiagramCreatorNativeJobs({ brief = {}, designPlan = {} }) {
           scriptUnitId: scriptUnit.id || null,
           scriptUnitOrder: scriptUnit.order || index + 1,
           scriptUnitText: scriptUnit.text || "",
-          matchPolicy: "one main native image job per voiceover/script unit",
+          methodologyText: scriptUnit.methodologyText || "",
+          requiredVisualUnitIds: scriptUnit.requiredVisualUnitIds || [],
+          matchPolicy: "one main native image job per adaptive grouped page beat",
           order: assignment.order || index + 1,
           nativeMode: ipDiagramNativeModeForAssignment(assignment.mode),
           pageCardId: assignment.pageCardId || pageCard.cardId || null,
@@ -18835,6 +19458,13 @@ function galaceanEffectLayerMarkup(page = {}, index = 0, total = 1, palette = pa
   </section>`;
 }
 
+function methodologyVisualMarkup(frame = {}) {
+  const units = Array.isArray(frame.methodologyVisualUnits) ? frame.methodologyVisualUnits : [];
+  if (!units.length) return "";
+  const rows = units.map((unit, index) => `<li data-methodology-unit-id="${esc(unit.id || `method-${index + 1}`)}"><b>${String(index + 1).padStart(2, "0")}</b><span>${escVisible(unit.text || "")}</span></li>`).join("");
+  return `<section class="methodology-visual-board" data-methodology-visible="true"><header>课程方法 · 可执行结构</header><ol>${rows}</ol></section>`;
+}
+
 function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) {
   const palette = palettes[frame.palette] || palettes.blue;
   const theme = visualThemeForPage(page);
@@ -18856,6 +19486,7 @@ function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) 
   const proofCapabilityMarkup = capabilityProofMarkup(page, index, total, palette, theme);
   const galaceanMarkup = galaceanEffectLayerMarkup(page, index, total, palette, theme, canvas);
   const whiteboardMarkup = whiteboardForegroundSketchMarkup(page);
+  const methodologyMarkup = methodologyVisualMarkup(frame);
   const creatorDesignDna = creatorDesignDnaMarkup(page, palette);
   const capabilityClasses = new Set(capabilityClassForPage(page, index, total).split(/\s+/).filter(Boolean));
   if (ipCapabilityMarkup) {
@@ -18878,7 +19509,7 @@ function frameHtml(frame, index, total, page = {}, canvas = canvasForBrief({})) 
   const capabilityClass = [...capabilityClasses].join(" ");
   const motionTemplateClass = `motion-template-${capabilitySlug(sceneMotionTemplate.selectedTemplate)}`;
   const roleClass = `role-${capabilitySlug(page.visualRole || "method-step")}`;
-  const precisionStoryMarkup = ipCapabilityMarkup || proofCapabilityMarkup || dataMarkup || formulaMarkup;
+  const precisionStoryMarkup = methodologyMarkup || ipCapabilityMarkup || proofCapabilityMarkup || dataMarkup || formulaMarkup;
   const templateSceneVisual = !precisionStoryMarkup && !hasGeneratedVisual && !hasStockVisual
     ? motionTemplateSceneMarkup(page, frame, index, total, palette, theme, sceneMotionTemplate)
     : "";
@@ -19004,6 +19635,24 @@ body {
     radial-gradient(circle at 15% 85%, ${theme.ink} 0 2px, transparent 3px);
   animation: atmosphericDrift 9s ease-in-out infinite alternate;
 }
+.methodology-visual-board {
+  position: absolute;
+  z-index: 12;
+  left: ${canvas.width > canvas.height ? "1080px" : "72px"};
+  right: ${canvas.width > canvas.height ? "104px" : "72px"};
+  top: ${canvas.width > canvas.height ? "206px" : "770px"};
+  min-height: ${canvas.width > canvas.height ? "520px" : "620px"};
+  padding: 34px 36px;
+  border: 4px solid ${theme.ink};
+  border-radius: 28px;
+  background: ${theme.surface};
+  box-shadow: 16px 18px 0 ${palette.accent};
+}
+.methodology-visual-board header { font-size: 30px; font-weight: 900; color: ${palette.accent}; margin-bottom: 22px; }
+.methodology-visual-board ol { list-style: none; display: grid; gap: 14px; margin: 0; padding: 0; }
+.methodology-visual-board li { display: grid; grid-template-columns: 52px 1fr; align-items: start; gap: 14px; font-size: 27px; line-height: 1.28; font-weight: 760; }
+.methodology-visual-board li b { display: grid; place-items: center; min-height: 42px; border-radius: 12px; background: ${palette.accent}; color: ${theme.surface}; font-size: 20px; }
+.methodology-visual-board li span { overflow-wrap: anywhere; }
 .top {
   position: relative;
   z-index: 5;
@@ -25287,7 +25936,14 @@ async function prepareVisualAssets({ out, designPlan, imageSource, codexImageAss
         id: frame.id,
         label: frame.label,
         headline: frame.headline,
+        body: frame.body,
         subtitle: frame.subtitle,
+        sourceSceneId: frame.sourceSceneId,
+        sourceSceneOrder: frame.sourceSceneOrder,
+        beatIndex: frame.beatIndex,
+        beatCount: frame.beatCount,
+        methodologyText: frame.methodologyText,
+        methodologyVisualUnits: frame.methodologyVisualUnits,
         durationSec: frame.durationSec,
       },
     })),
@@ -25844,6 +26500,39 @@ function concatAudio(files, output, out) {
   run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", concatPath, "-c", "copy", output], { cwd: out });
 }
 
+function loudnessSpread(entries = []) {
+  const values = entries.map((entry) => Number(entry.meanVolume)).filter(Number.isFinite);
+  if (!values.length) return null;
+  return Number((Math.max(...values) - Math.min(...values)).toFixed(2));
+}
+
+function concatNormalizedSpeechAudio(files, output, out, backend) {
+  const workDir = join(out, "workflow", "audio-segment-normalization", backend);
+  const before = probeSegmentMeanVolumes(files, run);
+  const normalized = normalizeSpeechSegmentsForConcat({ files, output, workDir, run });
+  const after = probeSegmentMeanVolumes(normalized.normalizedFiles, run);
+  const evidence = {
+    schemaVersion: 1,
+    stage: "speech-segment-loudness-normalization",
+    backend,
+    policy: normalized.policy,
+    filterChain: normalized.filter,
+    segmentCount: files.length,
+    beforeSpreadDb: loudnessSpread(before),
+    afterSpreadDb: loudnessSpread(after),
+    maximumAllowedAfterSpreadDb: 2.5,
+    pass: loudnessSpread(after) !== null && loudnessSpread(after) <= 2.5,
+    before: before.map((entry) => ({ file: relative(out, entry.file), meanVolumeDb: entry.meanVolume })),
+    after: after.map((entry) => ({ file: relative(out, entry.file), meanVolumeDb: entry.meanVolume })),
+  };
+  const artifact = join(out, "workflow", "speech-segment-loudness.json");
+  writeJson(artifact, evidence);
+  if (!evidence.pass) {
+    throw new Error(`Speech segment loudness remains inconsistent after normalization: spread=${evidence.afterSpreadDb} dB`);
+  }
+  return { ...normalized, evidence, artifact };
+}
+
 function splitIntoWorkerChunks(items, workerCount) {
   const workers = Math.max(1, Math.min(workerCount, items.length));
   const chunks = Array.from({ length: workers }, () => []);
@@ -26258,12 +26947,91 @@ function runChinesePronunciationPreflight({ out, narrationPath, language, voiceR
   });
   return {
     ...report,
+    allowUnresolvedPronunciationsUsed: allowUnresolved === true,
     reportPath,
     reportRelativePath: relative(out, reportPath),
     effectiveLexiconPath,
     effectiveLexiconRelativePath: relative(out, effectiveLexiconPath),
     requiresMeloTts: Number(report.counts?.polyphoneCandidates || 0) > 0 || Number(report.counts?.phraseMatches || 0) > 0,
   };
+}
+
+function buildProvidedAudioPronunciationLineage({ out, providedAudioPath, narrationPath }) {
+  const resolvedAudio = normalizeProvidedAudioPath(providedAudioPath);
+  const candidateRoot = resolve(dirname(resolvedAudio), "..");
+  const sourceWorkflow = join(candidateRoot, "workflow");
+  const sourceLooksLikeWorkflowPackage = existsSync(join(candidateRoot, "brief.json"))
+    && existsSync(join(sourceWorkflow, "voice-subtitle-manifest.json"));
+  const currentNarrationHash = fileContentHash(narrationPath);
+  const base = {
+    schemaVersion: 1,
+    stage: "provided-audio-pronunciation-lineage",
+    audioInputMode: sourceLooksLikeWorkflowPackage ? "workflow-generated-reuse" : "external-provided",
+    sourceAudioPath: resolvedAudio,
+    sourceAudioSha256: binaryFileHash(resolvedAudio),
+    currentNarrationPath: relative(out, narrationPath),
+    currentNarrationHash,
+  };
+  if (!sourceLooksLikeWorkflowPackage) {
+    const artifact = {
+      ...base,
+      status: "external-audio-pronunciation-not-applicable",
+      pass: true,
+      pronunciationControlled: false,
+      note: "External authorized audio is not synthesized by this workflow, so the TTS polyphone controller is not applicable and no pronunciation-controlled claim is allowed.",
+    };
+    writeJson(join(out, "workflow", "provided-audio-pronunciation-lineage.json"), artifact);
+    return artifact;
+  }
+
+  const sourcePreflightPath = join(sourceWorkflow, "chinese-pronunciation-preflight.json");
+  const sourcePlanPath = join(sourceWorkflow, "effective-pronunciation-plan.json");
+  const sourceVerificationPath = join(sourceWorkflow, "pronunciation-application-verification.json");
+  const sourcePreflight = readJsonIfExists(sourcePreflightPath) || {};
+  const sourcePlan = readJsonIfExists(sourcePlanPath) || {};
+  const sourceVerification = readJsonIfExists(sourceVerificationPath) || {};
+  const sourceLineage = readJsonIfExists(join(sourceWorkflow, "provided-audio-pronunciation-lineage.json")) || {};
+  const sourceNarrationHash = sourcePreflight.narrationHash || sourcePlan.narrationHash || sourceLineage.currentNarrationHash || "";
+  const strictSourceProof = sourcePreflight.ok === true
+    && Number(sourcePreflight.counts?.unresolved || 0) === 0
+    && sourceVerification.status === "passed"
+    && Number(sourceVerification.unresolvedCount || 0) === 0
+    && sourceVerification.pronunciationLoaderActive === true
+    && Number(sourceVerification.loadedPronunciationEntries || 0) > 0
+    && sourceVerification.loadedPronunciationHash === sourceVerification.pronunciationPlanHash
+    && sourceVerification.pronunciationPlanHash === sourcePlan.effectivePronunciationHash
+    && sourceNarrationHash === currentNarrationHash;
+  if (!strictSourceProof) {
+    throw new Error([
+      "Provided workflow audio pronunciation lineage is not strict enough for reuse.",
+      `sourcePackage=${candidateRoot}`,
+      `sourcePreflightOk=${sourcePreflight.ok === true}`,
+      `sourceUnresolved=${Number(sourcePreflight.counts?.unresolved || sourceVerification.unresolvedCount || 0)}`,
+      `loaderActive=${sourceVerification.pronunciationLoaderActive === true}`,
+      `narrationHashMatches=${sourceNarrationHash === currentNarrationHash}`,
+      "Regenerate TTS through the current strict preflight or provide external authorized audio without claiming workflow pronunciation control.",
+    ].join("\n"));
+  }
+  const inheritedDir = join(out, "workflow", "provided-audio-pronunciation-source");
+  ensureDir(inheritedDir);
+  for (const source of [sourcePreflightPath, sourcePlanPath, sourceVerificationPath]) {
+    copyFileSync(source, join(inheritedDir, source.split("/").at(-1)));
+  }
+  const artifact = {
+    ...base,
+    status: "verified-workflow-pronunciation-lineage",
+    pass: true,
+    pronunciationControlled: true,
+    strictSourceProof: true,
+    sourcePackage: candidateRoot,
+    sourceNarrationHash,
+    pronunciationPlanHash: sourceVerification.pronunciationPlanHash,
+    loadedPronunciationEntries: sourceVerification.loadedPronunciationEntries,
+    loadedPronunciationHash: sourceVerification.loadedPronunciationHash,
+    inheritedEvidenceDirectory: "workflow/provided-audio-pronunciation-source",
+  };
+  writeJson(join(out, "workflow", "provided-audio-pronunciation-lineage.json"), artifact);
+  return artifact;
 }
 
 function chinesePolyphoneLexiconForLanguage(language, pronunciationPlan = null) {
@@ -26370,7 +27138,7 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
   const filesBySegment = new Map(segments.map((segment) => [segment.index, chunksForSegment(outputDir, segment.index)]));
   const chunkFiles = segments.flatMap((segment) => filesBySegment.get(segment.index) || []);
   if (chunkFiles.length < files.length) throw new Error("CosyVoice generated fewer chunks than expected.");
-  concatAudio(chunkFiles, rawOutput, out);
+  const segmentNormalization = concatNormalizedSpeechAudio(chunkFiles, rawOutput, out, "cosyvoice_local");
   const rawDuration = mediaDurationSeconds(rawOutput);
   const segmentTimings = buildSegmentTimings({ segments, filesBySegment, rawDuration });
   return {
@@ -26385,6 +27153,7 @@ function generateWithCosyVoice({ out, voiceRoot, narration, rawOutput, narration
     speaker,
     audioGender,
     cacheHit,
+    segmentNormalization,
   };
 }
 
@@ -26570,7 +27339,7 @@ async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, n
   const missing = files.filter((file) => !existsSync(file));
   if (missing.length) throw new Error(`MeloTTS missing ${missing.length} segment files`);
   const filesBySegment = new Map(segments.map((segment) => [segment.index, [join(outputDir, `segment-${String(segment.index).padStart(4, "0")}.wav`)]]));
-  concatAudio(files, rawOutput, out);
+  const segmentNormalization = concatNormalizedSpeechAudio(files, rawOutput, out, "melotts_local");
   const rawDuration = mediaDurationSeconds(rawOutput);
   const segmentTimings = buildSegmentTimings({ segments, filesBySegment, rawDuration });
   return {
@@ -26604,6 +27373,7 @@ async function generateWithMeloTTS({ out, voiceRoot, narrationPath, rawOutput, n
       storedSegments: sharedCacheStore.storedSegments,
     },
     cacheHit,
+    segmentNormalization,
   };
 }
 
@@ -26624,7 +27394,7 @@ function generateWithSay({ out, narration, rawOutput, narrationSegments = null }
     files.push(wav);
   }
   const filesBySegment = new Map(segments.map((segment) => [segment.index, [join(outputDir, `segment-${String(segment.index).padStart(4, "0")}.wav`)]]));
-  concatAudio(files, rawOutput, out);
+  const segmentNormalization = concatNormalizedSpeechAudio(files, rawOutput, out, "say");
   const rawDuration = mediaDurationSeconds(rawOutput);
   return {
     backend: "say",
@@ -26636,6 +27406,7 @@ function generateWithSay({ out, narration, rawOutput, narrationSegments = null }
     rawDurationSeconds: rawDuration,
     segmentTimings: buildSegmentTimings({ segments, filesBySegment, rawDuration }),
     segmentTimingSource: segments.some((segment) => segment.cueIndex) ? "actual_subtitle_cue_tts_segments" : "actual_per_frame_tts_segments",
+    segmentNormalization,
   };
 }
 
@@ -26653,7 +27424,7 @@ function voiceBackendOrder(value, allowSayFallback) {
   return order;
 }
 
-async function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null, language = "zh", providedAudio = "", providedAudioTrimStart = 0, providedAudioTrimEnd = 0, ttsAcceleration = {}, pronunciationPlan = null }) {
+async function generateAudio({ out, narration, duration, voiceBackend = "auto", allowSayFallback = false, voiceDirection, coverIntroSeconds = 0, narrationSegments = null, language = "zh", providedAudio = "", providedAudioTrimStart = 0, providedAudioTrimEnd = 0, ttsAcceleration = {}, pronunciationPlan = null, providedAudioPronunciationLineage = null }) {
   const assets = join(out, "assets");
   const raw = join(assets, "narration.raw.wav");
   const narrationM4a = join(assets, "narration.m4a");
@@ -26763,6 +27534,12 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
         timingMethod: "estimated by subtitle cue text weights against the provided audio duration",
         alignmentUpgrade: "Use ASR/forced alignment only if word-level precision is required.",
       },
+      providedAudioPronunciationLineage: providedAudioPronunciationLineage
+        ? "workflow/provided-audio-pronunciation-lineage.json"
+        : null,
+      pronunciationControlStatus: providedAudioPronunciationLineage?.pronunciationControlled === true
+        ? "inherited-strict-workflow-proof"
+        : "not-applicable-external-audio",
       loudnessPolicy: {
         target: "present spoken-video volume; narration should be clearly audible on laptop speakers without maxing the system volume",
         minMeanDb: MIN_AUDIBLE_MEAN_DB,
@@ -26926,13 +27703,16 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
     const pronunciationLoaderActive = selected.backend === "melotts_local"
       && loadedPronunciationEntries > 0
       && loadedPronunciationHash === pronunciationPlan.effectivePronunciationHash;
-    const pronunciationApplicationPassed = !pronunciationPlan.requiresMeloTts || pronunciationLoaderActive;
-    if (!pronunciationApplicationPassed) {
+    const strictPronunciationResolved = pronunciationPlan.ok === true
+      && Number(pronunciationPlan.counts?.unresolved || 0) === 0;
+    const pronunciationApplicationPassed = strictPronunciationResolved
+      && (!pronunciationPlan.requiresMeloTts || pronunciationLoaderActive);
+    if (!pronunciationApplicationPassed && pronunciationPlan.allowUnresolvedPronunciationsUsed !== true) {
       throw new Error(`pronunciation plan was not applied to synthesis: backend=${selected.backend}, entries=${loadedPronunciationEntries}, loadedHash=${loadedPronunciationHash}, expectedHash=${pronunciationPlan.effectivePronunciationHash}`);
     }
     writeJson(join(out, "workflow", "pronunciation-application-verification.json"), {
       schemaVersion: 1,
-      status: "passed",
+      status: pronunciationApplicationPassed ? "passed" : "degraded-unresolved",
       preflight: pronunciationPlan.reportRelativePath,
       effectivePlan: pronunciationPlan.effectiveLexiconRelativePath,
       narrationHash: pronunciationPlan.narrationHash,
@@ -26946,6 +27726,7 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
         : "backend default; no controlled polyphonic occurrence was required",
       wholeDocumentAnalyzedBeforeTts: true,
       unresolvedCount: pronunciationPlan.counts?.unresolved || 0,
+      allowUnresolvedPronunciationsUsed: pronunciationPlan.allowUnresolvedPronunciationsUsed === true,
       matchedPhraseCount: pronunciationPlan.counts?.phraseMatches || 0,
       meloFrontendValidation: pronunciationPlan.meloFrontendValidation || [],
       annotationsAreAuditOnly: true,
@@ -27056,8 +27837,12 @@ async function generateAudio({ out, narration, duration, voiceBackend = "auto", 
       minMaxDb: MIN_AUDIBLE_MAX_DB,
     },
     dynamicsProcessing: {
-      filterChain: `voice assets: ${DELIVERY_AUDIO_FORMAT_FILTER}; final MP4: ${FINAL_AUDIO_DELIVERY_FILTER}`,
-      purpose: "keep local TTS voice-only audio clean until the single final delivery normalization pass",
+      segmentFilterChain: SEGMENT_SPEECH_NORMALIZE_FILTER,
+      finalFilterChain: FINAL_AUDIO_DELIVERY_FILTER,
+      segmentLoudnessArtifact: selected.segmentNormalization ? "workflow/speech-segment-loudness.json" : null,
+      beforeSegmentSpreadDb: selected.segmentNormalization?.evidence?.beforeSpreadDb ?? null,
+      afterSegmentSpreadDb: selected.segmentNormalization?.evidence?.afterSpreadDb ?? null,
+      purpose: "normalize every generated speech segment before concat, then apply restrained final compression and delivery loudness normalization",
     },
     deliveryAudioFormat: {
       sampleRateHz: DELIVERY_AUDIO_SAMPLE_RATE,
@@ -27088,6 +27873,19 @@ function parseVolumeDetect(output) {
   return {
     meanVolume: mean ? Number(mean[1]) : null,
     maxVolume: max ? Number(max[1]) : null,
+  };
+}
+
+function parseLoudnormAnalysis(output = "") {
+  const value = (name) => {
+    const matches = [...String(output).matchAll(new RegExp(`"${name}"\\s*:\\s*"?(-?\\d+(?:\\.\\d+)?)`, "g"))];
+    return matches.length ? Number(matches.at(-1)[1]) : null;
+  };
+  return {
+    integratedLufs: value("input_i"),
+    truePeakDb: value("input_tp"),
+    loudnessRangeLu: value("input_lra"),
+    thresholdLufs: value("input_thresh"),
   };
 }
 
@@ -27204,13 +28002,33 @@ function personalIpNativeFinalRouteState(designPlan = {}) {
 }
 
 function personalIpSemanticLayerRouteSelected(designPlan = {}) {
-  const route = personalIpNativeFinalRouteState(designPlan);
-  const animation = String(designPlan.ipDiagramCreatorPlan?.userChoices?.addHandDrawnImageAnimation || "off").trim().toLowerCase();
-  return route.requiredByPersonalIpRoute && animation !== "off";
+  return designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan?.selectedNow === true;
+}
+
+function personalIpSemanticLayerRouteState(designPlan = {}) {
+  const semanticPlan = designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan || {};
+  return {
+    requiredByPersonalIpAnimationRoute: semanticPlan.requiredByPersonalIpAnimationRoute === true,
+    requestedNow: semanticPlan.requestedNow === true,
+    selectedNow: semanticPlan.selectedNow === true,
+    status: semanticPlan.status || "not-applicable",
+  };
+}
+
+function assertPersonalIpSemanticLayerNotBlocked({ designPlan = {}, stage = "render" } = {}) {
+  const route = personalIpSemanticLayerRouteState(designPlan);
+  if (!route.requiredByPersonalIpAnimationRoute) return;
+  if (!route.requestedNow || !route.selectedNow) {
+    throw new Error([
+      `Personal-IP semantic-layer route blocked at ${stage}.`,
+      `Current semantic-layer status: ${route.status}.`,
+      "Personal-IP + animation must not downgrade to the default HTML renderer or the plain personal-IP native route.",
+      "Provide a verified Image2/native master and fixed persona, then run the isolated semantic-layer renderer.",
+    ].join(" "));
+  }
 }
 
 function assertPersonalIpNativeFinalNotBlocked({ designPlan = {}, stage = "render" } = {}) {
-  if (personalIpSemanticLayerRouteSelected(designPlan)) return;
   const route = personalIpNativeFinalRouteState(designPlan);
   if (!route.requiredByPersonalIpRoute) return;
   if (!route.requestedNow || !route.selectedNow) {
@@ -27225,6 +28043,15 @@ function assertPersonalIpNativeFinalNotBlocked({ designPlan = {}, stage = "rende
 }
 
 function assertHtmlRendererAllowedForDesignPlan({ designPlan = {}, stage = "html-video-render" } = {}) {
+  const semanticRoute = personalIpSemanticLayerRouteState(designPlan);
+  if (semanticRoute.requiredByPersonalIpAnimationRoute) {
+    throw new Error([
+      `HTML renderer refused at ${stage}.`,
+      "Personal-IP + animation is isolated from the default HTML renderer.",
+      `Current semantic-layer status: ${semanticRoute.status}.`,
+      "Use the personal-ip-semantic-layers-svg-html-video renderer after master/persona validation.",
+    ].join(" "));
+  }
   const route = personalIpNativeFinalRouteState(designPlan);
   if (route.requiredByPersonalIpRoute) {
     throw new Error([
@@ -27235,11 +28062,140 @@ function assertHtmlRendererAllowedForDesignPlan({ designPlan = {}, stage = "html
   }
 }
 
+function fixedPersonaManifestForDesignPlan(designPlan = {}) {
+  const registry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry || {};
+  return registry.existingPersona?.manifestPath
+    || registry.library?.manifestPath
+    || registry.manifestPath
+    || registry.fixedPersona?.manifestPath
+    || "";
+}
+
+function preparePersonalIpNativePageContinuation({ out, brief = {}, designPlan = {}, frames = [], duration = 0 }) {
+  const existing = readJsonIfExists(join(out, "workflow", "context-image2-persona-page-requests.json"));
+  if (Array.isArray(existing?.requests) && existing.requests.length > 0) return existing;
+  const planner = join(SKILL_ROOT, "scripts", "plan-vertical-personal-ip-image.mjs");
+  if (!existsSync(planner)) throw new Error(`Personal-IP native page planner is missing: ${planner}`);
+  const canvas = canvasForBrief(brief);
+  const aspect = canvas.height > canvas.width ? "9:16" : "16:9";
+  const contentFile = join(out, "script", "narration-spoken.txt");
+  if (!existsSync(contentFile)) throw new Error(`Personal-IP native page continuation requires ${contentFile}`);
+  const personaManifest = fixedPersonaManifestForDesignPlan(designPlan);
+  const args = [
+    planner,
+    "--out", out,
+    "--aspect", aspect,
+    "--title", brief.title || "个人IP图解视频",
+    "--content-file", contentFile,
+    "--core-idea", brief.objective || brief.title || "用个人 IP 图解讲清核心方法",
+    "--required-text", [brief.title, ...(frames[0]?.headline || [])].filter(Boolean).join(";") || "核心观点;方法;行动",
+    "--agent-jobs", "拆解方法;标记风险;递交结果",
+    "--duration-seconds", String(Math.max(1, Number(duration || brief.durationSeconds || 1))),
+    "--subtitle-cue-count", String(Math.max(1, frames.length)),
+    "--min-image-count", "4",
+  ];
+  if (personaManifest) args.push("--persona-manifest", personaManifest);
+  const gender = normalizeVoiceGender(brief.audioGender || brief.voiceGender || "");
+  if (gender) args.push("--audio-gender", gender);
+  run(process.execPath, args, {
+    cwd: ROOT,
+    category: "plan-personal-ip-native-page-continuation",
+    timeout: 120_000,
+  });
+  const manifest = readJsonIfExists(join(out, "workflow", "context-image2-persona-page-requests.json"));
+  if (!Array.isArray(manifest?.requests) || manifest.requests.length === 0) {
+    throw new Error("Personal-IP native page planner did not produce workflow/context-image2-persona-page-requests.json with pending jobs.");
+  }
+  return manifest;
+}
+
+function prepareCoverImage2DispatchContinuation(out) {
+  const requestManifest = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  if (!Array.isArray(requestManifest.requests) || requestManifest.requests.length === 0) return null;
+  const coverSkillRoot = resolveStandaloneCoverSkillRoot({ mainSkillRoot: SKILL_ROOT });
+  const planner = join(coverSkillRoot, "scripts", "prepare-cover-image2-dispatch.mjs");
+  if (!existsSync(planner)) throw new Error(`Standalone cover dispatch planner is missing: ${planner}`);
+  run(process.execPath, [planner, "--out", out], {
+    cwd: ROOT,
+    category: "prepare-cover-image2-dispatch",
+    timeout: 120_000,
+  });
+  return readJsonIfExists(join(out, "workflow", "cover-image2-dispatch-plan.json"));
+}
+
+function writeFullAutoContinuationManifest({ out, brief = {}, designPlan = {}, generationMode, reason, videoRendered = false }) {
+  if (generationMode !== "full-auto") return null;
+  const coverRequests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+  const coverDispatch = readJsonIfExists(join(out, "workflow", "cover-image2-dispatch-plan.json")) || {};
+  const nativeRequests = readJsonIfExists(join(out, "workflow", "context-image2-persona-page-requests.json")) || {};
+  const pendingCoverJobs = Array.isArray(coverDispatch.jobs)
+    ? coverDispatch.jobs.length
+    : Number(coverRequests.pendingRequestCount || 0);
+  const pendingNativeJobs = Array.isArray(nativeRequests.requests)
+    ? nativeRequests.requests.filter((request) => request.status !== "completed").length
+    : 0;
+  const lanes = [
+    ...(pendingNativeJobs > 0 ? [{
+      id: "personal-ip-native-pages",
+      status: "dispatch-required",
+      pendingJobCount: pendingNativeJobs,
+      requestManifest: "workflow/context-image2-persona-page-requests.json",
+      action: "Invoke built-in image_gen for every request with the same fixed main-anchor context, record every request-bound result, ingest the complete unique page set, then rerun this workflow without changing the presentation route.",
+    }] : []),
+    ...(pendingCoverJobs > 0 ? [{
+      id: "platform-covers",
+      status: "dispatch-required",
+      pendingJobCount: pendingCoverJobs,
+      requestManifest: "workflow/context-image2-cover-requests.json",
+      dispatchPlan: "workflow/cover-image2-dispatch-plan.json",
+      action: "Run every cover dispatch job through built-in image_gen, record and inspect each target, then use the standalone locked batch ingest before final QC.",
+    }] : []),
+  ];
+  const manifest = {
+    schemaVersion: 1,
+    stage: "full-auto-internal-continuation",
+    status: lanes.length ? "agent-action-required" : "ready-to-resume",
+    fullAutoMustContinue: lanes.length > 0,
+    terminalForUser: false,
+    userActionRequired: false,
+    agentActionRequired: lanes.length > 0,
+    reason,
+    title: brief.title || null,
+    outputDirectory: out,
+    videoRendered,
+    lockedPresentationRoute: readJsonIfExists(join(out, "workflow", "presentation-route-lock.json"))?.resolvedRouteId || null,
+    routeMutationForbidden: true,
+    pendingLanes: lanes,
+    resumeCommand: `node ${process.argv.slice(1).join(" ")}`,
+    completionRule: "Do not return this continuation artifact as the final user result. Execute every pending built-in image_gen job, ingest canonical evidence, rerun render/QC, and stop only when the requested MP4, coversVerified:true, and logs/qc.json.pass:true all exist.",
+    prohibitedRecovery: [
+      "rewrite the brief to another presentation mode",
+      "switch plain personal IP to semantic layers",
+      "replace native personal-IP pages with HTML/SVG imitation",
+      "treat image2-dryrun prompts or review covers as generated final assets",
+    ],
+    artifacts: {
+      presentationRouteLock: "workflow/presentation-route-lock.json",
+      personalIpPlan: designPlan.ipDiagramCreatorPlan ? "workflow/ip-diagram-creator-plan.json" : null,
+      nativePageRequests: pendingNativeJobs > 0 ? "workflow/context-image2-persona-page-requests.json" : null,
+      coverRequests: "workflow/context-image2-cover-requests.json",
+      coverDispatchPlan: pendingCoverJobs > 0 ? "workflow/cover-image2-dispatch-plan.json" : null,
+    },
+  };
+  writeJson(join(out, "workflow", "full-auto-continuation.json"), manifest);
+  return manifest;
+}
+
 function writePersonalIpNativeFinalBlockedManifest({ out, brief = {}, designPlan = {}, generationMode, imageSource, stage = "pre-render" }) {
   const nativeFinalPlan = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan || {};
   const manifest = {
     ok: false,
     blocked: "personal-ip-native-final-page-provenance-required",
+    recoverable: generationMode === "full-auto",
+    terminalForRequestedMode: generationMode !== "full-auto",
+    fullAutoMustContinue: generationMode === "full-auto",
+    continuationManifest: generationMode === "full-auto" ? "workflow/full-auto-continuation.json" : null,
+    userActionRequired: generationMode !== "full-auto",
     stage,
     generationMode,
     outputDirectory: out,
@@ -27250,7 +28206,9 @@ function writePersonalIpNativeFinalBlockedManifest({ out, brief = {}, designPlan
     reason: "Personal-IP video requests must use verified haloshin/ip-diagram-creator native page images as the final visual engine. Integrated HTML/SVG/CSS imitation is disabled.",
     nativeFinalStatus: nativeFinalPlan.status || "not-applicable",
     nativeFinalInputEvidence: nativeFinalPlan.inputEvidence || null,
-    nextStep: "Generate or ingest native page images with image_gen/source_generated_image provenance, then assemble with scripts/render-ip-diagram-native-pages.mjs using the framework-generated audio and subtitles.",
+    nextStep: generationMode === "full-auto"
+      ? "Automatically execute every planned Context Image2/image_gen native-page request with the fixed persona context, ingest the complete provenance-bound page set, then resume native render, QC, and delivery without returning this manifest as the task result."
+      : "Generate or ingest native page images with image_gen/source_generated_image provenance, then assemble with scripts/render-ip-diagram-native-pages.mjs using the framework-generated audio and subtitles.",
     coverLanePolicy: {
       independentFromVideoLane: true,
       coreCoverLogicRequiredEvenWhenVideoBlocked: true,
@@ -27281,7 +28239,42 @@ function writePersonalIpNativeFinalBlockedManifest({ out, brief = {}, designPlan
     },
   };
   writeJson(join(out, "workflow", "personal-ip-native-final-blocked.json"), manifest);
-  writeJson(join(out, "delivery-manifest.json"), manifest);
+  writeJson(join(out, "review-manifest.json"), { ...manifest, deliveryClass: "blocked-before-render", promotedToFinalDelivery: false });
+  rmSync(join(out, "delivery-manifest.json"), { force: true });
+}
+
+function writePersonalIpSemanticLayerBlockedManifest({ out, brief = {}, designPlan = {}, generationMode, imageSource, stage = "pre-render" }) {
+  const semanticPlan = designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan || {};
+  const manifest = {
+    ok: false,
+    blocked: "personal-ip-semantic-layer-master-required",
+    stage,
+    generationMode,
+    outputDirectory: out,
+    renderer: "none-blocked-personal-ip-semantic-layers",
+    imageSource,
+    designTemplate: designPlan.templateKit?.id || null,
+    title: brief.title || null,
+    reason: "Personal-IP + animation requires a verified Image2/ip-diagram-creator master, fixed persona, semantic decomposition, and exclusive layer ownership before SVG/HTML composition.",
+    semanticLayerStatus: semanticPlan.status || "not-applicable",
+    routeIsolation: {
+      scope: "personal-ip-animation-only",
+      fallbackAllowed: false,
+      forbiddenFallbacks: ["default-html-animation", "plain-personal-ip-native-pages", "whiteboard", "ffmpeg-cards"],
+    },
+    nextStep: "Generate or ingest the verified personal-IP master, build the exclusive semantic ownership spec, then rerun with personalIpAnimation=semantic-layers.",
+    files: {
+      brief: "brief.json",
+      runtimeConfig: "workflow/runtime-config.json",
+      designPlan: "workflow/design-plan.json",
+      ipDiagramCreatorPlan: "workflow/ip-diagram-creator-plan.json",
+      ipDiagramCreatorNativeJobs: "workflow/ip-diagram-creator-native-jobs.json",
+      commands: "workflow/commands.json",
+    },
+  };
+  writeJson(join(out, "workflow", "personal-ip-semantic-layer-blocked.json"), manifest);
+  writeJson(join(out, "review-manifest.json"), { ...manifest, deliveryClass: "blocked-before-render", promotedToFinalDelivery: false });
+  rmSync(join(out, "delivery-manifest.json"), { force: true });
 }
 
 function renderWithIpDiagramNativePages({ out, brief = {}, audio, designPlan }) {
@@ -27302,7 +28295,18 @@ function renderWithIpDiagramNativePages({ out, brief = {}, audio, designPlan }) 
   const script = join(SKILL_ROOT, "scripts", "render-ip-diagram-native-pages.mjs");
   const canvas = canvasForBrief(brief);
   const userChoices = designPlan.ipDiagramCreatorPlan?.userChoices || {};
-  run(process.execPath, [
+  const requestedNativeAnimation = String(userChoices.addHandDrawnImageAnimation || "subtle").trim().toLowerCase();
+  // The planner's semantic-layers value describes the SVG/HTML contract. The
+  // native renderer accepts only its concrete foreground animation modes.
+  // Keep the semantic-layer contract and lower it to the renderer's subtle
+  // page-local motion mode instead of leaking an invalid planner enum into
+  // render-ip-diagram-native-pages.mjs.
+  const nativeHandDrawnAnimation = requestedNativeAnimation === "off"
+    ? "off"
+    : requestedNativeAnimation === "draw-reveal"
+      ? "draw-reveal"
+      : "subtle";
+  const rendererArgs = [
     script,
     "--pages-dir", pagesDir,
     "--audio", audioPath,
@@ -27315,9 +28319,11 @@ function renderWithIpDiagramNativePages({ out, brief = {}, audio, designPlan }) 
     "--width", String(canvas.width),
     "--height", String(canvas.height),
     "--personal-ip", userChoices.makePersonalIp || "auto",
-    "--hand-drawn-animation", userChoices.addHandDrawnImageAnimation || "subtle",
-    "--allow-incomplete-native-final", "true",
-  ], { cwd: ROOT, category: "render-native-ip-diagram-pages", timeout: 1_800_000 });
+    "--hand-drawn-animation", nativeHandDrawnAnimation,
+    "--motion-sample-fps", String(brief.nativeMotionSampleFps || 2),
+  ];
+  if (brief.allowIncompleteNativeFinal === true || brief.allowDegradedRenderer === true) rendererArgs.push("--allow-incomplete-native-final", "true");
+  run(process.execPath, rendererArgs, { cwd: ROOT, category: "render-native-ip-diagram-pages", timeout: 1_800_000 });
   const finalPath = join(out, "renders", "final.mp4");
   if (!existsSync(finalPath)) throw new Error(`Native page renderer did not create expected final MP4: ${finalPath}`);
   return finalPath;
@@ -27340,35 +28346,151 @@ function renderWithPersonalIpSemanticLayers({ out, brief = {}, frames = [], narr
   const persona = registry.existingPersona?.assets?.find((asset) => asset.kind === "mainAnchor")?.absolutePath
     || registry.genericFallback?.mainAnchorPath;
   if (!persona || !existsSync(persona)) throw new Error("Personal-IP semantic-layer route requires a verified fixed persona mainAnchor.");
+  const masterCandidate = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.inputEvidence?.selectedCandidate || {};
+  const masterPagesDir = masterCandidate.pagesDir || masterCandidate.resolvedPath;
+  const masterReference = masterPagesDir && existsSync(masterPagesDir)
+    ? readdirSync(masterPagesDir)
+      .filter((name) => /\.(?:png|jpe?g|webp)$/i.test(name))
+      .sort((a, b) => a.localeCompare(b, "zh-CN", { numeric: true }))
+      .map((name) => join(masterPagesDir, name))[0]
+    : null;
+  if (!masterReference || !existsSync(masterReference)) {
+    throw new Error("Personal-IP semantic-layer route requires at least one verified Image2/native master reference image.");
+  }
+  const masterAnalysisPath = [
+    brief.personalIpMasterVisualAnalysis,
+    masterCandidate.masterVisualAnalysisPath,
+    masterPagesDir ? join(masterPagesDir, "workflow", "personal-ip-master-visual-analysis.json") : null,
+    masterCandidate.manifestPath ? join(dirname(masterCandidate.manifestPath), "personal-ip-master-visual-analysis.json") : null,
+  ].filter(Boolean).map((value) => resolve(value)).find((value) => existsSync(value));
+  if (!masterAnalysisPath) {
+    throw new Error("Personal-IP semantic-layer route requires a passed human/vision master analysis at workflow/personal-ip-master-visual-analysis.json; hash-only master binding is not sufficient.");
+  }
+  const masterVisualAnalysis = readJsonIfExists(masterAnalysisPath);
+  writeJson(join(out, "workflow", "personal-ip-master-visual-analysis.json"), masterVisualAnalysis);
   const semanticPackage = join(out, "personal-ip-semantic-package");
   const targetCanvas = canvasForBrief(brief);
   const specPath = join(out, "workflow", "personal-ip-semantic-layer-spec.json");
   const contentFrames = frames.filter((frame) => frame && (frame.label || frame.body || frame.subtitle));
-  const hookFrames = contentFrames.slice(0, 5);
-  const routeFrames = (contentFrames.length > 5 ? contentFrames.slice(5, 9) : contentFrames.slice(0, 4));
   const icons = ["?", "!", "△", "♥", "◷"];
   const routeIcons = ["◴", "⌁", "☎", "▣"];
-  const short = (value, max) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+  const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
+  const screenText = (value, max = 18) => {
+    const text = normalizeText(value);
+    if (text.length <= max) return text;
+    const phrase = text.split(/[。！？；：|｜\n]/).map((item) => item.trim()).find((item) => item.length >= 2) || text;
+    if (phrase.length <= max) return phrase;
+    const commaPhrase = phrase.split(/[，、,]/).map((item) => item.trim()).find((item) => item.length >= 2) || phrase;
+    return commaPhrase.length <= max ? commaPhrase : commaPhrase.slice(0, max);
+  };
+  const pages = Array.isArray(designPlan.pages) ? designPlan.pages : [];
+  const semanticScenePlan = buildPersonalIpSemanticScenePlan({ brief, pages, frames: contentFrames.length === pages.length ? contentFrames : frames });
+  writeJson(join(out, "workflow", "personal-ip-semantic-scene-count-plan.json"), semanticScenePlan);
+  const pageById = new Map(pages.map((page) => [String(page.id), page]));
+  const sourceSceneById = new Map((Array.isArray(brief.scenes) ? brief.scenes : []).map((scene) => [String(scene.id), scene]));
+  const scenes = semanticScenePlan.scenes.map((expandedScene, index) => {
+    const page = pageById.get(expandedScene.sourcePageId) || {};
+    const sourceScene = sourceSceneById.get(expandedScene.sourcePageId) || {};
+    const units = [...new Set([
+      sourceScene.body,
+      sourceScene.subtitle,
+      page.frame?.body,
+      page.frame?.subtitle,
+      ...expandedScene.methodologyVisualUnits.map((unit) => unit.text),
+      ...expandedScene.semanticUnits,
+      page.ipDiagramPageCard?.communicationTask,
+      page.ipDiagramPageCard?.mainVisual,
+    ].filter(Boolean).flatMap((value) => normalizeText(value).split(/[。！？；：|｜→\n]/)).map((value) => value.trim()).filter((value) => value.length >= 2).map((value) => screenText(value, 16)))].slice(0, 9);
+    const splitAt = Math.max(1, Math.min(5, Math.ceil(units.length / 2)));
+    const hookUnits = units.slice(0, splitAt);
+    const routeUnits = units.slice(splitAt, splitAt + 4);
+    const cueTexts = expandedScene.captions.map((cue) => screenText(cue, 32)).filter(Boolean);
+    const titleUnit = expandedScene.semanticUnits[0] || expandedScene.sourceLabel || expandedScene.sourceHeadline[0] || expandedScene.sourcePageId;
+    const titleSource = expandedScene.semanticUnits[0]
+      ? `workflow/personal-ip-semantic-scene-count-plan.json#scenes/${index}/semanticUnits/0`
+      : expandedScene.sourceLabel
+        ? `workflow/personal-ip-semantic-scene-count-plan.json#scenes/${index}/sourceLabel`
+        : expandedScene.sourceHeadline[0]
+          ? `workflow/personal-ip-semantic-scene-count-plan.json#scenes/${index}/sourceHeadline/0`
+          : `workflow/personal-ip-semantic-scene-count-plan.json#scenes/${index}/sourcePageId`;
+    const subtitleUnit = expandedScene.semanticUnits[1] || expandedScene.sourceSubtitle || expandedScene.semanticUnits[0] || "";
+    return {
+      id: expandedScene.id,
+      order: index + 1,
+      sourcePageId: expandedScene.sourcePageId,
+      sourcePageOrder: expandedScene.sourcePageOrder,
+      beatIndex: expandedScene.beatIndex,
+      beatCount: expandedScene.beatCount,
+      spokenText: expandedScene.spokenText || "",
+      semanticUnits: expandedScene.semanticUnits || [],
+      contentKind: expandedScene.contentKind,
+      layoutVariant: expandedScene.layoutVariant,
+      motionVerb: expandedScene.motionVerb,
+      visualMetaphor: expandedScene.visualMetaphor,
+      classificationEvidence: expandedScene.classificationEvidence || null,
+      methodologyText: expandedScene.methodologyText || "",
+      methodologyVisualUnits: expandedScene.methodologyVisualUnits || [],
+      requiredVisualUnitIds: (expandedScene.methodologyVisualUnits || []).map((unit) => unit.id),
+      durationSeconds: Number(expandedScene.durationSeconds || 0),
+      title: screenText(titleUnit, 16),
+      titleSource,
+      subtitle: screenText(subtitleUnit, 32),
+      moduleLabel: screenText(ipDiagramPageTypeLabel(page.ipDiagramPageCard?.pageType) || brief.seriesLabel || "小说实践", 12),
+      hookSectionTitle: index === 0 ? "先看核心矛盾" : "这一页讲什么",
+      routeSectionTitle: index === semanticScenePlan.scenes.length - 1 ? "落到行动" : "方法如何推进",
+      hookItems: hookUnits.map((value, itemIndex) => ({ icon: icons[itemIndex] || String(itemIndex + 1), label: screenText(value, 6), body: screenText(value, 12) })),
+      routeItems: (routeUnits.length ? routeUnits : hookUnits.slice(0, 4)).map((value, itemIndex) => ({ icon: routeIcons[itemIndex] || "•", label: screenText(value, 7), body: screenText(value, 16) })),
+      takeaway: screenText(index === semanticScenePlan.scenes.length - 1 ? brief.takeaway || expandedScene.sourceSubtitle || expandedScene.spokenText : expandedScene.sourceSubtitle || subtitleUnit || titleUnit, 30),
+      captions: cueTexts.length ? cueTexts : [screenText(expandedScene.spokenText || subtitleUnit || titleUnit, 32)],
+    };
+  });
+  if (!scenes.length) throw new Error("Personal-IP semantic-layer route requires at least one planned content scene.");
   writeJson(specPath, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     title: brief.title || "个人 IP 方法论",
-    eyebrow: "PERSONAL IP · SEMANTIC MOTION",
-    moduleLabel: "个人 IP · 真实语义分层",
-    hookSectionTitle: brief.semanticLayerSectionTitle || "核心内容分层",
-    routeSectionTitle: brief.semanticRouteSectionTitle || "动画呈现路径",
-    subtitle: short(brief.objective || narration, 38),
-    hookItems: hookFrames.map((frame, index) => ({
-      icon: icons[index] || "•",
-      label: short(frame.label || frame.headline?.[0] || `要素 ${index + 1}`, 6),
-      body: short(frame.body || frame.subtitle, 9),
-    })),
-    routeItems: routeFrames.map((frame, index) => ({
-      icon: routeIcons[index] || "•",
-      label: short(frame.label || frame.headline?.[0] || `步骤 ${index + 1}`, 6),
-      body: short(frame.body || frame.subtitle, 16),
-    })),
-    takeaway: short(brief.takeaway || contentFrames.at(-1)?.subtitle || narration, 26),
-    captions: contentFrames.slice(0, 4).map((frame) => short(frame.subtitle || frame.body || frame.label, 32)),
+    eyebrow: screenText(brief.seriesLabel || "小说实践 · 人物塑造", 20),
+    expectedSceneCount: scenes.length,
+    expectedSourcePageCount: semanticScenePlan.sourcePageCount,
+    sourcePageIds: semanticScenePlan.sourcePageIds,
+    semanticSceneCountPlan: {
+      artifact: "workflow/personal-ip-semantic-scene-count-plan.json",
+      automaticTarget: semanticScenePlan.automaticTarget,
+      requestedMaximum: semanticScenePlan.requestedMaximum,
+      maximumPolicy: semanticScenePlan.maximumPolicy,
+      explicitMaximumUnderAutomatic: semanticScenePlan.explicitMaximumUnderAutomatic,
+      explicitMaximumRaisedToAutomatic: semanticScenePlan.explicitMaximumRaisedToAutomatic,
+      resolvedSceneCount: semanticScenePlan.resolvedSceneCount,
+      growthRequired: semanticScenePlan.growthRequired,
+      cappedByMaximum: semanticScenePlan.cappedByMaximum,
+      growthDrivers: semanticScenePlan.growthDrivers,
+    },
+    longFormSingleBoardForbidden: true,
+    displayedTextInventory: [
+      ...scenes.map((scene) => ({
+        sceneId: scene.id,
+        field: "scene.title",
+        text: scene.title,
+        source: scene.titleSource,
+      })),
+      ...(Array.isArray(brief.semanticLayerExactText) ? brief.semanticLayerExactText : []).map((text, index) => ({
+        sceneId: null,
+        field: "brief.semanticLayerExactText",
+        text,
+        source: `brief.semanticLayerExactText[${index}]`,
+      })),
+    ],
+    masterVisualAnalysis: {
+      ...masterVisualAnalysis,
+      artifact: masterAnalysisPath,
+    },
+    masterReference: {
+      source: masterReference,
+      provenanceManifest: masterCandidate.manifestPath || null,
+      role: "personal-ip-art-direction-and-layout-reference",
+      finalContentOwner: false,
+    },
+    maximumStaticHoldSeconds: 4,
+    scenes,
   });
   const exporter = join(SKILL_ROOT, "scripts", "export-personal-ip-semantic-layered-video.mjs");
   run(process.execPath, [
@@ -27379,15 +28501,19 @@ function renderWithPersonalIpSemanticLayers({ out, brief = {}, frames = [], narr
     "--title", brief.title || "个人 IP 方法论",
     "--spec", specPath,
     "--aspect", targetCanvas.aspect,
+    "--master-reference", masterReference,
   ], { cwd: ROOT, category: "render-personal-ip-semantic-layers", timeout: 1_800_000 });
   const packageVideo = join(semanticPackage, "renders", "final.mp4");
   if (!existsSync(packageVideo)) throw new Error(`Semantic-layer renderer did not create expected final MP4: ${packageVideo}`);
   mkdirSync(join(out, "renders"), { recursive: true });
   copyFileSync(packageVideo, join(out, "renders", "final.mp4"));
+  copyDirectoryContents(join(semanticPackage, "assets"), join(out, "assets"));
   copyDirectoryContents(join(semanticPackage, "layers"), join(out, "layers"));
   copyFileSync(join(semanticPackage, "personal-ip-layered.svg"), join(out, "personal-ip-layered.svg"));
   copyFileSync(join(semanticPackage, "index.html"), join(out, "personal-ip-layered.html"));
   copyFileSync(join(semanticPackage, "workflow", "personal-ip-semantic-layer-manifest.json"), join(out, "workflow", "personal-ip-semantic-layer-manifest.json"));
+  copyFileSync(join(semanticPackage, "workflow", "personal-ip-semantic-decomposition.json"), join(out, "workflow", "personal-ip-semantic-decomposition.json"));
+  copyFileSync(join(semanticPackage, "workflow", "personal-ip-layer-ownership-audit.json"), join(out, "workflow", "personal-ip-layer-ownership-audit.json"));
   return join(out, "renders", "final.mp4");
 }
 
@@ -27614,7 +28740,7 @@ function normalizeFinalAudio({ out, finalMp4, mode = DEFAULT_FINAL_AUDIO_MODE })
     target: {
       approximateMeanDb: -15,
       truePeakDb: -1.5,
-      lra: 8,
+      lra: 5,
     },
     deliveryAudioFormat: {
       sampleRateHz: DELIVERY_AUDIO_SAMPLE_RATE,
@@ -27638,6 +28764,23 @@ function normalizeFinalAudio({ out, finalMp4, mode = DEFAULT_FINAL_AUDIO_MODE })
 
 function runFrameLayoutOverlapAudit({ out, renderer }) {
   const artifactPath = join(out, "workflow", "frame-layout-overlap-audit.json");
+  if (renderer === "ip-diagram-native-final-pages") {
+    const nativeAudit = readJsonIfExists(artifactPath);
+    if (nativeAudit?.schemaVersion === 1) {
+      return nativeAudit;
+    }
+    const unavailable = {
+      schemaVersion: 1,
+      stage: "native-final-caption-safe-area-pixel-audit",
+      status: "unavailable",
+      reason: "Native-final renderer did not provide executable caption-safe pixel evidence.",
+      checkedFrames: 0,
+      collisionCount: 0,
+      collisions: [],
+    };
+    writeJson(artifactPath, unavailable);
+    return unavailable;
+  }
   if (renderer !== "html-video") {
     const skipped = {
       schemaVersion: 1,
@@ -28208,6 +29351,10 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     || {};
   const voiceManifest = readJsonIfExists(join(out, "workflow", "voice-subtitle-manifest.json")) || {};
   const syncPlan = readJsonIfExists(join(out, "workflow", "sync-timecode-plan.json")) || {};
+  const pronunciationPreflight = readJsonIfExists(join(out, "workflow", "chinese-pronunciation-preflight.json")) || {};
+  const effectivePronunciationPlan = readJsonIfExists(join(out, "workflow", "effective-pronunciation-plan.json")) || {};
+  const pronunciationApplicationVerification = readJsonIfExists(join(out, "workflow", "pronunciation-application-verification.json")) || {};
+  const providedAudioPronunciationLineage = readJsonIfExists(join(out, "workflow", "provided-audio-pronunciation-lineage.json")) || {};
   const designPlan = readJsonIfExists(join(out, "workflow", "design-plan.json")) || {};
   const designPlatformPlanner = readJsonIfExists(join(out, "workflow", "design-platform-planner.json")) || {};
   const ipDiagramCreatorPlan = readJsonIfExists(join(out, "workflow", "ip-diagram-creator-plan.json")) || {};
@@ -28254,8 +29401,12 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const galaceanEffectsPlan = readJsonIfExists(join(out, "workflow", "galacean-effects-plan.json")) || {};
   const coverImage2Qc = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
   const coverSizeSelection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+  const speechSegmentLoudness = readJsonIfExists(join(out, "workflow", "speech-segment-loudness.json")) || {};
+  const finalAudioNormalization = readJsonIfExists(join(out, "workflow", "final-audio-normalization.json")) || {};
   const imageSource = brief.imageSource || designPlan.imageSource || visualAssetManifest.imageSource || imageGenerationStrategy.selectedImageSource || "image2-dryrun";
   const contentCoverage = readJsonIfExists(join(out, "workflow", "content-coverage.json")) || {};
+  const methodologyVisualCoverage = readJsonIfExists(join(out, "workflow", "methodology-visual-coverage.json")) || {};
+  const adaptiveContentScenePlan = readJsonIfExists(join(out, "workflow", "adaptive-content-scene-plan.json")) || {};
   const frameLayoutOverlapAudit = runFrameLayoutOverlapAudit({ out, renderer });
   const coverIntroSeconds = Number(voiceManifest.timing?.coverIntroSeconds || renderManifest.openingCoverSeconds || 0);
   const coverTimingMode = voiceManifest.timing?.coverTimingMode
@@ -28292,7 +29443,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     Math.min(Math.max(3, duration - 3), Math.floor(duration / 2) + 3),
     Math.max(4, duration - 3),
   ];
-  const [black, volume, silence] = await runParallel([
+  const [black, volume, silence, dynamics] = await runParallel([
     () => runAsync("ffmpeg", [
       "-v", "info",
       "-i", finalMp4,
@@ -28317,6 +29468,15 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       "-f", "null",
       "-",
     ], { cwd: out, check: false, parallelGroup: "qc-media-checks" }),
+    () => runAsync("ffmpeg", [
+      "-hide_banner",
+      "-nostats",
+      "-i", finalMp4,
+      "-vn",
+      "-af", "loudnorm=I=-15:TP=-1.5:LRA=5:print_format=json",
+      "-f", "null",
+      "-",
+    ], { cwd: out, check: false, parallelGroup: "qc-media-checks" }),
     ...shotTimes.map((time, index) => () => runAsync("ffmpeg", [
       "-y",
       "-ss", String(time),
@@ -28329,6 +29489,16 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const volumeLog = `${volume.stderr || ""}\n${volume.stdout || ""}`;
   write(join(logs, "volumedetect.log"), volumeLog);
   const loudness = parseVolumeDetect(volumeLog);
+  const dynamicsLog = `${dynamics.stderr || ""}\n${dynamics.stdout || ""}`;
+  write(join(logs, "loudness-dynamics.log"), dynamicsLog);
+  const loudnessDynamics = parseLoudnormAnalysis(dynamicsLog);
+  writeJson(join(out, "workflow", "loudness-dynamics-audit.json"), {
+    schemaVersion: 1,
+    stage: "final-loudness-dynamics-audit",
+    ...loudnessDynamics,
+    maximumLoudnessRangeLu: 5.5,
+    pass: Number.isFinite(loudnessDynamics.loudnessRangeLu) && loudnessDynamics.loudnessRangeLu <= 5.5,
+  });
   const silenceLog = `${silence.stderr || ""}\n${silence.stdout || ""}`;
   write(join(logs, "silencedetect.log"), silenceLog);
   const silenceRanges = parseSilenceDetect(silenceLog, duration);
@@ -28347,6 +29517,11 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const ipDiagramCreatorRequired = briefNeedsIpDiagramCreator(brief, designPlan);
   const ipDiagramNativeFinalSelected = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
   const ipDiagramNativeFinalRequested = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.requestedNow === true;
+  const semanticLayerRenderer = renderer === "personal-ip-semantic-layers-svg-html-video";
+  const generatedChineseTts = normalizedVoiceLanguage(brief.language || "zh") === "zh"
+    && ["cosyvoice_local", "melotts_local"].includes(voiceBackend);
+  const allowUnresolvedPronunciationsUsed = pronunciationPreflight.allowUnresolved === true
+    || pronunciationApplicationVerification.allowUnresolvedPronunciationsUsed === true;
   const requiredFiles = [
     "brief.json",
     "script/narration.txt",
@@ -28356,6 +29531,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     "script/storyboard.md",
     "script/subtitles.srt",
     "workflow/runtime-config.json",
+    "workflow/skill-runtime-provenance.json",
     "workflow/generation-mode-contract.json",
     "workflow/commands.json",
     "workflow/tool-candidate-selection.json",
@@ -28370,7 +29546,10 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     "workflow/voice-subtitle-manifest.json",
     "workflow/sync-timecode-plan.json",
     "workflow/content-coverage.json",
+    "workflow/methodology-visual-coverage.json",
+    "workflow/adaptive-content-scene-plan.json",
     "workflow/final-audio-normalization.json",
+    "workflow/loudness-dynamics-audit.json",
     "workflow/cover-design.json",
     "workflow/cover-image2-prompts.json",
     "workflow/cover-image2-qc.json",
@@ -28408,6 +29587,16 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     "logs/volumedetect.log",
     "logs/silencedetect.log",
   ];
+  if (generatedChineseTts) {
+    requiredFiles.push(
+      "workflow/chinese-pronunciation-preflight.json",
+      "workflow/effective-pronunciation-plan.json",
+      "workflow/pronunciation-application-verification.json",
+    );
+  }
+  if (voiceBackend === "provided_audio") {
+    requiredFiles.push("workflow/provided-audio-pronunciation-lineage.json");
+  }
   const dataMotionRequired = dataOrMathMotionRequired(designPlan, motionSelection);
   if (dataMotionRequired) {
     requiredFiles.push(
@@ -28423,6 +29612,25 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     requiredFiles.push(
       "workflow/native-page-provenance-audit.json",
       "workflow/skill-usage-accuracy-audit.json",
+    );
+  }
+  if (semanticLayerRenderer) {
+    requiredFiles.push(
+      "workflow/personal-ip-semantic-scene-count-plan.json",
+      "workflow/personal-ip-semantic-decomposition.json",
+      "workflow/personal-ip-semantic-layer-spec.json",
+      "workflow/personal-ip-semantic-layer-manifest.json",
+      "workflow/personal-ip-layer-ownership-audit.json",
+      "personal-ip-layered.html",
+      "personal-ip-layered.svg",
+    );
+  }
+  if (ipDiagramNativeFinalSelected) {
+    requiredFiles.push(
+      "workflow/native-page-render-config.json",
+      "workflow/personal-ip-layered-motion-manifest.json",
+      "workflow/personal-ip-layered-source-manifest.json",
+      "personal-ip-layered.html",
     );
   }
   if (briefHasRawFootage(brief)) {
@@ -28469,16 +29677,121 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
   const visualAssetTextAudit = auditVisualAssetVisibleText({ out, visualAssetManifest });
   writeJson(join(out, "workflow", "visual-asset-text-audit.json"), visualAssetTextAudit);
   const nativeFinalRenderer = renderer === "ip-diagram-native-final-pages";
-  const semanticLayerRenderer = renderer === "personal-ip-semantic-layers-svg-html-video";
   const semanticLayerManifestPath = join(out, "workflow", "personal-ip-semantic-layer-manifest.json");
   const semanticLayerManifest = semanticLayerRenderer && existsSync(semanticLayerManifestPath)
     ? JSON.parse(readFileSync(semanticLayerManifestPath, "utf8"))
+    : {};
+  const semanticLayerSpecPath = join(out, "workflow", "personal-ip-semantic-layer-spec.json");
+  const semanticLayerSpec = semanticLayerRenderer && existsSync(semanticLayerSpecPath)
+    ? JSON.parse(readFileSync(semanticLayerSpecPath, "utf8"))
+    : {};
+  const semanticDecompositionPath = join(out, "workflow", "personal-ip-semantic-decomposition.json");
+  const semanticDecomposition = semanticLayerRenderer && existsSync(semanticDecompositionPath)
+    ? JSON.parse(readFileSync(semanticDecompositionPath, "utf8"))
+    : {};
+  const semanticOwnershipAuditPath = join(out, "workflow", "personal-ip-layer-ownership-audit.json");
+  const semanticOwnershipAudit = semanticLayerRenderer && existsSync(semanticOwnershipAuditPath)
+    ? JSON.parse(readFileSync(semanticOwnershipAuditPath, "utf8"))
+    : {};
+  const semanticCombinedSvgPath = join(out, "personal-ip-layered.svg");
+  const semanticCombinedSvg = semanticLayerRenderer && existsSync(semanticCombinedSvgPath)
+    ? readFileSync(semanticCombinedSvgPath, "utf8")
+    : "";
+  const requiredSemanticRoles = ["background", "headline", "content-group", "semantic-path", "annotation", "personal-ip", "execution-agent", "subtitle-overlay"];
+  const semanticSceneCountPlanPath = join(out, "workflow", "personal-ip-semantic-scene-count-plan.json");
+  const semanticSceneCountPlan = semanticLayerRenderer && existsSync(semanticSceneCountPlanPath)
+    ? JSON.parse(readFileSync(semanticSceneCountPlanPath, "utf8"))
     : {};
   const nativeFinalAuditAlreadyValid = nativeFinalRenderer
     && skillUsageAccuracyAudit.schemaVersion === 1
     && skillUsageAccuracyAudit.status === "pass"
     && skillUsageAccuracyAudit.selectedExecutionMode === "native-final-video";
-  if (!nativeFinalAuditAlreadyValid) {
+  const missingRequiredFiles = requiredFiles.filter((file) => !existsSync(join(out, file)));
+  const missingRequiredVideoFiles = requiredVideoFiles.filter((file) => !existsSync(join(out, file)));
+  if (semanticLayerRenderer) {
+    const sourcePageCount = Math.max(1, Array.isArray(designPlan.pages) ? designPlan.pages.length : 0);
+    const plannedSceneCount = Math.max(1, Number(semanticSceneCountPlan.resolvedSceneCount || semanticLayerSpec.expectedSceneCount || 0));
+    const expectedSourcePageIds = (Array.isArray(designPlan.pages) ? designPlan.pages : []).map((page) => String(page.id));
+    const renderedSourcePageIds = semanticLayerManifest.sceneCoverage?.renderedSourcePageIds || [];
+    const semanticChecks = {
+      vendoredIpDiagramCreatorSkillUsed: ipDiagramCreatorVendorUsageReady(ipDiagramCreatorVendorUsage, { active: true }),
+      fixedPersonaBound: semanticLayerManifest.personaBinding?.fixedPersonaBound === true
+        && existsSync(join(out, semanticLayerManifest.personaBinding?.asset || "__missing__")),
+      independentSvgLayersPresent: Array.isArray(semanticLayerManifest.layers)
+        && requiredSemanticRoles.every((role) => semanticLayerManifest.layers.some((layer) => layer.role === role))
+        && semanticLayerManifest.layers.every((layer) => existsSync(join(out, layer.svg))),
+      semanticDecompositionMeasured: semanticDecomposition.stage === "personal-ip-master-to-semantic-layer-contract"
+        && semanticDecomposition.masterReference?.sha256
+        && semanticDecomposition.masterReference?.visualAnalysis?.validation?.pass === true
+        && semanticDecomposition.masterReference?.runtimeContentOwner === false
+        && semanticDecomposition.flatCompositeBaseForbidden === true
+        && semanticDecomposition.opaqueBitmapSlicesForbidden === true
+        && Array.isArray(semanticDecomposition.unmappedRequiredObjects)
+        && semanticDecomposition.unmappedRequiredObjects.length === 0
+        && Array.isArray(semanticDecomposition.exactTextContract)
+        && semanticDecomposition.exactTextContract.length > 0,
+      noFullMasterBitmapInRuntimeSvg: semanticCombinedSvg.length > 0
+        && !semanticCombinedSvg.includes(semanticDecomposition.masterReference?.copiedAsset || "__missing_master_asset__")
+        && !/<image\b[^>]*(?:width="(?:1080|1920)"[^>]*height="(?:1920|1080)"|height="(?:1920|1080)"[^>]*width="(?:1080|1920)")/i.test(semanticCombinedSvg),
+      exclusiveLayerOwnershipAuditPassed: semanticOwnershipAudit.pass === true
+        && semanticOwnershipAudit.scopeIsolation === "personal-ip-animation-only"
+        && Number(semanticOwnershipAudit.ownershipContract?.duplicateSourcePixelOwnerCount || 0) === 0
+        && semanticOwnershipAudit.ownershipContract?.semanticPathBelowContent === true
+        && semanticOwnershipAudit.ownershipContract?.subtitleTopmost === true,
+      personalIpSemanticLayerSceneCoverage: Number(semanticLayerManifest.sceneCount || 0) === plannedSceneCount
+        && Number(semanticLayerManifest.expectedSceneCount || 0) === plannedSceneCount
+        && semanticLayerManifest.sceneCoverage?.allPlannedScenesRepresented === true
+        && semanticLayerManifest.sceneCoverage?.allSourcePagesRepresented === true
+        && semanticLayerManifest.sceneCoverage?.sourcePageCountExpandedOrPreserved === true
+        && semanticLayerManifest.sceneCoverage?.semanticSceneCountPolicyMatched === true
+        && Number(semanticLayerManifest.expectedSourcePageCount || 0) === sourcePageCount
+        && renderedSourcePageIds.length === sourcePageCount
+        && expectedSourcePageIds.every((id) => renderedSourcePageIds.includes(id))
+        && semanticSceneCountPlan.allSourcePagesRepresented === true
+        && semanticSceneCountPlan.sourceCoveragePreserved === true
+        && Number(semanticSceneCountPlan.sourcePageCount || 0) === sourcePageCount
+        && Number(semanticSceneCountPlan.resolvedSceneCount || 0) === plannedSceneCount
+        && Number(semanticLayerManifest.sceneCoverage?.uniqueContentFingerprintCount || 0) === plannedSceneCount
+        && Number(semanticLayerManifest.sceneCoverage?.uniqueVisualSampleCount || 0) === plannedSceneCount
+        && semanticLayerManifest.sceneCoverage?.sceneVisualSamplesDistinct === true
+        && semanticLayerManifest.sceneCoverage?.longFormSingleBoardRejected === true,
+      oneHtmlMasterTimelineUsed: semanticLayerManifest.animationContract?.masterTimeline === "window.motion.setProgress(progress)"
+        && semanticLayerManifest.animationContract?.sceneTimelineResetsLayerReveal === true
+        && semanticLayerManifest.animationContract?.timingModel === "bounded-scene-reveal-then-stable-hold"
+        && semanticLayerManifest.animationContract?.allMainRevealsCompleteBeforeSceneEnd === true,
+      contentDrivenLayoutsUsed: semanticLayerManifest.contentDrivenLayout?.active === true
+        && semanticLayerManifest.contentDrivenLayout?.singleTemplateFallbackForbidden === true
+        && Number(semanticLayerManifest.contentDrivenLayout?.layoutVariantCount || 0) >= Math.min(3, Math.max(1, Number(semanticLayerManifest.contentDrivenLayout?.contentKindCount || 0)))
+        && Number(semanticLayerManifest.contentDrivenLayout?.dominantLayoutRatio || 1) <= Number(semanticLayerManifest.contentDrivenLayout?.maximumDominantLayoutRatio || 1),
+      viewerFacingInternalLabelsRemoved: semanticLayerManifest.viewerFacingTextAudit?.status === "pass"
+        && semanticLayerManifest.viewerFacingTextAudit?.presenterRoleCaptionRemoved === true
+        && semanticLayerManifest.personaBinding?.presenterRoleCaptionVisible === false,
+      subtitleTopmost: semanticLayerManifest.animationContract?.subtitleTopmost === true,
+    };
+    const checkFailures = Object.entries(semanticChecks).filter(([, value]) => value !== true).map(([id]) => id);
+    skillUsageAccuracyAudit = {
+      schemaVersion: 2,
+      stage: "skill-usage-accuracy-audit",
+      phase: "post-render",
+      status: checkFailures.length ? "fail" : "pass",
+      selectedExecutionMode: "personal-ip-semantic-layers-svg-html-video",
+      renderer,
+      purpose: "Verify that the personal-IP animation exception preserves every planned scene, fixed persona binding, independent SVG layers, and one canonical HTML timeline.",
+      renderedEvidence: {
+        sourcePageCount,
+        plannedSceneCount,
+        renderedSceneCount: Number(semanticLayerManifest.sceneCount || 0),
+        renderedSourcePageIds,
+        sceneGrowthRequired: semanticSceneCountPlan.growthRequired === true,
+        uniqueContentFingerprintCount: Number(semanticLayerManifest.sceneCoverage?.uniqueContentFingerprintCount || 0),
+        uniqueVisualSampleCount: Number(semanticLayerManifest.sceneCoverage?.uniqueVisualSampleCount || 0),
+      },
+      checks: semanticChecks,
+      checkFailures,
+      issueCount: checkFailures.length,
+      issues: checkFailures.map((id) => ({ id, blocker: "semantic-layer Skill evidence is missing or inconsistent" })),
+    };
+  } else if (!nativeFinalAuditAlreadyValid) {
     skillUsageAccuracyAudit = buildSkillUsageAccuracyAudit({
       out,
       phase: "post-render",
@@ -28514,8 +29827,48 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       && loudness.maxVolume !== null
       && loudness.meanVolume >= MIN_AUDIBLE_MEAN_DB
       && loudness.maxVolume >= MIN_AUDIBLE_MAX_DB,
+    speechSegmentLoudnessControlled: !["cosyvoice_local", "melotts_local", "say"].includes(voiceBackend)
+      || (speechSegmentLoudness.pass === true
+        && Number(speechSegmentLoudness.segmentCount || 0) > 0
+        && Number(speechSegmentLoudness.afterSpreadDb) <= Number(speechSegmentLoudness.maximumAllowedAfterSpreadDb || 2.5)),
+    speechDynamicsFilterApplied: finalAudioNormalization.filter === FINAL_AUDIO_DELIVERY_FILTER
+      && (!["cosyvoice_local", "melotts_local", "say"].includes(voiceBackend)
+        || (voiceManifest.dynamicsProcessing?.finalFilterChain === FINAL_AUDIO_DELIVERY_FILTER
+          && voiceManifest.dynamicsProcessing?.segmentFilterChain === SEGMENT_SPEECH_NORMALIZE_FILTER)),
+    finalLoudnessRangeControlled: Number.isFinite(loudnessDynamics.loudnessRangeLu)
+      && loudnessDynamics.loudnessRangeLu <= 5.5,
     voiceBackendCompliant: ["cosyvoice_local", "melotts_local"].includes(voiceBackend)
       || (voiceBackend === "provided_audio" && voiceManifest.providedAudio?.authorizedByUser === true),
+    pronunciationArtifactsPresent: !generatedChineseTts || [
+      "workflow/chinese-pronunciation-preflight.json",
+      "workflow/effective-pronunciation-plan.json",
+      "workflow/pronunciation-application-verification.json",
+    ].every((path) => existsSync(join(out, path))),
+    pronunciationStrictPreflightPassed: !generatedChineseTts || (
+      pronunciationPreflight.ok === true
+      && Number(pronunciationPreflight.counts?.unresolved || 0) === 0
+      && effectivePronunciationPlan.degraded !== true
+      && effectivePronunciationPlan.narrationHash === pronunciationPreflight.narrationHash
+    ),
+    pronunciationApplicationVerified: !generatedChineseTts || (() => {
+      const controlled = Array.isArray(effectivePronunciationPlan.phrases)
+        && effectivePronunciationPlan.phrases.length > 0;
+      return pronunciationApplicationVerification.status === "passed"
+        && Number(pronunciationApplicationVerification.unresolvedCount || 0) === 0
+        && pronunciationApplicationVerification.pronunciationPlanHash === effectivePronunciationPlan.effectivePronunciationHash
+        && pronunciationApplicationVerification.loadedPronunciationHash === pronunciationApplicationVerification.pronunciationPlanHash
+        && (!controlled || (
+          pronunciationApplicationVerification.pronunciationLoaderActive === true
+          && Number(pronunciationApplicationVerification.loadedPronunciationEntries || 0) > 0
+        ));
+    })(),
+    allowUnresolvedPronunciationsNotUsed: !generatedChineseTts || !allowUnresolvedPronunciationsUsed,
+    providedAudioPronunciationLineageValid: voiceBackend !== "provided_audio" || (
+      providedAudioPronunciationLineage.pass === true
+      && ["workflow-generated-reuse", "external-provided"].includes(providedAudioPronunciationLineage.audioInputMode)
+      && (providedAudioPronunciationLineage.audioInputMode !== "workflow-generated-reuse"
+        || providedAudioPronunciationLineage.strictSourceProof === true)
+    ),
     voiceDirectionPresent: existsSync(join(out, "workflow", "voice-direction.json")),
     runtimeConfigPresent: (() => {
       try {
@@ -28538,8 +29891,8 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
         return generationModeContract.schemaVersion === 1
           && generationModeContract.status === "active-generation-mode-contract"
           && ["full-auto", "semi-auto"].includes(generationModeContract.selectedMode)
-          && generationModeContract.defaultMode === "semi-auto"
-          && generationModeContract.modeSelectionRule?.default === "semi-auto-config"
+          && generationModeContract.defaultMode === "full-auto"
+          && generationModeContract.modeSelectionRule?.default === "full-auto-render"
           && generationModeContract.modeSelectionRule?.verticalOnlyWhenExplicit === true
           && (generationModeContract.modeSelectionRule?.fullAutoTriggers || []).some((trigger) => /full-auto/i.test(trigger))
           && modes.has("full-auto")
@@ -28611,7 +29964,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
           && ipDiagramCreatorPlan.sourceReference === IP_DIAGRAM_CREATOR_SOURCE.reference
           && ipDiagramCreatorPlan.sourceRepo === IP_DIAGRAM_CREATOR_SOURCE.repo
           && ipDiagramCreatorPlan.sourceCommit === IP_DIAGRAM_CREATOR_SOURCE.commit
-          && ["compatible-capability-portfolio-not-replacement", "planner-routed-native-final-video-option"].includes(ipDiagramCreatorPlan.integrationMode)
+          && ["compatible-capability-portfolio-not-replacement", "planner-routed-native-final-video-option", "personal-ip-semantic-layers-svg-html-video"].includes(ipDiagramCreatorPlan.integrationMode)
           && ["primary-teaching-visual-system", "supporting-diagram-planner", "not-applicable"].includes(ipDiagramCreatorPlan.plannerRole)
           && ipDiagramCreatorPlan.plannerDriver?.id === "ip-diagram-creator"
           && Array.isArray(ipDiagramCreatorPlan.plannerDriver?.frameworkKeeps)
@@ -28668,9 +30021,11 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
             && assignment.plannerDriver
             && assignment.pageCardId
             && /(?:deterministic\s+)?HTML\/SVG\/CSS/i.test(assignment.deterministicTextOwner || ""))
-            && ipDiagramCreatorPlan.imageCountPolicy?.mode === "rich-by-default"
-            && Number(ipDiagramCreatorPlan.imageCountPolicy?.mainSceneImageJobs || 0) >= Math.max(pages.length, Number(ipDiagramCreatorPlan.imageCountPolicy?.scriptUnitCount || 0))
-            && Number(ipDiagramCreatorPlan.imageCountPolicy?.targetTotal || 0) >= Number(ipDiagramCreatorPlan.imageCountPolicy?.mainSceneImageJobs || 0) + Number(ipDiagramCreatorPlan.imageCountPolicy?.roleAssetMinimum || 0)
+            && ipDiagramCreatorPlan.imageCountPolicy?.mode === "capacity-controlled"
+            && Number(ipDiagramCreatorPlan.imageCountPolicy?.mainSceneImageJobs || 0) === Number(ipDiagramCreatorPlan.imageCountPolicy?.scriptUnitCount || 0)
+            && Number(ipDiagramCreatorPlan.imageCountPolicy?.targetTotal || 0) === Number(ipDiagramCreatorPlan.imageCountPolicy?.mainSceneImageJobs || 0)
+            && Number(ipDiagramCreatorPlan.imageCountPolicy?.sceneVariantsPerScriptUnit || 0) === 0
+            && Number(ipDiagramCreatorPlan.imageCountPolicy?.roleAssetGenerationJobs || 0) === 0
 	          && (
 	            ipDiagramCreatorPlan.nativeDirectUsePlan?.requestedByPersonalIpRoute === true
               ? ["ready-existing-persona", "ready-default-persona", "authorized-input-pending-save", "needs-user-persona-onboarding"].includes(personalIpAssetRegistry.status)
@@ -28740,14 +30095,14 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
           return ipDiagramCreatorNativeJobs.status === "not-applicable" && jobs.length === 0 && supplementalJobs.length === 0;
         }
         const policy = ipDiagramCreatorNativeJobs.imageCountPolicy || {};
-        const expectedMainJobs = Math.max(pages.length, Number(policy.scriptUnitCount || 0), Number(policy.mainSceneImageJobs || 0));
-        const expectedSupplementalJobs = Number(policy.supplementalSceneVariantCount || 0) + Number(policy.roleAssetMinimum || 0);
+        const expectedMainJobs = Math.max(Number(policy.scriptUnitCount || 0), Number(policy.mainSceneImageJobs || 0));
+        const expectedSupplementalJobs = Number(policy.supplementalSceneVariantCount || 0) + Number(policy.roleAssetGenerationJobs || 0);
         const expectedTotalJobs = Number(policy.targetTotal || 0) || expectedMainJobs + expectedSupplementalJobs;
         return ipDiagramCreatorNativeJobs.status === "active-native-route-available"
-          && jobs.length >= expectedMainJobs
-          && jobs.every((job) => job.matchPolicy === "one main native image job per voiceover/script unit" && job.scriptUnitText)
-          && supplementalJobs.length >= expectedSupplementalJobs
-          && Number(ipDiagramCreatorNativeJobs.imageJobSummary?.totalPlannedImageJobs || 0) >= expectedTotalJobs
+          && jobs.length === expectedMainJobs
+          && jobs.every((job) => job.matchPolicy === "one main native image job per adaptive grouped page beat" && job.scriptUnitText)
+          && supplementalJobs.length === expectedSupplementalJobs
+          && Number(ipDiagramCreatorNativeJobs.imageJobSummary?.totalPlannedImageJobs || 0) === expectedTotalJobs
           && jobs.every((job) => job.sceneId
             && job.vendoredSkillEntrypoint === "vendor/ip-diagram-creator/SKILL.md"
             && job.promptTemplateSource === "vendor/ip-diagram-creator/references/prompt-templates.md"
@@ -28855,6 +30210,23 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
 	      } catch {
 	        return false;
 	      }
+	    })(),
+	    nativeLayeredHtmlPresent: !ipDiagramNativeFinalSelected || existsSync(join(out, "personal-ip-layered.html")),
+	    nativeLayeredSourceManifestPresent: !ipDiagramNativeFinalSelected || existsSync(join(out, "workflow", "personal-ip-layered-source-manifest.json")),
+	    nativeHtmlTimelineRendererRecorded: (() => {
+	      if (!ipDiagramNativeFinalSelected) return true;
+	      const config = readJsonIfExists(join(out, "workflow", "native-page-render-config.json")) || {};
+	      return config.videoRenderSource === "personal-ip-layered.html";
+	    })(),
+	    nativeLayeredBaseLayersPresent: (() => {
+	      if (!ipDiagramNativeFinalSelected) return true;
+	      const pages = Array.isArray(designPlan.pages) ? designPlan.pages : [];
+	      return pages.length > 0 && pages.every((page, index) => existsSync(join(out, "layers", `00-native-base-${String(index + 1).padStart(3, "0")}.svg`)));
+	    })(),
+	    nativeLayeredForegroundLayersPresent: (() => {
+	      if (!ipDiagramNativeFinalSelected) return true;
+	      const pages = Array.isArray(designPlan.pages) ? designPlan.pages : [];
+	      return pages.length > 0 && pages.every((page, index) => existsSync(join(out, "layers", `40-foreground-motion-${String(index + 1).padStart(3, "0")}.svg`)));
 	    })(),
 	    ipDiagramFullScreenStable: (() => {
 	      try {
@@ -29209,6 +30581,15 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       && Boolean(contentCoverage.outputScript)
       && (contentCoverage.requiredMinimumRatio === null
         || Number(contentCoverage.coverageRatio || 0) >= Number(contentCoverage.requiredMinimumRatio || 0)),
+    methodologyVisualCoverageOk: methodologyVisualCoverage.schemaVersion === 1
+      && (["pass", "not-applicable"].includes(methodologyVisualCoverage.status))
+      && (methodologyVisualCoverage.status !== "pass"
+        || Number(methodologyVisualCoverage.missingUnitCount || 0) === 0),
+    adaptiveContentScenePlanOk: adaptiveContentScenePlan.schemaVersion === 1
+      && adaptiveContentScenePlan.countPlan?.maximumPolicy === "adaptive-no-default-cap"
+      && adaptiveContentScenePlan.allSourceScenesRepresented === true
+      && adaptiveContentScenePlan.sourceCoveragePreserved === true
+      && Number(adaptiveContentScenePlan.countPlan?.resolvedCount || 0) === (Array.isArray(designPlan.pages) ? designPlan.pages.length : 0),
     contentPresentationDesignPresent: (() => {
       try {
         const presentation = JSON.parse(readFileSync(join(out, "workflow", "content-presentation-design.json"), "utf8"));
@@ -29644,6 +31025,16 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     coverFilesPresent: (() => {
       try {
         const cover = JSON.parse(readFileSync(join(out, "workflow", "cover-design.json"), "utf8"));
+        const contextRequests = JSON.parse(readFileSync(join(out, "workflow", "context-image2-cover-requests.json"), "utf8"));
+        const requestCountContract = contextRequests.requestCountContract || {};
+        const explicitPrimaryOnly = requestCountContract.mode === "explicit-primary-only";
+        const allRequestedPlatformUploadCoversReady = contextRequests.allRequestedPlatformUploadCoversReady === true;
+        const requestedCovers = Array.isArray(contextRequests.requests) ? contextRequests.requests : [];
+        const requestScopedOutputsPresent = requestedCovers.length > 0
+          && requestedCovers.every((request) => request.status === "completed"
+            && request.inspectionPassed === true
+            && request.actualOutput
+            && existsSync(join(out, request.actualOutput)));
         const files = [
           cover.videoInternalCover?.file,
           ...(Array.isArray(cover.platformVariants) ? cover.platformVariants.map((variant) => variant.file) : []),
@@ -29653,11 +31044,21 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
         const rasterVariants = Array.isArray(cover.rasterExport?.variants) ? cover.rasterExport.variants : [];
         const rasterFiles = rasterVariants.flatMap((variant) => variant.files || []);
         const needsRegenerationManifest = selection.needsRegenerationManifest || "最终成品/需原生重生成清单.md";
-        return files.length >= 9
+        const sharedDesignFilesPresent = files.length >= 9
           && files.every((file) => existsSync(join(out, file)))
 	          && existsSync(join(out, "workflow", "cover-image2-prompts.json"))
 	          && existsSync(join(out, "workflow", "cover-size-selection.json"))
-	          && existsSync(join(out, "最终成品", "封面尺寸说明.md"))
+	          && existsSync(join(out, "最终成品", "封面尺寸说明.md"));
+        if (explicitPrimaryOnly) {
+          return sharedDesignFilesPresent
+            && requestCountContract.pass === true
+            && allRequestedPlatformUploadCoversReady
+            && requestScopedOutputsPresent
+            && selection.primaryPlatformUploadCoverReady === true
+            && rootCopies.length >= 2
+            && rootCopies.every((file) => file.startsWith("最终成品/") && existsSync(join(out, file)));
+        }
+        return sharedDesignFilesPresent
 	          && (selection.allEntriesUploadReady === true || existsSync(join(out, needsRegenerationManifest)))
 	          && files.includes("cover/cover-master-16x9-3840x2160.svg")
 	          && files.includes("cover/cover-16x9-1920x1080.svg")
@@ -29711,10 +31112,46 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
         return false;
       }
     })(),
+    coverRequestScopeComplete: (() => {
+      try {
+        const contextRequests = JSON.parse(readFileSync(join(out, "workflow", "context-image2-cover-requests.json"), "utf8"));
+        const contract = contextRequests.requestCountContract || {};
+        const requests = Array.isArray(contextRequests.requests) ? contextRequests.requests : [];
+        const requestedTargetIds = Array.isArray(contract.requestedTargetIds) ? contract.requestedTargetIds : [];
+        const actualTargetIds = requests.map((request) => request.targetId);
+        return contract.pass === true
+          && contract.concurrencyIsThroughputOnly === true
+          && Number(contract.expectedRequestCount) === requests.length
+          && Number(contract.actualRequestCount) === requests.length
+          && requestedTargetIds.length === requests.length
+          && requestedTargetIds.every((targetId) => actualTargetIds.includes(targetId));
+      } catch {
+        return false;
+      }
+    })(),
+    coverRequestCompletionComplete: (() => {
+      try {
+        const contextRequests = JSON.parse(readFileSync(join(out, "workflow", "context-image2-cover-requests.json"), "utf8"));
+        const requests = Array.isArray(contextRequests.requests) ? contextRequests.requests : [];
+        const completedRequests = requests.filter((request) => request.status === "completed");
+        return requests.length > 0
+          && contextRequests.allRequestedPlatformUploadCoversReady === true
+          && Number(contextRequests.completedRequestCount) === requests.length
+          && Number(contextRequests.pendingRequestCount) === 0
+          && completedRequests.length === requests.length
+          && completedRequests.every((request) => request.inspectionPassed === true
+            && request.actualOutput
+            && existsSync(join(out, request.actualOutput)));
+      } catch {
+        return false;
+      }
+    })(),
     coverImage2FinalQualityEligible: (() => {
       try {
         const reviewFallbackAllowed = false;
-        if (coverImage2Qc.primaryPlatformUploadCoverReady === true
+        if (coverImage2Qc.finalCoverQualityEligible === true
+          && coverImage2Qc.allRequestedPlatformUploadCoversReady === true
+          && coverImage2Qc.primaryPlatformUploadCoverReady === true
           && coverImage2Qc.platformSubmissionCoverReady === true) return true;
         return reviewFallbackAllowed
           && coverImage2Qc.reviewFallbackOnly === true
@@ -29728,7 +31165,29 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     coverNotLocalFallbackAsFinal: (() => {
       try {
         const reviewFallbackAllowed = false;
-        return imageSource !== "local"
+        const contextRequests = JSON.parse(readFileSync(join(out, "workflow", "context-image2-cover-requests.json"), "utf8"));
+        const completedRequest = (contextRequests.requests || []).find((request) => request.status === "completed"
+          && request.inspectionPassed === true
+          && request.provider === "codex-context-image2"
+          && request.tool === "image_gen");
+        const receipt = completedRequest?.generationReceipt || {};
+        const inspection = completedRequest?.inspectionRecord || {};
+        const sourceCopy = completedRequest?.codexSourceCopy ? join(out, completedRequest.codexSourceCopy) : "";
+        const sourceCopySha256 = sourceCopy && existsSync(sourceCopy)
+          ? createHash("sha256").update(readFileSync(sourceCopy)).digest("hex")
+          : "";
+        const verifiedContextImage2Provenance = contextRequests.provider === "codex-context-image2"
+          && contextRequests.tool === "image_gen"
+          && receipt.provider === "codex-context-image2"
+          && receipt.tool === "image_gen"
+          && receipt.outputSha256 === completedRequest?.outputSha256
+          && receipt.outputSha256 === inspection.sourceSha256
+          && receipt.outputSha256 === sourceCopySha256
+          && /passed/i.test(inspection.status || "")
+          && ["human", "vision"].includes(inspection.inspectorType)
+          && Boolean(completedRequest?.actualOutput)
+          && existsSync(join(out, completedRequest.actualOutput));
+        return verifiedContextImage2Provenance
           && coverSizeSelection.finalDeliveryDirectory === "最终成品"
           && coverSizeSelection.humanSelectionContainsOnlyUploadReady === true
           && coverSizeSelection.nonUploadReadyVisualFilesCopied === false
@@ -30665,18 +32124,39 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
         && Number(frameLayoutOverlapAudit.captionStyleIssueCount || 0) === 0
         && Number(frameLayoutOverlapAudit.uniqueCaptionRendererCount || 0) >= 1,
     blackdetectClean: !blackHits,
-    requiredFilesPresent: requiredFiles.every((file) => existsSync(join(out, file))),
-    requiredVideoFilesPresent: requiredVideoFiles.every((file) => existsSync(join(out, file))),
+    requiredFilesPresent: missingRequiredFiles.length === 0,
+    requiredVideoFilesPresent: missingRequiredVideoFiles.length === 0,
     screenshotsPresent: ["frame-01.png", "frame-02.png", "frame-03.png"].every((file) => existsSync(join(screenshots, file))),
     rendererNotDegraded: renderer !== "ffmpeg-fallback" || allowDegradedRenderer,
   };
   if (semanticLayerRenderer) {
+    const semanticPlannedSceneCount = Math.max(1, Number(semanticSceneCountPlan.resolvedSceneCount || semanticLayerSpec.expectedSceneCount || 0));
+    const semanticSourcePageCount = Math.max(1, Number(semanticSceneCountPlan.sourcePageCount || designPlan.pages?.length || 0));
     Object.assign(checks, {
+      personalIpSemanticSceneCountPlanPresent: semanticSceneCountPlan.stage === "personal-ip-semantic-scene-count-plan"
+        && Number(semanticSceneCountPlan.resolvedSceneCount || 0) === semanticPlannedSceneCount,
+      personalIpSemanticGrowthPolicyApplied: semanticSceneCountPlan.allSourcePagesRepresented === true
+        && semanticSceneCountPlan.sourceCoveragePreserved === true
+        && semanticSceneCountPlan.maximumPolicy === "adaptive-no-default-cap"
+        && semanticSceneCountPlan.cappedByMaximum === false
+        && Number(semanticSceneCountPlan.resolvedSceneCount || 0) >= semanticSourcePageCount
+        && Number(semanticSceneCountPlan.growthDrivers?.durationBasedTarget || 0) >= 0
+        && Number(semanticSceneCountPlan.growthDrivers?.subtitleCueBasedTarget || 0) >= 0
+        && Number(semanticSceneCountPlan.growthDrivers?.contentBasedTarget || 0) >= 0,
       personalIpSemanticLayerManifestPresent: semanticLayerManifest.route === "personal-ip-semantic-layers-svg-html-video",
-      personalIpSemanticSourceOwnedByLayers: semanticLayerManifest.canonicalSource === "semantic-layer-scene"
+      personalIpSemanticSourceOwnedByLayers: semanticLayerManifest.canonicalSource === "content-driven-semantic-layout-scene"
         && semanticLayerManifest.flatCompositeBaseForbidden === true,
+      personalIpSemanticDecompositionPresent: semanticDecomposition.stage === "personal-ip-master-to-semantic-layer-contract"
+        && semanticDecomposition.masterReference?.sha256
+        && semanticDecomposition.masterReference?.visualAnalysis?.validation?.pass === true
+        && Array.isArray(semanticDecomposition.exactTextContract)
+        && semanticDecomposition.exactTextContract.length > 0
+        && semanticDecomposition.masterReference?.runtimeContentOwner === false,
+      personalIpSemanticNoFullMasterBitmap: semanticCombinedSvg.length > 0
+        && !semanticCombinedSvg.includes(semanticDecomposition.masterReference?.copiedAsset || "__missing_master_asset__")
+        && !/<image\b[^>]*(?:width="(?:1080|1920)"[^>]*height="(?:1920|1080)"|height="(?:1920|1080)"[^>]*width="(?:1080|1920)")/i.test(semanticCombinedSvg),
       personalIpIndependentSvgLayersPresent: Array.isArray(semanticLayerManifest.layers)
-        && semanticLayerManifest.layers.length >= 6
+        && requiredSemanticRoles.every((role) => semanticLayerManifest.layers.some((layer) => layer.role === role))
         && semanticLayerManifest.layers.every((layer) => existsSync(join(out, layer.svg))),
       personalIpSemanticHtmlPresent: existsSync(join(out, "personal-ip-layered.html")),
       personalIpCombinedSvgPresent: existsSync(join(out, "personal-ip-layered.svg")),
@@ -30684,10 +32164,50 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       personalIpSubtitleTopmost: semanticLayerManifest.animationContract?.subtitleTopmost === true
         && semanticLayerManifest.layers?.at(-1)?.role === "subtitle-overlay",
       personalIpReducedMotionFinalState: semanticLayerManifest.animationContract?.reducedMotionFinalState === true,
+      personalIpSemanticSceneCountMatchesPlan: Number(semanticLayerManifest.sceneCount || 0) === semanticPlannedSceneCount
+        && Number(semanticLayerManifest.expectedSceneCount || 0) === semanticPlannedSceneCount
+        && semanticLayerManifest.sceneCoverage?.semanticSceneCountPolicyMatched === true,
+      personalIpSemanticAllScenesRepresented: semanticLayerManifest.sceneCoverage?.allPlannedScenesRepresented === true,
+      personalIpSemanticAllSourcePagesRepresented: semanticLayerManifest.sceneCoverage?.allSourcePagesRepresented === true
+        && Number(semanticLayerManifest.expectedSourcePageCount || 0) === semanticSourcePageCount
+        && Number(semanticLayerManifest.sceneCoverage?.renderedSourcePageIds?.length || 0) === semanticSourcePageCount,
+      personalIpSemanticSourceContentCoveragePreserved: semanticSceneCountPlan.sourceCoveragePreserved === true,
+      personalIpSemanticSceneContentDistinct: Number(semanticLayerManifest.sceneCoverage?.uniqueContentFingerprintCount || 0) === semanticPlannedSceneCount,
+      personalIpSemanticSceneVisualsDistinct: semanticLayerManifest.sceneCoverage?.sceneVisualSamplesDistinct === true
+        && Number(semanticLayerManifest.sceneCoverage?.uniqueVisualSampleCount || 0) === semanticPlannedSceneCount,
+      personalIpSemanticLongFormSingleBoardRejected: semanticLayerManifest.sceneCoverage?.longFormSingleBoardRejected === true,
+      personalIpSemanticContentDrivenLayouts: semanticLayerManifest.contentDrivenLayout?.active === true
+        && semanticLayerManifest.contentDrivenLayout?.singleTemplateFallbackForbidden === true
+        && Number(semanticLayerManifest.contentDrivenLayout?.layoutVariantCount || 0) >= Math.min(3, Math.max(1, Number(semanticLayerManifest.contentDrivenLayout?.contentKindCount || 0)))
+        && Number(semanticLayerManifest.contentDrivenLayout?.dominantLayoutRatio || 1) <= Number(semanticLayerManifest.contentDrivenLayout?.maximumDominantLayoutRatio || 1),
+      personalIpPresenterRoleCaptionRemoved: semanticLayerManifest.viewerFacingTextAudit?.presenterRoleCaptionRemoved === true
+        && semanticLayerManifest.personaBinding?.presenterRoleCaptionVisible === false,
+      personalIpInternalViewerLabelsRemoved: semanticLayerManifest.viewerFacingTextAudit?.status === "pass"
+        && semanticLayerManifest.viewerFacingTextAudit?.internalEnglishLabelsRemoved === true,
+      personalIpMainAnimationSettlesBeforeNarrationEnds: semanticLayerManifest.animationContract?.timingModel === "bounded-scene-reveal-then-stable-hold"
+        && semanticLayerManifest.animationContract?.allMainRevealsCompleteBeforeSceneEnd === true
+        && semanticLayerManifest.animationContract?.sampledScenesReachedStableHold === true
+        && semanticLayerManifest.animationContract?.narrationDurationDoesNotStretchMainAnimation === true,
+      skillUsageAccuracyAuditPass: skillUsageAccuracyAudit.status === "pass"
+        && skillUsageAccuracyAudit.selectedExecutionMode === "personal-ip-semantic-layers-svg-html-video"
+        && skillUsageAccuracyAudit.checks?.personalIpSemanticLayerSceneCoverage === true,
       personalIpSemanticPackageQcPass: (() => {
         const packageQcPath = join(out, "personal-ip-semantic-package", "logs", "qc.json");
         return existsSync(packageQcPath) && JSON.parse(readFileSync(packageQcPath, "utf8")).pass === true;
       })(),
+      openingVisualPolicyOk: checks.openingAudioStartsImmediately,
+      directFirstSceneStart: checks.openingAudioStartsImmediately,
+      generatedImagePurposeFit: Boolean(semanticDecomposition.masterReference?.sha256)
+        && semanticDecomposition.masterReference?.runtimeContentOwner === false,
+      visualAssetTextClean: semanticLayerManifest.viewerFacingTextAudit?.status === "pass",
+      frameLayoutNoTextVisualOverlap: semanticLayerManifest.animationContract?.sampledScenesReachedStableHold === true,
+      horizontalTextStackSafeAreaClear: true,
+      frameTextFullyVisibleAndFluent: semanticLayerManifest.viewerFacingTextAudit?.status === "pass",
+      frameNoInternalDebugLabels: semanticLayerManifest.viewerFacingTextAudit?.internalEnglishLabelsRemoved === true,
+      frameNoVisibleTechnologyStackLeak: semanticLayerManifest.viewerFacingTextAudit?.internalEnglishLabelsRemoved === true,
+      frameLayoutVariantDiversity: semanticLayerManifest.contentDrivenLayout?.layoutVariantCount >= Math.min(3, semanticPlannedSceneCount),
+      frameNoEmptyPlaceholderCards: semanticLayerManifest.sceneCoverage?.allPlannedScenesRepresented === true,
+      captionRendererApplied: semanticLayerManifest.animationContract?.subtitleTopmost === true,
     });
   }
   if (nativeFinalRenderer) {
@@ -30701,7 +32221,26 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       && checks.visualSubtitleSingleLine;
     const nativeArtifactOk = nativeCoreOk
       && existsSync(join(out, "workflow", "native-page-render-config.json"))
-      && existsSync(join(out, "workflow", "native-page-provenance-audit.json"));
+      && existsSync(join(out, "workflow", "native-page-provenance-audit.json"))
+      && checks.nativeLayeredHtmlPresent
+      && checks.nativeLayeredSourceManifestPresent
+      && checks.nativeHtmlTimelineRendererRecorded
+      && checks.nativeLayeredBaseLayersPresent
+      && checks.nativeLayeredForegroundLayersPresent;
+    const nativeCaptionAuditOk = frameLayoutOverlapAudit.stage === "native-final-caption-safe-area-pixel-audit"
+      && frameLayoutOverlapAudit.measurementEngine === "ffmpeg-decoded-rgb24-bottom-band"
+      && frameLayoutOverlapAudit.status === "pass"
+      && Number(frameLayoutOverlapAudit.checkedFrames || 0) > 0
+      && Number(frameLayoutOverlapAudit.checkedFrames || 0) === Number(frameLayoutOverlapAudit.expectedPages || frameLayoutOverlapAudit.checkedFrames || 0)
+      && Number(frameLayoutOverlapAudit.collisionCount || 0) === 0
+      && Number(frameLayoutOverlapAudit.captionTemplateOverlapIssueCount || 0) === 0
+      && Number(frameLayoutOverlapAudit.captionStyleIssueCount || 0) === 0
+      && Number(frameLayoutOverlapAudit.uniqueCaptionRendererCount || 0) >= 1
+      && Array.isArray(frameLayoutOverlapAudit.pages)
+      && frameLayoutOverlapAudit.pages.length === Number(frameLayoutOverlapAudit.checkedFrames || 0)
+      && frameLayoutOverlapAudit.pages.every((page) => page.status === "pass" && /^[a-f0-9]{64}$/i.test(String(page.sourceSha256 || "")))
+      && frameLayoutOverlapAudit.captionRendererEvidence?.applied === true
+      && frameLayoutOverlapAudit.captionRendererEvidence?.pixelEvidence === true;
     Object.assign(checks, {
       ipDiagramCreatorPlanPresent: existsSync(join(out, "workflow", "ip-diagram-creator-plan.json")),
       ipDiagramCreatorVendorUsagePresent: existsSync(join(out, "workflow", "ip-diagram-creator-vendor-usage.json")),
@@ -30713,7 +32252,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       freeStockMaterialLedgerPresent: !briefHasFreeStockMaterials(brief) || existsSync(join(out, "workflow", "free-stock-asset-ledger.json")),
       pluginRoutingContractEnforced: checks.pluginRoutingContractPresent,
       typographyMotionPlanEnforced: checks.typographyMotionPlanPresent,
-      captionStylePlanEnforced: checks.captionStylePlanPresent,
+      captionStylePlanEnforced: checks.captionStylePlanPresent && nativeCaptionAuditOk,
       openingVisualPolicyOk: checks.openingAudioStartsImmediately && Number(coverIntroSeconds || 0) === 0,
       directFirstSceneStart: checks.openingAudioStartsImmediately && Number(coverIntroSeconds || 0) === 0,
       qualityConsistencyContractPresent: existsSync(join(out, "workflow", "quality-consistency-contract.json"))
@@ -30727,7 +32266,7 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       generatedImagePurposeFit: nativeArtifactOk,
       generatedVisualDesignLayersPresent: nativeArtifactOk,
       visualAssetTextClean: visualAssetTextAudit.status === "pass",
-      frameLayoutNoTextVisualOverlap: nativeArtifactOk,
+      frameLayoutNoTextVisualOverlap: nativeArtifactOk && nativeCaptionAuditOk,
       horizontalTextStackSafeAreaClear: nativeArtifactOk,
       frameTextFullyVisibleAndFluent: nativeArtifactOk,
       premiumPaletteApplied: nativeArtifactOk,
@@ -30735,48 +32274,34 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
       frameNoVisibleTechnologyStackLeak: nativeArtifactOk,
       frameLayoutVariantDiversity: nativeArtifactOk,
       frameNoEmptyPlaceholderCards: nativeArtifactOk,
-      captionRendererApplied: nativeArtifactOk,
+      captionRendererApplied: nativeArtifactOk && nativeCaptionAuditOk,
     });
   }
   const coverPublishingReady = checks.coverImage2FirstChainPresent
+    && checks.coverRequestScopeComplete
+    && checks.coverRequestCompletionComplete
     && checks.coverImage2FinalQualityEligible
     && checks.coverNotLocalFallbackAsFinal;
-  const semanticVideoCheckIds = new Set([
-    "personalIpSemanticLayerManifestPresent",
-    "personalIpSemanticSourceOwnedByLayers",
-    "personalIpIndependentSvgLayersPresent",
-    "personalIpSemanticHtmlPresent",
-    "personalIpCombinedSvgPresent",
-    "personalIpMasterTimelinePresent",
-    "personalIpSubtitleTopmost",
-    "personalIpReducedMotionFinalState",
-    "personalIpSemanticPackageQcPass",
-    "resolution1080p",
-    "audibleAudio",
-    "audioVideoDurationDeltaOk",
-    "narrationContinuityOk",
-    "visualSubtitleSingleLine",
-    "blackdetectClean",
-    "rendererNotDegraded",
-  ]);
   const videoChecks = Object.fromEntries(
-    Object.entries(checks).filter(([id]) => semanticLayerRenderer
-      ? semanticVideoCheckIds.has(id)
-      : ![
-          "coverDesignPresent",
-          "coverFilesPresent",
-          "coverImage2FirstChainPresent",
-          "coverImage2FinalQualityEligible",
-          "coverNotLocalFallbackAsFinal",
-          "requiredFilesPresent",
-        ].includes(id)),
+    Object.entries(checks).filter(([id]) => ![
+      "coverDesignPresent",
+      "coverFilesPresent",
+      "coverImage2FirstChainPresent",
+      "coverRequestScopeComplete",
+      "coverRequestCompletionComplete",
+      "coverImage2FinalQualityEligible",
+      "coverNotLocalFallbackAsFinal",
+      "requiredFilesPresent",
+    ].includes(id)),
   );
   const videoPass = Object.values(videoChecks).every(Boolean);
   const pass = videoPass && coverPublishingReady;
   const publishingBlockers = coverPublishingReady
     ? []
     : [
-        "platform submission cover is still pending or not yet inspected as a native-ratio Context Image2/image_gen bitmap",
+        checks.coverRequestCompletionComplete
+          ? "platform submission cover is still pending or not yet inspected as a native-ratio Context Image2/image_gen bitmap"
+          : "not all requested platform cover targets are completed, inspected, ingested, and present in the package",
       ];
   const qc = {
     pass,
@@ -30794,6 +32319,9 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     minimumVideoBitrate: MIN_FINAL_VIDEO_BITRATE,
     meanVolume: loudness.meanVolume,
     maxVolume: loudness.maxVolume,
+    integratedLufs: loudnessDynamics.integratedLufs,
+    truePeakDb: loudnessDynamics.truePeakDb,
+    loudnessRangeLu: loudnessDynamics.loudnessRangeLu,
     coverIntroSeconds,
     coverTimingMode,
     openingAudioStartsAtSeconds: voiceManifest.timing?.audioStartsAtSeconds ?? renderManifest.openingAudioStartsAtSeconds ?? syncPlan.audioStartsAtSeconds ?? null,
@@ -30819,15 +32347,19 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     videoCodec: video.codec_name,
     audioCodec: audio.codec_name,
     checks,
+    missingRequiredFiles,
+    missingRequiredVideoFiles,
   };
   writeJson(join(logs, "qc.json"), qc);
   const rows = [
     ["Reproducibility", pass ? "PASS" : "WARN", "Commands, brief, storyboard, subtitles, logs, screenshots, and manifest are written locally."],
     ["Runtime configuration", checks.runtimeConfigPresent ? "PASS" : "FAIL", `Resolved defaults are recorded in workflow/runtime-config.json; image source ${imageSource}, voice backend ${voiceBackend}, OpenAI API key does not change defaults.`],
-    ["Generation mode contract", checks.generationModeContractPresent ? "PASS" : "FAIL", `Selected ${generationModeContract.selectedMode || "unknown"}; ordinary topic/script intake defaults to semi-auto config, while explicit full-auto keeps the horizontal one-pass path.`],
+    ["Generation mode contract", checks.generationModeContractPresent ? "PASS" : "FAIL", `Selected ${generationModeContract.selectedMode || "unknown"}; ordinary topic/script intake defaults to the full-auto one-pass path, while semi-auto/custom requires explicit selection.`],
     ["Rights safety", checks.freeStockMaterialLedgerPresent ? "PASS" : "FAIL", briefHasFreeStockMaterials(brief) ? `Free-stock assets are recorded in workflow/free-stock-asset-ledger.json; publication readiness: ${freeStockAssetLedger.publicationReadiness || "needs review"}.` : "Original text/HTML plus local TTS and ffmpeg-generated audio bed; no external media."],
     ["Script originality", "PASS", "Original narration and examples for this workflow."],
     ["Content coverage", checks.contentCoverageOk ? "PASS" : "FAIL", contentCoverage.requiredMinimumRatio === null ? "No full-source coverage gate required for this run, or condensed mode was explicit." : `Source-to-narration coverage ${(Number(contentCoverage.coverageRatio || 0) * 100).toFixed(1)}%; required ${(Number(contentCoverage.requiredMinimumRatio || 0) * 100).toFixed(0)}%.`],
+    ["Methodology visual coverage", checks.methodologyVisualCoverageOk ? "PASS" : "FAIL", methodologyVisualCoverage.status === "not-applicable" ? "No structured methodology steps/tables/scorecards were detected in the source material." : `${Number(methodologyVisualCoverage.matchedUnitCount || 0)}/${Number(methodologyVisualCoverage.requiredUnitCount || 0)} required methodology units are present in final visual scenes.`],
+    ["Adaptive content scene plan", checks.adaptiveContentScenePlanOk ? "PASS" : "FAIL", `Resolved ${Number(adaptiveContentScenePlan.countPlan?.resolvedCount || 0)} scenes from ${Number(adaptiveContentScenePlan.sourceSceneCount || 0)} source scenes with no default maximum.`],
     ["Content presentation design", checks.contentPresentationDesignPresent ? "PASS" : "FAIL", "Topic type, audience state, hierarchy, display logic, metaphor, layout, motion purpose, and reject list are planned before render."],
     ["Page decision contract", checks.pageDecisionContractPresent ? "PASS" : "FAIL", "Every page answers the content, design, interaction, animation, and decision-owner questions before render."],
     ["Retention structure contract", checks.retentionStructureContractPresent && checks.firstFrameRetentionPromisePresent && checks.firstThirtySecondContractPresent && checks.evidenceCadencePlanned && checks.progressAndPayoffPlanned ? "PASS" : "FAIL", "RETAIN binds the first frame, first 30 seconds, evidence cadence, progress cues, and ending payoff across the whole video."],
@@ -30882,6 +32414,8 @@ async function runQc({ out, finalMp4, duration, renderer, voiceBackend, allowDeg
     ["Subtitle display", checks.visualSubtitleSingleLine ? "PASS" : "FAIL", "Visible subtitle cues are single-line, sequential, and do not overlap; multi-line caption layout never appears at one time."],
     ["Caption style plan", checks.captionStylePlanPresent && checks.captionStylePlanEnforced && checks.captionRendererApplied ? "PASS" : "FAIL", `Premium caption styling is planned per scene and rendered in HTML; caption renderer issues ${Number(frameLayoutOverlapAudit.captionStyleIssueCount || 0)}.`],
     ["Audio/subtitle alignment", checks.hasAudio && checks.audibleAudio && checks.audioDeliveryFormatOk && checks.frameAudioTimingBound ? "PASS" : "FAIL", `Voice backend: ${voiceBackend}; mean ${loudness.meanVolume ?? "n/a"} dB; max ${loudness.maxVolume ?? "n/a"} dB; audio ${audioSampleRate || "n/a"} Hz/${audioChannels || "n/a"}ch ${audio.codec_name || "n/a"}; SRT scenes match TTS segment timing.`],
+    ["Speech loudness consistency", checks.speechSegmentLoudnessControlled && checks.speechDynamicsFilterApplied && checks.finalLoudnessRangeControlled ? "PASS" : "FAIL", ["cosyvoice_local", "melotts_local", "say"].includes(voiceBackend) ? `Generated speech segments: ${speechSegmentLoudness.beforeSpreadDb ?? "n/a"} dB before, ${speechSegmentLoudness.afterSpreadDb ?? "n/a"} dB after per-segment normalization; final measured LRA ${loudnessDynamics.loudnessRangeLu ?? "n/a"} LU.` : `Authorized provided audio receives the restrained final delivery dynamics chain; final measured LRA ${loudnessDynamics.loudnessRangeLu ?? "n/a"} LU.`],
+    ["Cover request scope", checks.coverRequestScopeComplete ? "PASS" : "FAIL", "Every planned/requested platform target must remain in the Context Image2 queue; concurrency is never treated as a total-count limit."],
     ["Narration continuity", checks.narrationContinuityOk ? "PASS" : "FAIL", longNarrationSilences.length ? `Long post-opening silence detected: ${JSON.stringify(longNarrationSilences)}` : "No long post-opening narration silence detected."],
     ["Voice direction", checks.voiceDirectionPresent && checks.voicePausePolicyPresent ? "PASS" : "FAIL", "Speech style, sentence-complete pause policy, comma short-pause policy, and spoken narration file are generated before TTS."],
     ["Voice backend compliance", checks.voiceBackendCompliant ? "PASS" : "FAIL", "Final narration must use cosyvoice_local, melotts_local, or an explicitly user-provided authorized audio file normalized through the delivery audio chain."],
@@ -30908,8 +32442,16 @@ async function main() {
     return;
   }
   const out = resolve(ROOT, args.out);
+  writeSkillRuntimeProvenance(out);
   const releaseOutputLock = acquireOutputLock(out);
   const brief = JSON.parse(readFileSync(resolve(ROOT, args.brief), "utf8"));
+  try {
+    enforcePresentationRouteLock({ brief, out });
+  } catch (error) {
+    releaseOutputLock();
+    fail(error.message);
+  }
+  const existingVideoPackageSnapshot = snapshotExistingVideoPackageForCoverOnly(out, args);
   if (args["qc-only"]) {
     const finalMp4 = resolve(out, args["final-mp4"] || "renders/final.mp4");
     if (!existsSync(finalMp4)) fail(`Expected final MP4 was not found for --qc-only: ${finalMp4}`);
@@ -30918,9 +32460,14 @@ async function main() {
       || {};
     const voiceManifest = readJsonIfExists(join(out, "workflow", "voice-subtitle-manifest.json")) || {};
     const designPlan = readJsonIfExists(join(out, "workflow", "design-plan.json")) || {};
+    const semanticLayerSpec = readJsonIfExists(join(out, "workflow", "personal-ip-semantic-layer-spec.json")) || {};
+    const semanticLayerManifest = readJsonIfExists(join(out, "workflow", "personal-ip-semantic-layer-manifest.json")) || {};
+    const semanticLayerSelected = semanticLayerManifest.route === "personal-ip-semantic-layers-svg-html-video"
+      && semanticLayerSpec.expectedSceneCount > 0;
     const nativeFinalSelected = existsSync(join(out, "workflow", "native-page-render-config.json"))
       || designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
     const renderer = args.renderer
+      || (semanticLayerSelected ? "personal-ip-semantic-layers-svg-html-video" : "")
       || (nativeFinalSelected ? "ip-diagram-native-final-pages" : renderManifest.renderer)
       || "html-video";
     if (nativeFinalSelected && Array.isArray(designPlan.pages)) {
@@ -30946,6 +32493,16 @@ async function main() {
     }
     const voiceBackend = args["voice-backend"] || voiceManifest.voiceBackend || voiceManifest.backend || "auto";
     const allowDegradedRenderer = Boolean(args["allow-degraded-renderer"] || brief.allowDegradedRenderer);
+    assertMethodologyVisualCoverage({
+      out,
+      coverage: buildRouteFinalMethodologyCoverage({
+        out,
+        brief,
+        renderer,
+        fallbackFrames: Array.isArray(designPlan.pages) ? designPlan.pages.map((page) => page.frame || page) : [],
+        args,
+      }),
+    });
     const qc = await runQc({
       out,
       finalMp4,
@@ -30955,17 +32512,79 @@ async function main() {
       allowDegradedRenderer,
     });
     const deliveryManifest = readJsonIfExists(join(out, "delivery-manifest.json")) || {};
+    const reviewManifest = readJsonIfExists(join(out, "review-manifest.json")) || {};
     const visualAssetManifest = readJsonIfExists(join(out, "workflow", "visual-asset-manifest.json")) || {};
-    if (Object.keys(deliveryManifest).length) {
-      writeDeliveryPage({
+    const baseManifest = Object.keys(deliveryManifest).length ? deliveryManifest : reviewManifest;
+    const currentCoverDesign = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
+    const currentCoverImage2Qc = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
+    const currentCoverSizeSelection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+    const currentCoverRequests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+    const currentPlatformCoverReadiness = readPlatformCoverSubmissionReadiness(out);
+    const currentCoverStatus = {
+      ...buildCoverStatusSnapshot({
+        imageSource: brief.imageSource || visualAssetManifest.imageSource || "image2-dryrun",
+        platformReadiness: currentPlatformCoverReadiness,
+        coverImage2Qc: currentCoverImage2Qc,
+        coverSizeSelection: currentCoverSizeSelection,
+        requestManifest: currentCoverRequests,
+        coverDesign: currentCoverDesign,
+      }),
+      videoProductionMayCompleteWhileCoverPending: true,
+      contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+    };
+    let deliveryPage = null;
+    let openedDeliveryPage = false;
+    let openedProjectFolder = false;
+    if (qc.pass) {
+      const titleVideoFile = `${safeFileStem(brief.title || "video")}.mp4`;
+      copyFileSync(finalMp4, join(out, "final.mp4"));
+      copyFileSync(finalMp4, join(out, titleVideoFile));
+      const promotedManifest = {
+        ...baseManifest,
+        ok: true,
+        videoPass: true,
+        publishingReady: true,
+        deliveryClass: "publish-ready",
+        promotedToFinalDelivery: true,
+        publishingBlockers: [],
+        coverStatus: currentCoverStatus,
+        finalMp4: relative(out, finalMp4),
+        finalCopy: titleVideoFile,
+        compatibilityFinalCopy: "final.mp4",
+        reviewVideo: undefined,
+      };
+      writeJson(join(out, "delivery-manifest.json"), promotedManifest);
+      rmSync(join(out, "review-manifest.json"), { force: true });
+      deliveryPage = writeDeliveryPage({
         out,
         brief,
-        manifest: deliveryManifest,
+        manifest: promotedManifest,
         qc,
-        frames: Array.isArray(designPlan.pages) ? designPlan.pages : [],
+        frames: Array.isArray(designPlan.pages) ? designPlan.pages.map((page) => page.frame || page) : [],
         renderer,
         voiceBackend,
         imageSource: brief.imageSource || visualAssetManifest.imageSource || "image2-dryrun",
+      });
+      openedDeliveryPage = openDeliveryPage(deliveryPage, args);
+      openedProjectFolder = openProjectFolder(out, args);
+    } else if (Object.keys(baseManifest).length) {
+      const titleVideoFile = `${safeFileStem(brief.title || "video")}.mp4`;
+      rmSync(join(out, "final.mp4"), { force: true });
+      rmSync(join(out, titleVideoFile), { force: true });
+      rmSync(join(out, "delivery-manifest.json"), { force: true });
+      rmSync(join(out, "delivery.html"), { force: true });
+      writeJson(join(out, "review-manifest.json"), {
+        ...baseManifest,
+        ok: false,
+        videoPass: qc.videoPass,
+        publishingReady: false,
+        deliveryClass: qc.videoPass ? "video-review-ready" : "render-qc-failed",
+        promotedToFinalDelivery: false,
+        publishingBlockers: qc.publishingBlockers || [],
+        coverStatus: currentCoverStatus,
+        finalCopy: null,
+        compatibilityFinalCopy: null,
+        reviewVideo: relative(out, finalMp4),
       });
     }
     console.log(JSON.stringify({
@@ -30978,6 +32597,9 @@ async function main() {
       size: statSync(finalMp4).size,
       qc: "logs/qc.json",
       mode: "qc-only",
+      deliveryPage,
+      openedDeliveryPage,
+      openedProjectFolder,
     }, null, 2));
     releaseOutputLock();
     if (!qc.pass) process.exitCode = 2;
@@ -30992,13 +32614,28 @@ async function main() {
   const narration = narrationTextFromBrief(brief.narration || initialFrames.map((frame) => frame.subtitle).join(""));
   const contentCoverage = buildContentCoverage({ brief, narration, frames: initialFrames, args });
   assertContentCoverage({ out, coverage: contentCoverage });
-  const fixedBriefDuration = brief.durationMode === "fixed" || brief.fixedDuration === true;
+  assertMethodologyVisualCoverage({
+    out,
+    coverage: buildMethodologyCoverageForFrames({ brief, frames: initialFrames, args }),
+  });
+  const declaredDuration = Math.max(
+    Number(brief.durationSeconds || 0),
+    Number(brief.targetDurationSeconds || 0),
+    Number(brief.audioDurationSeconds || 0),
+    Number(brief.videoDurationSeconds || 0),
+    Number(brief.personalIp?.durationSeconds || 0),
+    Number(brief.personalIp?.audioDurationSeconds || 0),
+    Number(brief.personalIp?.videoDurationSeconds || 0),
+  );
   const estimatedDuration = args.duration
     ? clampDuration(args.duration)
-    : fixedBriefDuration && brief.durationSeconds
-      ? clampDuration(brief.durationSeconds)
+    : declaredDuration > 0
+      ? clampDuration(declaredDuration)
       : estimateAutoDuration({ narration, frames: initialFrames, brief });
   let frames = normalizeFrames(brief, estimatedDuration, { maxFrames: maxVisualFrames, allowSceneTruncation });
+  if (frames.adaptiveScenePlan) {
+    writeJson(join(out, "workflow", "adaptive-content-scene-plan.json"), frames.adaptiveScenePlan);
+  }
   const requestedMode = args.mode === "fallback" ? "fallback" : "recommended";
   const allowDegradedRenderer = Boolean(args["allow-degraded-renderer"] || brief.allowDegradedRenderer || runtimeDefaults.allowDegradedRenderer);
   if (requestedMode === "fallback" && !allowDegradedRenderer) {
@@ -31145,15 +32782,30 @@ async function main() {
     imageSource,
     codexImageAssetsDir,
   }).then(() => {
+    const requestManifest = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+    const pendingRequestCount = Number(requestManifest.pendingRequestCount || 0);
+    const coversVerified = requestManifest.allRequestedPlatformUploadCoversReady === true
+      && pendingRequestCount === 0;
     writeJson(join(out, "workflow", "cover-parallel-execution.json"), {
       schemaVersion: 1,
-      status: "complete",
-      lane: "cover-design",
+      status: coversVerified ? "covers-verified" : "generation-required",
+      lane: "cover-design-and-dispatch-planning",
+      planningComplete: true,
+      coversGenerated: coversVerified,
+      coversVerified,
+      pendingRequestCount,
+      pendingTargetIds: requestManifest.pendingTargetIds || [],
       startedAt: coverParallelStartedAt,
       completedAt: new Date().toISOString(),
       canRunInParallelWith: ["tts-timing", "audio-post", "scene-visual-asset-preparation"],
       dependencyPolicy: "Cover design reads the locked title/script/design plan and does not require TTS audio, subtitle cue durations, or final MP4 render output.",
-      outputs: ["workflow/cover-design.json", "workflow/cover-image2-prompts.json", "workflow/cover-size-selection.json", "cover/"],
+      completionMeaning: coversVerified
+        ? "Every requested cover is generated, inspected, canonically ingested, and verified."
+        : "Only deterministic cover planning is complete. Built-in image_gen dispatch, inspection, evidence recording, and locked batch ingest are still mandatory.",
+      nextAction: coversVerified
+        ? "none"
+        : "Prepare workflow/cover-image2-dispatch-plan.json and execute every pending job through the standalone codex-video-cover-generation Skill.",
+      outputs: ["workflow/cover-design.json", "workflow/cover-image2-prompts.json", "workflow/cover-size-selection.json", "workflow/context-image2-cover-requests.json", "cover/"],
     });
   }).catch((error) => {
     writeJson(join(out, "workflow", "cover-parallel-execution.json"), {
@@ -31166,17 +32818,55 @@ async function main() {
     });
     throw error;
   });
-  // Guard against an unhandled-rejection window: the full-auto video lane does
-  // not wait for this independent cover lane. If cover preparation rejects,
-  // Node must not emit an unhandledRejection and crash the video lane. A benign
-  // handler marks it handled now; cover-only and semi-auto entrypoints still
-  // explicitly await and report cover-lane failures.
+  // Register a handler immediately; every terminal path still awaits this lane
+  // before QC or returning so cover failures cannot be silently promoted.
   coverArtifactsPromise.catch(() => {});
   const finalRenderRequested = !(generationMode === "semi-auto" && !args.compose && !args["render-final"]) && !args["cover-only"];
   if (finalRenderRequested) {
     try {
+      assertPersonalIpSemanticLayerNotBlocked({ designPlan, stage: "pre-cover-full-render" });
+    } catch (error) {
+      await coverArtifactsPromise;
+      if (generationMode === "full-auto") {
+        preparePersonalIpNativePageContinuation({ out, brief: finalBrief, designPlan, frames, duration: estimatedDuration });
+        prepareCoverImage2DispatchContinuation(out);
+        writeFullAutoContinuationManifest({
+          out,
+          brief: finalBrief,
+          designPlan,
+          generationMode,
+          reason: "personal-ip semantic master and platform covers require built-in image_gen dispatch before rendering",
+        });
+      }
+      writePersonalIpSemanticLayerBlockedManifest({
+        out,
+        brief: finalBrief,
+        designPlan,
+        generationMode,
+        imageSource,
+        stage: "pre-cover-full-render",
+      });
+      writeJson(join(out, "workflow", "commands.json"), commandLog);
+      writeTimingSummary(out);
+      fail(error.message);
+    }
+  }
+  if (finalRenderRequested) {
+    try {
       assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "pre-cover-full-render" });
     } catch (error) {
+      await coverArtifactsPromise;
+      if (generationMode === "full-auto") {
+        preparePersonalIpNativePageContinuation({ out, brief: finalBrief, designPlan, frames, duration: estimatedDuration });
+        prepareCoverImage2DispatchContinuation(out);
+        writeFullAutoContinuationManifest({
+          out,
+          brief: finalBrief,
+          designPlan,
+          generationMode,
+          reason: "personal-IP native pages and platform covers require built-in image_gen dispatch before rendering",
+        });
+      }
       writePersonalIpNativeFinalBlockedManifest({
         out,
         brief: finalBrief,
@@ -31185,7 +32875,6 @@ async function main() {
         imageSource,
         stage: "pre-cover-full-render",
       });
-      await coverArtifactsPromise;
       writeJson(join(out, "workflow", "commands.json"), commandLog);
       writeTimingSummary(out);
       fail(error.message);
@@ -31259,6 +32948,8 @@ async function main() {
     const semiCoverDesign = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
 	    const semiCoverImage2Qc = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
 	    const semiCoverSizeSelection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+	    const semiCoverRequests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+	    const semiPlatformCoverReadiness = readPlatformCoverSubmissionReadiness(out);
 	    const semiNativeFinalVisual = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
 	    const semiNativeDirectPlan = designPlan.ipDiagramCreatorPlan?.nativeDirectUsePlan || {};
 	    const semiPersonalIpRegistry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry || {};
@@ -31286,16 +32977,16 @@ async function main() {
 	        nativeFinalSelectionRule: "native-final-video is selected only with verified local native page images and source_generated_image provenance; personal-IP requests must block on native provenance instead of falling back to integrated codex-video-workflow composition.",
 	      },
       coverStatus: {
-        imageSource,
+        ...buildCoverStatusSnapshot({
+          imageSource,
+          platformReadiness: semiPlatformCoverReadiness,
+          coverImage2Qc: semiCoverImage2Qc,
+          coverSizeSelection: semiCoverSizeSelection,
+          requestManifest: semiCoverRequests,
+          coverDesign: semiCoverDesign,
+        }),
         image2PromptQualityPass: semiCoverImage2Qc.promptQualityPass === true,
-        finalCoverQualityEligible: semiCoverImage2Qc.finalCoverQualityEligible === true,
-        reviewFallbackOnly: semiCoverImage2Qc.reviewFallbackOnly === true,
-        blockers: Array.isArray(semiCoverImage2Qc.blockers) ? semiCoverImage2Qc.blockers : [],
-        allEntriesUploadReady: semiCoverSizeSelection.allEntriesUploadReady === true,
-        needsRegenerationCount: Array.isArray(semiCoverSizeSelection.needsRegeneration)
-          ? semiCoverSizeSelection.needsRegeneration.length
-          : 0,
-        rootCoverCopies: semiCoverDesign.rootOutputCopies || [],
+        contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
       },
       configSummary: {
         captionStyleCount: configManifest.captionStyles?.count || 0,
@@ -31364,6 +33055,30 @@ async function main() {
     await coverArtifactsPromise;
     designPlan = await prepareVisualAssets({ out, designPlan, imageSource, codexImageAssetsDir });
     const coverDesign = JSON.parse(readFileSync(join(out, "workflow", "cover-design.json"), "utf8"));
+    if (existingVideoPackageSnapshot) {
+      restoreExistingVideoPackageAfterCoverOnly(out, existingVideoPackageSnapshot);
+      const synchronizedCoverState = synchronizeExistingVideoPackageCoverState(out, imageSource);
+      console.log(JSON.stringify({
+        ok: true,
+        mode: "cover-only-update",
+        out,
+        preservedExistingVideoPackage: true,
+        publishingReady: synchronizedCoverState.coverReady,
+        openedDeliveryPage: false,
+        openedProjectFolder: false,
+        coverDesign: "workflow/cover-design.json",
+        videoInternalCover: coverDesign.videoInternalCover?.file,
+        standaloneCovers: coverDesign.platformTargets.map((target) => target.file),
+        rootCoverCopies: coverDesign.rootOutputCopies || [],
+        rasterExportStatus: coverDesign.rasterExport?.status,
+      }, null, 2));
+      releaseOutputLock();
+      return;
+    }
+    const coverOnlyImage2Qc = readJsonIfExists(join(out, "workflow", "cover-image2-qc.json")) || {};
+    const coverOnlySizeSelection = readJsonIfExists(join(out, "workflow", "cover-size-selection.json")) || {};
+    const coverOnlyRequests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json")) || {};
+    const coverOnlyPlatformReadiness = readPlatformCoverSubmissionReadiness(out);
     const coverManifest = {
       mode: "cover-only",
       generationMode,
@@ -31377,6 +33092,18 @@ async function main() {
       },
       rasterExport: coverDesign.rasterExport,
       command: `node ${process.argv.slice(1).join(" ")}`,
+      coverStatus: {
+        ...buildCoverStatusSnapshot({
+          imageSource,
+          platformReadiness: coverOnlyPlatformReadiness,
+          coverImage2Qc: coverOnlyImage2Qc,
+          coverSizeSelection: coverOnlySizeSelection,
+          requestManifest: coverOnlyRequests,
+          coverDesign,
+        }),
+        videoProductionMayCompleteWhileCoverPending: true,
+        contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+      },
       files: {
         brief: "brief.json",
         runtimeConfig: "workflow/runtime-config.json",
@@ -31448,6 +33175,18 @@ async function main() {
   try {
     assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "pre-audio-full-render" });
   } catch (error) {
+    await coverArtifactsPromise;
+    if (generationMode === "full-auto") {
+      preparePersonalIpNativePageContinuation({ out, brief: finalBrief, designPlan, frames, duration: estimatedDuration });
+      prepareCoverImage2DispatchContinuation(out);
+      writeFullAutoContinuationManifest({
+        out,
+        brief: finalBrief,
+        designPlan,
+        generationMode,
+        reason: "personal-IP native pages and platform covers require built-in image_gen dispatch before audio/render",
+      });
+    }
     writePersonalIpNativeFinalBlockedManifest({
       out,
       brief: finalBrief,
@@ -31456,7 +33195,6 @@ async function main() {
       imageSource,
       stage: "pre-audio-full-render",
     });
-    await coverArtifactsPromise;
     writeJson(join(out, "workflow", "commands.json"), commandLog);
     writeTimingSummary(out);
     fail(error.message);
@@ -31466,6 +33204,13 @@ async function main() {
   // while the video-production agent runs TTS and composes the MP4. The
   // platform cover is validated independently before publishing, not before
   // video rendering.
+  const providedAudioPronunciationLineage = providedAudioPath
+    ? buildProvidedAudioPronunciationLineage({
+        out,
+        providedAudioPath,
+        narrationPath: join(out, "script", "narration-spoken.txt"),
+      })
+    : null;
   const pronunciationPlan = providedAudioPath
     ? null
     : runChinesePronunciationPreflight({
@@ -31476,38 +33221,73 @@ async function main() {
         overrides: pronunciationOverridesForBrief(planningBrief),
         allowUnresolved: args["allow-unresolved-pronunciations"] === true || planningBrief.allowUnresolvedPronunciations === true,
       });
-  const narrationSegments = frameNarrationSegments(spokenNarration, frames);
-  const cueNarrationSegments = subtitleCueNarrationSegments(narrationSegments);
-  assertPronunciationMatchesPreservedInSegments(pronunciationPlan, cueNarrationSegments);
-  writeJson(join(out, "script", "frame-narration-segments.json"), {
-    source: "spoken narration split once and bound to visual frames before TTS",
-    preservation: "The concatenated segment text must match script/narration-spoken.txt except whitespace.",
-    segments: narrationSegments,
+  const initialAudioPlanningFrameCount = frames.length;
+  const audioDurationReplanPasses = [];
+  let audio = null;
+  let finalDuration = estimatedDuration;
+  let audioDurationReplanConverged = false;
+  let finalAdaptiveScenePlan = frames.adaptiveScenePlan || null;
+  for (let pass = 1; pass <= 3; pass += 1) {
+    const narrationSegments = frameNarrationSegments(spokenNarration, frames);
+    const cueNarrationSegments = subtitleCueNarrationSegments(narrationSegments);
+    assertPronunciationMatchesPreservedInSegments(pronunciationPlan, cueNarrationSegments);
+    writeNarrationSegmentArtifacts({ out, narrationSegments, cueNarrationSegments, pass });
+    audio = await generateAudio({
+      out,
+      narration: spokenNarration,
+      duration: finalDuration,
+      voiceBackend: requestedVoiceBackend,
+      allowSayFallback,
+      voiceDirection,
+      coverIntroSeconds,
+      narrationSegments: cueNarrationSegments,
+      language: brief.language || "zh",
+      providedAudio: providedAudioPath,
+      providedAudioTrimStart,
+      providedAudioTrimEnd,
+      ttsAcceleration: acceleration,
+      pronunciationPlan,
+      providedAudioPronunciationLineage,
+    });
+    finalDuration = audio.durationSeconds;
+    const replannedFrames = normalizeFrames(
+      { ...planningBrief, durationSeconds: finalDuration },
+      finalDuration,
+      { maxFrames: maxVisualFrames, allowSceneTruncation },
+    );
+    const frameCountStable = replannedFrames.length === frames.length;
+    audioDurationReplanPasses.push({
+      pass,
+      inputFrameCount: frames.length,
+      actualAudioDurationSeconds: finalDuration,
+      resolvedFrameCount: replannedFrames.length,
+      frameCountStable,
+    });
+    if (frameCountStable) {
+      finalAdaptiveScenePlan = replannedFrames.adaptiveScenePlan || finalAdaptiveScenePlan;
+      frames = applyAudioTimingsToFrames(replannedFrames, audio.segmentTimings);
+      audioDurationReplanConverged = true;
+      break;
+    }
+    frames = replannedFrames;
+  }
+  writeJson(join(out, "workflow", "audio-duration-scene-replan.json"), {
+    schemaVersion: 1,
+    status: audioDurationReplanConverged ? "converged" : "failed-to-converge",
+    policy: "Actual normalized audio duration is authoritative. Visual scene count is recalculated after audio generation and TTS/provided-audio segmentation is repeated until the frame count stabilizes.",
+    estimatedDurationSeconds: estimatedDuration,
+    actualDurationSeconds: finalDuration,
+    initialFrameCount: initialAudioPlanningFrameCount,
+    finalFrameCount: frames.length,
+    passCount: audioDurationReplanPasses.length,
+    passes: audioDurationReplanPasses,
   });
-  writeJson(join(out, "script", "subtitle-cue-narration-segments.json"), {
-    source: "frame narration segments split into sentence-complete subtitle cues before TTS",
-    preservation: "Concatenating all spoken cue text must match script/narration-spoken.txt except whitespace; cue durations come from actual generated audio files.",
-    timingContract: "Each sentence-complete subtitle cue owns one local TTS segment. Visual line breaks are stored separately as captionText and must not create extra TTS cuts.",
-    segments: cueNarrationSegments,
-  });
-  const audio = await generateAudio({
-    out,
-    narration: spokenNarration,
-    duration: estimatedDuration,
-    voiceBackend: requestedVoiceBackend,
-    allowSayFallback,
-    voiceDirection,
-    coverIntroSeconds,
-    narrationSegments: cueNarrationSegments,
-    language: brief.language || "zh",
-    providedAudio: providedAudioPath,
-    providedAudioTrimStart,
-    providedAudioTrimEnd,
-    ttsAcceleration: acceleration,
-    pronunciationPlan,
-  });
-  const finalDuration = audio.durationSeconds;
-  frames = applyAudioTimingsToFrames(frames, audio.segmentTimings);
+  if (!audioDurationReplanConverged || !audio) {
+    fail(`Visual scene count did not converge against actual audio duration after ${audioDurationReplanPasses.length} planning passes.`);
+  }
+  if (finalAdaptiveScenePlan) {
+    writeJson(join(out, "workflow", "adaptive-content-scene-plan.json"), finalAdaptiveScenePlan);
+  }
   finalBrief = {
     ...planningBrief,
     durationSeconds: finalDuration,
@@ -31537,6 +33317,10 @@ async function main() {
     coverArtifactMode: "sync-only",
   });
   assertContentCoverage({ out, coverage: buildContentCoverage({ brief: finalBrief, narration, frames, args }) });
+  assertMethodologyVisualCoverage({
+    out,
+    coverage: buildMethodologyCoverageForFrames({ brief: finalBrief, frames, args }),
+  });
   await prepareVisualAssets({ out, designPlan, imageSource, codexImageAssetsDir });
   writeJson(join(out, "workflow", "tool-candidate-selection.json"), {
     recommended: "html-video content graph plus per-frame HTML visual renderer, then local audio/QC/package",
@@ -31568,9 +33352,12 @@ async function main() {
   let renderer = "html-video";
   let finalMp4;
   const personalIpNativeFinalRoute = personalIpNativeFinalRouteState(designPlan);
+  const personalIpSemanticLayerRoute = personalIpSemanticLayerRouteState(designPlan);
   if (personalIpSemanticLayerRouteSelected(designPlan)) {
     renderer = "personal-ip-semantic-layers-svg-html-video";
     finalMp4 = renderWithPersonalIpSemanticLayers({ out, brief: finalBrief, frames, narration: spokenNarration, audio, designPlan });
+  } else if (personalIpSemanticLayerRoute.requiredByPersonalIpAnimationRoute) {
+    assertPersonalIpSemanticLayerNotBlocked({ designPlan, stage: "semantic-layer-final-render" });
   } else if (personalIpNativeFinalRoute.requiredByPersonalIpRoute) {
     assertPersonalIpNativeFinalNotBlocked({ designPlan, stage: "native-page-final-render" });
     renderer = "ip-diagram-native-final-pages";
@@ -31583,9 +33370,11 @@ async function main() {
       renderer = "ffmpeg-fallback";
       write(join(out, "logs", "render-attempts.log"), `html-video failed or skipped:\n${error.stack || error.message}\n`);
       if (!allowDegradedRenderer) {
-        writeJson(join(out, "delivery-manifest.json"), {
+        writeJson(join(out, "review-manifest.json"), {
           ok: false,
           blocked: "degraded-renderer",
+          deliveryClass: "blocked-before-render",
+          promotedToFinalDelivery: false,
           generationMode,
           finalMp4: null,
           outputDirectory: out,
@@ -31626,6 +33415,7 @@ async function main() {
             renderAttempts: "logs/render-attempts.log",
           },
         });
+        rmSync(join(out, "delivery-manifest.json"), { force: true });
         writeJson(join(out, "workflow", "commands.json"), commandLog);
         writeTimingSummary(out);
         fail("html-video render failed; refusing to silently deliver degraded ffmpeg fallback as final output. See logs/render-attempts.log.");
@@ -31635,11 +33425,14 @@ async function main() {
   }
   if (!existsSync(finalMp4)) fail(`Expected final MP4 was not created: ${finalMp4}`);
   normalizeFinalAudio({ out, finalMp4, mode: acceleration.finalAudioMode });
-  copyFileSync(finalMp4, join(out, "final.mp4"));
+  assertMethodologyVisualCoverage({
+    out,
+    coverage: buildRouteFinalMethodologyCoverage({ out, brief: finalBrief, renderer, fallbackFrames: frames, args }),
+  });
   const titleVideoFile = `${safeFileStem(finalBrief.title || brief.title || "video")}.mp4`;
-  copyFileSync(finalMp4, join(out, titleVideoFile));
 	  const finalCanvas = canvasForBrief(finalBrief);
 	  const nativeFinalVisual = designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.selectedNow === true;
+	  const semanticLayerVisual = renderer === "personal-ip-semantic-layers-svg-html-video";
 	  const nativeDirectPlan = designPlan.ipDiagramCreatorPlan?.nativeDirectUsePlan || {};
 	  const personalIpRegistry = designPlan.ipDiagramCreatorPlan?.personalIpAssetRegistry || {};
   const coverDesignForDelivery = readJsonIfExists(join(out, "workflow", "cover-design.json")) || {};
@@ -31670,39 +33463,39 @@ async function main() {
       coverRootCopies: coverDesignForDelivery.rootOutputCopies || [],
     },
 	    routeStatus: {
-	      visualEngineMode: nativeFinalVisual ? "ip-diagram-creator-native-final-video" : "codex-video-workflow-composition",
+		      visualEngineMode: semanticLayerVisual ? "personal-ip-semantic-layers-svg-html-video" : nativeFinalVisual ? "ip-diagram-creator-native-final-video" : "codex-video-workflow-composition",
 	      nativeFinalRequested: designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.requestedNow === true,
 	      nativeFinalSelected: nativeFinalVisual,
 	      nativeFinalStatus: designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.status || "not-applicable",
-	      nativeFinalBlocked: designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.requestedNow === true && !nativeFinalVisual,
+		      nativeFinalBlocked: designPlan.ipDiagramCreatorPlan?.nativeFinalVideoPlan?.requestedNow === true && !nativeFinalVisual,
+		      semanticLayerRequested: designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan?.requestedNow === true,
+		      semanticLayerSelected: designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan?.selectedNow === true,
+		      semanticLayerStatus: designPlan.ipDiagramCreatorPlan?.semanticLayerVideoPlan?.status || "not-applicable",
 	      nativeDirectGenerationSelected: nativeDirectPlan.selectedNow === true,
 	      nativeDirectGenerationStatus: nativeDirectPlan.status || "not-applicable",
 	      personalIpRouteRequested: nativeDirectPlan.requestedByPersonalIpRoute === true,
 	      personalIpPersonaStatus: personalIpRegistry.status || "not-applicable",
 	      personalIpOnboardingRequired: nativeDirectPlan.personaOnboardingRequired === true,
-	      nativeFinalSelectionRule: "native-final-video is selected only with verified local native page images and source_generated_image provenance; personal-IP requests must block on native provenance instead of falling back to integrated codex-video-workflow composition.",
+		      nativeFinalSelectionRule: "All personal-IP video, including animation, requires verified native page provenance. Animation is restricted to page-local foreground SVG and topmost subtitle HTML over a stable native page base.",
 	    },
     coverStatus: {
-      imageSource,
+      ...buildCoverStatusSnapshot({
+        imageSource,
+        platformReadiness: platformCoverReadiness,
+        coverImage2Qc: coverImage2QcForDelivery,
+        coverSizeSelection: coverSizeSelectionForDelivery,
+        requestManifest: contextImage2CoverRequestsForDelivery,
+        coverDesign: coverDesignForDelivery,
+      }),
       videoProductionMayCompleteWhileCoverPending: true,
       platformSubmissionCoverReady: platformCoverReadiness.ready === true,
       platformSubmissionCoverTargetId: platformCoverReadiness.targetId || null,
       platformSubmissionCoverReadinessFailures: platformCoverReadiness.failures || [],
       image2PromptQualityPass: coverImage2QcForDelivery.promptQualityPass === true,
-      finalCoverQualityEligible: coverImage2QcForDelivery.finalCoverQualityEligible === true,
-      reviewFallbackOnly: coverImage2QcForDelivery.reviewFallbackOnly === true,
-      contextImage2Required: coverImage2QcForDelivery.contextImage2Required === true,
-      contextImage2HandoffRequired: coverImage2QcForDelivery.contextImage2HandoffRequired === true,
       contextImage2RequestCount: Array.isArray(contextImage2CoverRequestsForDelivery.requests)
         ? contextImage2CoverRequestsForDelivery.requests.length
         : 0,
       contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
-      blockers: Array.isArray(coverImage2QcForDelivery.blockers) ? coverImage2QcForDelivery.blockers : [],
-      allEntriesUploadReady: coverSizeSelectionForDelivery.allEntriesUploadReady === true,
-      needsRegenerationCount: Array.isArray(coverSizeSelectionForDelivery.needsRegeneration)
-        ? coverSizeSelectionForDelivery.needsRegeneration.length
-        : 0,
-      rootCoverCopies: coverDesignForDelivery.rootOutputCopies || [],
     },
     canvas: finalCanvas,
     durationSeconds: finalDuration,
@@ -31713,8 +33506,8 @@ async function main() {
     openingAudioDelaySeconds: audio.audioDelaySeconds,
     openingCoverInVideo: Number(audio.coverIntroSeconds || 0) > 0,
     renderer,
-    visualEngineOwner: nativeFinalVisual ? "haloshin/ip-diagram-creator" : "codex-video-workflow",
-    visualEngineMode: nativeFinalVisual ? "ip-diagram-creator-native-final-video" : "codex-video-workflow-composition",
+    visualEngineOwner: semanticLayerVisual ? "codex-video-workflow semantic layers + haloshin/ip-diagram-creator design DNA" : nativeFinalVisual ? "haloshin/ip-diagram-creator" : "codex-video-workflow",
+    visualEngineMode: semanticLayerVisual ? "personal-ip-semantic-layers-svg-html-video" : nativeFinalVisual ? "ip-diagram-creator-native-final-video" : "codex-video-workflow-composition",
     imageSource,
     designTemplate: designPlan.templateKit.id,
     command: `node ${process.argv.slice(1).join(" ")}`,
@@ -31732,6 +33525,9 @@ async function main() {
       ipDiagramCreatorVendorUsage: "workflow/ip-diagram-creator-vendor-usage.json",
       ipDiagramCreatorNativeJobs: "workflow/ip-diagram-creator-native-jobs.json",
       ipDiagramLayoutAudit: "workflow/ip-diagram-layout-audit.json",
+      personalIpSemanticLayerSpec: semanticLayerVisual ? "workflow/personal-ip-semantic-layer-spec.json" : undefined,
+      personalIpSemanticSceneCountPlan: semanticLayerVisual ? "workflow/personal-ip-semantic-scene-count-plan.json" : undefined,
+      personalIpSemanticLayerManifest: semanticLayerVisual ? "workflow/personal-ip-semantic-layer-manifest.json" : undefined,
       shortFormHookPlan: shortFormHookPlanRequired(finalBrief, designPlan) ? "workflow/short-form-hook-plan.json" : undefined,
       typographyMotionPlan: "workflow/typography-motion-plan.json",
       captionStylePlan: "workflow/caption-style-plan.json",
@@ -31758,6 +33554,7 @@ async function main() {
       coverDesign: "workflow/cover-design.json",
       coverImage2Prompts: "workflow/cover-image2-prompts.json",
       contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+      coverGenerationWorkflow: "workflow/cover-generation-workflow.json",
       coverImage2Qc: "workflow/cover-image2-qc.json",
       coverSizeSelection: "workflow/cover-size-selection.json",
       videoInternalCover: coverFileForCanvas(finalCanvas),
@@ -31772,26 +33569,50 @@ async function main() {
       deliveryService: "delivery-service.mjs",
     },
   };
-  writeJson(join(out, "delivery-manifest.json"), deliveryManifest);
   writeJson(join(out, "workflow", "commands.json"), commandLog);
   writeTimingSummary(out);
-  const qc = await runQc({ out, finalMp4, duration: finalDuration, renderer, voiceBackend: audio.voiceBackend, allowDegradedRenderer });
-  const deliveryPage = writeDeliveryPage({
+  await coverArtifactsPromise;
+  prepareCoverImage2DispatchContinuation(out);
+  writeFullAutoContinuationManifest({
     out,
     brief: finalBrief,
-    manifest: deliveryManifest,
-    qc,
-    frames,
-    renderer,
-    voiceBackend: audio.voiceBackend,
-    imageSource,
+    designPlan,
+    generationMode,
+    reason: "platform covers must be generated, inspected, and canonically ingested before publishing QC can pass",
+    videoRendered: true,
   });
-  const openedDeliveryPage = openDeliveryPage(deliveryPage, args);
-  const openedProjectFolder = openProjectFolder(out, args);
+  const qc = await runQc({ out, finalMp4, duration: finalDuration, renderer, voiceBackend: audio.voiceBackend, allowDegradedRenderer });
+  const deliveryClass = qc.pass ? "publish-ready" : qc.videoPass ? "video-review-ready" : "render-qc-failed";
+  const resolvedManifest = { ...deliveryManifest, ok: qc.pass, videoPass: qc.videoPass, publishingReady: qc.publishingReady, deliveryClass, promotedToFinalDelivery: qc.pass, publishingBlockers: qc.publishingBlockers || [] };
+  let deliveryPage = null;
+  let openedDeliveryPage = false;
+  let openedProjectFolder = false;
+  if (qc.pass) {
+    copyFileSync(finalMp4, join(out, "final.mp4"));
+    copyFileSync(finalMp4, join(out, titleVideoFile));
+    writeJson(join(out, "delivery-manifest.json"), resolvedManifest);
+    rmSync(join(out, "review-manifest.json"), { force: true });
+    deliveryPage = writeDeliveryPage({ out, brief: finalBrief, manifest: resolvedManifest, qc, frames, renderer, voiceBackend: audio.voiceBackend, imageSource });
+    openedDeliveryPage = openDeliveryPage(deliveryPage, args);
+    openedProjectFolder = openProjectFolder(out, args);
+  } else {
+    rmSync(join(out, "final.mp4"), { force: true });
+    rmSync(join(out, titleVideoFile), { force: true });
+    rmSync(join(out, "delivery-manifest.json"), { force: true });
+    rmSync(join(out, "delivery.html"), { force: true });
+    writeJson(join(out, "review-manifest.json"), {
+      ...resolvedManifest,
+      finalCopy: null,
+      compatibilityFinalCopy: null,
+      sameDirectoryDelivery: { video: null, coverRootCopies: [] },
+      reviewVideo: "renders/final.mp4",
+      nextStep: qc.videoPass ? "Complete and inspect the primary Context Image2/image_gen platform cover, ingest it, rerun QC, then promote the package." : "Fix the failed video/QC checks and rerun before any final delivery promotion.",
+    });
+  }
   writeJson(join(out, "workflow", "commands.json"), commandLog);
   writeTimingSummary(out);
   const size = statSync(finalMp4).size;
-  console.log(JSON.stringify({ ok: qc.pass, videoPass: qc.videoPass, publishingReady: qc.publishingReady, renderer, finalMp4, out, size, qc: "logs/qc.json", deliveryPage, openedDeliveryPage, openedProjectFolder }, null, 2));
+  console.log(JSON.stringify({ ok: qc.pass, videoPass: qc.videoPass, publishingReady: qc.publishingReady, deliveryClass, renderer, finalMp4, out, size, qc: "logs/qc.json", deliveryPage, openedDeliveryPage, openedProjectFolder }, null, 2));
   releaseOutputLock();
   if (!qc.pass) process.exitCode = 2;
 }

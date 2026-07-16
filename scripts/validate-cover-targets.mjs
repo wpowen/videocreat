@@ -22,6 +22,10 @@ function main() {
   const batchSizeIndexScript = read("scripts/build-cover-size-selection-index.mjs");
   const targetImage2Script = read("scripts/generate-cover-targets-image2.mjs");
   const codexImage2IngestScript = read("scripts/ingest-codex-image2-cover-target.mjs");
+  const standaloneDispatchScript = read("skills/codex-video-cover-generation/scripts/lib/cover-image2-dispatch.mjs");
+  const standalonePrepareScript = read("skills/codex-video-cover-generation/scripts/prepare-cover-image2-dispatch.mjs");
+  const standaloneBatchIngestScript = read("skills/codex-video-cover-generation/scripts/ingest-codex-image2-cover-batch.mjs");
+  const coverGenerationWorkflow = read("scripts/lib/cover-generation-workflow.mjs");
   const nativeFinalRendererScript = read("scripts/render-ip-diagram-native-pages.mjs");
   const personalIpImagePlannerScript = read("scripts/plan-vertical-personal-ip-image.mjs");
   const semiAutoConfigBuilder = read("scripts/build-semi-auto-config-html.mjs");
@@ -59,7 +63,7 @@ function main() {
     ["cover Image 2 platform prompt contract", /targetId:\s*`\$\{target\.id\}-image2-integrated-cover`[\s\S]*?image2CoverPrompt[\s\S]*?platformStrategy[\s\S]*?contentCategoryStrategy[\s\S]*?cover-image2-prompts\.json[\s\S]*?gpt-image-2/],
     ["high-click knowledge cover prompt contract", /function highClickKnowledgeCoverPromptContract[\s\S]*?methodologyVersion:\s*"high-click-knowledge-cover-v1"[\s\S]*?High-click knowledge cover prompt contract[\s\S]*?改前[\s\S]*?改后[\s\S]*?strict visible-text whitelist|function highClickKnowledgeCoverPromptContract[\s\S]*?high-click-knowledge-cover-v1[\s\S]*?高点击知识封面提示词契约[\s\S]*?白名单/],
     ["cover Image 2 QC gate", /function coverImage2QualityGate[\s\S]*?promptQualityPass[\s\S]*?bitmapSubjectPresent[\s\S]*?integratedTypographyAssetPresent[\s\S]*?finalCoverQualityEligible[\s\S]*?reviewFallbackOnly[\s\S]*?cover-image2-qc\.json/],
-    ["Context Image2 cover request artifact", /function writeContextImage2CoverRequests[\s\S]*?context-image2-cover-requests\.json[\s\S]*?prompts[\s\S]*?context-image2-covers[\s\S]*?codex-context-image2[\s\S]*?image_gen/],
+    ["Context Image2 cover request artifact", /function writeContextImage2CoverRequests[\s\S]*?prompts[\s\S]*?context-image2-covers[\s\S]*?codex-context-image2[\s\S]*?image_gen[\s\S]*?context-image2-cover-requests\.json/],
     ["Image 2 integrated typography default cover engine", /defaultCoverEngine:\s*"image2-integrated-typography-cover"[\s\S]*?legacyCoverEngine:\s*"discarded-as-default"/],
     ["Image 2 native target-ratio status helper", /function coverAssetTargetRatioStatus[\s\S]*?targetRatioNativeMatch[\s\S]*?needs-native-target-ratio-image2/],
     ["Image 2 native target-ratio QC blocker", /targetRatioNativeFailures[\s\S]*?allIntegratedAssetsNativeTargetRatio[\s\S]*?regenerate native Image 2 assets for those target ratios before upload/],
@@ -133,10 +137,20 @@ function main() {
   expect(/local-target-ratio-recomposition/.test(script) && /localTargetRatioRecomposition/.test(script) && /COVER_LOCAL_RECOMPOSITION_PREVIEW/.test(script), "script must support clearly marked local 4:3/3:4 target-ratio recomposition preview only behind an explicit preview switch when Image 2 API credentials are unavailable", failures);
   expect(/COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(skill) && /COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(coverDesign) && /COVER_LOCAL_RECOMPOSITION_PREVIEW=1/.test(qualityGates), "skill/docs must require an explicit switch before local 4:3/3:4 recomposition previews are generated", failures);
   expect(/generate-cover-targets-image2\.mjs/.test(skill) && /generate-cover-targets-image2\.mjs/.test(coverDesign), "skill/docs must document the explicit Image2 target-ratio completion script", failures);
-  expect(/ingest-codex-image2-cover-target\.mjs/.test(skill) && /ingest-codex-image2-cover-target\.mjs/.test(coverDesign), "skill/docs must document the Codex built-in Image2 cover ingest script", failures);
+  expect(/ingest-codex-image2-cover-batch\.mjs/.test(skill) && /ingest-codex-image2-cover-batch\.mjs/.test(coverDesign), "skill/docs must route cover completion through the standalone locked batch-ingest coordinator", failures);
   expect(/context-image2-cover-requests\.json/.test(skill) && /Context Image2/.test(skill) && /image_gen/.test(skill), "SKILL.md must require Context Image2 image_gen cover requests from core cover logic", failures);
+  expect(/formatContextImage2CoverPromptDocument/.test(script) && /buildCoverGenerationWorkflowContract/.test(script), "main workflow must delegate cover prompt and lifecycle contracts to the independent cover module", failures);
+  expect(/resolveTitleFirstWritingMethodCoverHook/.test(coverGenerationWorkflow) && /validateContextImage2PromptParity/.test(coverGenerationWorkflow) && /buildCoverStatusSnapshot/.test(coverGenerationWorkflow), "independent cover module must own title routing, prompt parity, and delivery status convergence", failures);
   expect(/function readPlatformCoverSubmissionReadiness/.test(script) && /requiredBeforeFinalRender:\s*false/.test(script) && /videoProductionMayCompleteWhileCoverPending/.test(script) && /const videoPass = Object\.values\(videoChecks\)\.every\(Boolean\)/.test(script) && /publishingReady: videoPass && coverPublishingReady/.test(script) && !/function assertPlatformCoverReadyBeforeFinalRender/.test(script), "platform cover must remain an independent lane and must not block TTS or MP4 composition", failures);
   expect(/generationContract:[\s\S]*coverSkill:\s*"imagegen"[\s\S]*provider:\s*"codex-context-image2"[\s\S]*tool:\s*"image_gen"/.test(script), "cover request manifest must bind the generation Skill and canonical Image2 provider", failures);
+  expect(/requestCountContract[\s\S]*expectedRequestCount[\s\S]*actualRequestCount[\s\S]*concurrencyIsThroughputOnly[\s\S]*pass:/.test(script), "cover request manifest must prove planned/requested target count is not truncated by concurrency", failures);
+  expect(/resolveCoverRequestScope/.test(script)
+    && /scopeAuthorizationRequired/.test(script)
+    && /scopeAuthorizationPass/.test(script)
+    && /Cover scope narrowing requires explicit user authorization/.test(coverGenerationWorkflow),
+  "cover request scope narrowing must fail without request-bound explicit user authorization", failures);
+  expect(/coverFilesPresent:[\s\S]*requestCountContract[\s\S]*explicit-primary-only[\s\S]*allRequestedPlatformUploadCoversReady[\s\S]*actualOutput/.test(script), "coverFilesPresent must evaluate files against the explicit request scope instead of requiring every platform export during a primary-only run", failures);
+  expect(/default it must request every platform target actually planned/.test(skill) && /Concurrency controls simultaneous work only and must never cap or slice the total request list/.test(script), "default cover scope must keep every planned platform target and treat concurrency as throughput only", failures);
   expect(/filename is only a hint|filename.*hint/i.test(script) && /const targetRatioNativeMatch = ratioNativeMatch/.test(script), "cover native-ratio readiness must use inspected bitmap dimensions rather than filenames", failures);
   expect(/status:\s*"pending"[\s\S]*purpose:\s*"platform-submission-cover"[\s\S]*primaryPlatformUploadCoverTargetId/.test(script), "core cover engine must create explicit pending standalone platform submission requests with a primary target", failures);
   expect(/Never invent CTR, percentage, revenue, follower, or performance numbers/.test(script) && /高点击封面\|封面设计\|封面方法\|封面公式\|点击率\|CTR/.test(script), "cover prompts must reject invented performance metrics unless the actual topic is cover/CTR methodology", failures);
@@ -164,6 +178,25 @@ function main() {
   expect(/function topicDirsForRoot[\s\S]*?workflow[\s\S]*?cover-size-selection\.json[\s\S]*?cover-image2-prompts\.json/.test(targetImage2Script), "native target-ratio cover generator must support a single topic root as well as a batch root", failures);
   expect(/gpt-image-2-api-explicit-opt-in/.test(targetImage2Script) && /model:\s*process\.env\.OPENAI_IMAGE_MODEL\s*\|\|\s*"gpt-image-2"/.test(targetImage2Script), "native target-ratio cover generator must use the explicit GPT Image 2 API path", failures);
   expect(/function pendingEntries/.test(targetImage2Script) && /design\.resolutionPresets/.test(targetImage2Script) && /prompts\.pendingNativeTargetRatioPrompts/.test(targetImage2Script), "native target-ratio generator must derive missing-only scope from selection entries, cover resolutionPresets, and pending prompt targets", failures);
+  expect(/--limit is forbidden/.test(targetImage2Script)
+    && /Promise\.allSettled/.test(targetImage2Script)
+    && /function boundedConcurrency\(value, fallback = 9\)/.test(targetImage2Script)
+    && /CODEX_VIDEO_IMAGE2_CONCURRENCY \|\| "9"/.test(targetImage2Script),
+  "explicit API cover generator must reject request slicing, preserve successful targets, and allow the nine-target worker pool", failures);
+  expect(/DEFAULT_MAX_CONCURRENCY = 9/.test(standaloneDispatchScript)
+    && /pendingRequests\.map/.test(standaloneDispatchScript)
+    && /Promise\.allSettled/.test(standaloneDispatchScript)
+    && /retryTargetIds:\s*failedTargetIds/.test(standaloneDispatchScript),
+  "standalone cover dispatcher must enqueue all pending targets and isolate retries to failed target ids", failures);
+  expect(/cover-image2-dispatch-plan\.json/.test(standalonePrepareScript)
+    && /cover-generation-run\.json/.test(standalonePrepareScript)
+    && /buildCoverImage2DispatchPlan/.test(standalonePrepareScript),
+  "standalone cover prepare command must persist the all-pending dispatch and generation-run contracts", failures);
+  expect(/\.cover-ingest\.lock/.test(standaloneBatchIngestScript)
+    && /--validate-only/.test(standaloneBatchIngestScript)
+    && /--defer-package-finalization/.test(standaloneBatchIngestScript)
+    && /fullVideoQcTriggered:\s*false/.test(standaloneBatchIngestScript),
+  "standalone cover batch ingest must preflight, lock shared state, defer per-target finalization, and skip full-video QC", failures);
   expect(/function targetPromptSuffix/.test(targetImage2Script) && /Target-ratio completion guard/.test(targetImage2Script), "native target-ratio generator must append target-specific native composition guards when reusing a master prompt", failures);
   expect(/pendingNativeTargetRatioPrompts/.test(targetImage2Script) && /fulfilledNativeTargetRatioExports/.test(targetImage2Script), "native target-ratio cover generator must move prompts from pending to fulfilled only after real Image2 output", failures);
   expect(/upload-ready-native-target-ratio/.test(targetImage2Script) && /image2NativeTargetRatioReady\s*=\s*true/.test(targetImage2Script) && /localTargetRatioRecomposition\s*=\s*false/.test(targetImage2Script), "native target-ratio cover generator must mark upload readiness only for real target-ratio Image2 output", failures);
@@ -177,13 +210,29 @@ function main() {
   expect(/pendingNativeTargetRatioPrompts/.test(codexImage2IngestScript) && /fulfilledNativeTargetRatioExports/.test(codexImage2IngestScript), "Codex Image2 ingest script must move native target prompts from pending to fulfilled", failures);
   expect(/coreCoverLogicPresent[\s\S]*defaultCoverEngine[\s\S]*image2-integrated-typography-cover[\s\S]*provider[\s\S]*codex-context-image2/.test(nativeFinalRendererScript), "native-final renderer must detect existing core Image2 cover logic before writing review covers", failures);
   expect(/native-final-cover-review\.json/.test(nativeFinalRendererScript) && /if \(!coreCoverLogicPresent\)[\s\S]*writeJson\(coverDesignPath[\s\S]*writeJson\(coverSizeSelectionPath[\s\S]*writeJson\(contextImage2RequestsPath/.test(nativeFinalRendererScript), "native-final renderer must preserve existing core cover-design/context Image2 artifacts instead of overwriting them", failures);
+  expect(/function coreContextImage2CoverLanePresent/.test(nativeFinalRendererScript)
+    && /existingContextImage2Requests\?\.provider === "codex-context-image2"/.test(nativeFinalRendererScript)
+    && /Array\.isArray\(existingContextImage2Requests\?\.requests\)/.test(nativeFinalRendererScript),
+  "native-final renderer must recognize and preserve an existing request manifest even when optional cover-design aliases differ", failures);
+  expect(/function nativeFinalCoverPromptArtifacts/.test(nativeFinalRendererScript)
+    && /fallbackCover\.requests\.length/.test(nativeFinalRendererScript)
+    && /nativeFinalFallbackExpandedToAllPlatformTargets:\s*true/.test(nativeFinalRendererScript)
+    && /mode:\s*"all-planned-platform-targets"/.test(nativeFinalRendererScript),
+  "native-final fallback cover route must expand to every planned platform target instead of writing one Context Image2 request", failures);
+  expect(/parallelGenerationPolicy:\s*\{[\s\S]*allowed:\s*true[\s\S]*strategy:\s*"all-pending-worker-pool"[\s\S]*defaultMaxConcurrency:\s*9[\s\S]*maxConcurrency:\s*9[\s\S]*must never cap or slice the target list/.test(nativeFinalRendererScript), "native-final fallback cover concurrency must dispatch all pending targets with the nine-slot throughput cap", failures);
+  expect(!/allowed:\s*false,[\s\S]{0,240}single source-page continuity handoff/.test(nativeFinalRendererScript), "native-final fallback must not preserve the old single-request cover handoff", failures);
   expect(/coverNativeImage2Ready/.test(nativeFinalRendererScript) && /native-image2-ready/.test(nativeFinalRendererScript) && /review-grade-pending-context-image2/.test(nativeFinalRendererScript), "native-final renderer must fail final cover readiness until a real native Image2 cover target is ingested", failures);
+  expect(/const videoCheckEntries = Object\.entries\(checks\)/.test(nativeFinalRendererScript)
+    && /coverArtifactsPresent/.test(nativeFinalRendererScript)
+    && /videoPass/.test(nativeFinalRendererScript)
+    && /publishingReady/.test(nativeFinalRendererScript),
+  "native-final renderer must separate playable-video readiness from cover publishing readiness so cover completion cannot abort the parent video lane", failures);
   expect(/request\?\.status === "completed"/.test(nativeFinalRendererScript) && /request\?\.purpose === "platform-submission-cover"/.test(nativeFinalRendererScript) && /request\?\.videoInternalCover === false/.test(nativeFinalRendererScript), "native-final renderer must only accept a completed standalone platform submission cover request", failures);
   expect(/sourceImageCountPlanRequiredCount/.test(nativeFinalRendererScript) && /nativePageCountSatisfiesSourceImageCountPlan/.test(nativeFinalRendererScript), "native-final renderer must enforce the source personal-IP automatic image-count policy", failures);
   expect(/explicitTargetRaisedToAutomatic/.test(personalIpImagePlannerScript) && /allowUnderCount/.test(personalIpImagePlannerScript) && /automaticResolvedTarget/.test(personalIpImagePlannerScript), "personal-IP image planner must not let target-image-count undercut the automatic duration/content/cue policy by default", failures);
   expect(/requestedMaxImageCount/.test(personalIpImagePlannerScript) && /maxImageCountRaisedToAutomaticPolicy/.test(personalIpImagePlannerScript), "personal-IP image planner must not let max-image-count undercut the automatic duration/content/cue policy by default", failures);
   expect(/provider:\s*"codex-context-image2"[\s\S]*tool:\s*"image_gen"/.test(personalIpImagePlannerScript) && /canonicalImageProvider:\s*"codex-context-image2"[\s\S]*canonicalImageTool:\s*"image_gen"/.test(personalIpImagePlannerScript), "personal-IP image planner must record Codex Context Image2/image_gen as the canonical generated-page provider", failures);
-  expect(/if \(!qc\.pass && !allowUnverifiedNativePages/.test(nativeFinalRendererScript) && /process\.exitCode = 2/.test(nativeFinalRendererScript), "native-final renderer must exit nonzero when final QC fails by default", failures);
+  expect(/if \(!qc\.videoPass && !allowUnverifiedNativePages/.test(nativeFinalRendererScript) && /process\.exitCode = 2/.test(nativeFinalRendererScript), "native-final renderer must exit nonzero when video QC fails while allowing a cover-pending review video to return to the parent workflow", failures);
   expect(/maxImageCountRaisedToAutomaticPolicy/.test(skill) && /maxImageCountRaisedToAutomaticPolicy/.test(qualityGates), "skill/docs must require max-image-count undercut detection and automatic raising for personal-IP image plans", failures);
   expect(/allow-draft-output true/.test(skill) && /allow-draft-output true/.test(qualityGates), "skill/docs must keep unbound ingested personal-IP pages draft-only unless explicitly allowed", failures);
   expect(/coverNativeImage2Ready/.test(skill) && /coverNativeImage2Ready/.test(qualityGates), "skill/docs must require native-final coverNativeImage2Ready before claiming final personal-IP delivery", failures);

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "surreal-carrier-structured-prompt-v2",
+  "skillId": "build-surreal-carrier",
+  "seriesId": "surreal-carrier-poster-v1",
+  "outputIntent": "Translate one abstract idea into one unforgettable physical carrier whose internal transformation has a single readable direction.",
+  "positioning": "Not generic fantasy scenery or an effects demo; it is a precise visual metaphor with one-to-one semantic mapping and usable overlay space.",
+  "contentSchema": ["one topic", "one physical carrier", "one-to-one meaning for visible elements", "one directional transformation", "one hook transition or echo function"],
+  "layoutFamilies": [
+    {"id":"carrier-cutaway","roles":["hook-reveal","carrier-detail","ending-echo"],"topology":"sole carrier occupies the right-center; a physically integrated cutaway reveals one internal process; left field remains low complexity","readingPath":"carrier silhouette -> internal process -> transformed output","cameraAndScale":"cinematic close object portrait with macro internal detail and deep negative-space falloff","moduleCount":"one carrier, one internal world, one transformation path, one output cue"},
+    {"id":"transformation-arc","roles":["carrier-wide","transition-mood"],"topology":"input fragments enter one carrier along a single arc and exit as one resolved form; no secondary metaphor competes","readingPath":"input -> carrier -> transformation -> resolved form","cameraAndScale":"wide studio composition with one focal object and controlled directional motion","moduleCount":"one input family, one carrier, one transformation, one resolved output"}
+  ],
+  "physicalVisualSystem": {"material":"physically credible glass, paper, ceramic, metal, liquid, or organic matter chosen to match the carrier; no arbitrary material pileup","lighting":"one cinematic key direction, soft environmental fill, realistic internal refraction or subsurface behavior only when material-appropriate","color":"low-to-moderate saturation with one luminous mood color and neutral surroundings","typography":"no generated text by default; reserve one clean overlay column for deterministic titles"},
+  "allowedVariations":["carrier material","transformation direction","negative-space side","mood key color"],
+  "forbiddenElements":["multiple carrier objects","unrelated miniature landscape","generic particles","body-horror distortion","pseudo text on paper or screens","ambiguous flow direction"],
+  "qcAssertions":["the metaphor can be explained in one sentence","every visible element has a topic-specific meaning","the transformation direction is unmistakable","one focal carrier dominates","a calm overlay zone and subtitle-safe band remain"]
+}

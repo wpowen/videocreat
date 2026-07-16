@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "knowledge-encyclopedia-structured-prompt-v2",
+  "skillId": "build-knowledge-encyclopedia",
+  "seriesId": "knowledge-encyclopedia-card-v1",
+  "outputIntent": "Turn one verified subject into an information-rich editorial profile whose mechanism, evidence, callouts, and rating can be understood without narration.",
+  "positioning": "Not a specimen collection card, sales poster, or decorative fact sheet; it is an authored modern encyclopedia plate with real teaching value.",
+  "contentSchema": ["one subject and identity statement", "three to five supported facts", "one mechanism or cause-effect explanation", "one explicit rating scale", "callouts tied to real subject features"],
+  "layoutFamilies": [
+    {"id":"hero-mechanism-spine","roles":["hero-overview","mechanism-panel"],"topology":"hero subject occupies the left 42%; a vertical mechanism spine and three unequal evidence modules occupy the right; score strip closes above the safe band","readingPath":"subject identity -> mechanism -> evidence -> rating","cameraAndScale":"editorial medium view with one macro inset and one diagram scale","moduleCount":"one hero, one mechanism, two callouts, one evidence module, one score strip"},
+    {"id":"evidence-desk-cutaway","roles":["detail-zoom","usage-or-habit-panel","risk-notes","rating-summary"],"topology":"central evidence object with two magnified cutaways, one comparison rail, and one compact conclusion module","readingPath":"evidence object -> cutaway A -> cutaway B -> conclusion","cameraAndScale":"high three-quarter editorial cutaway with tactile paper-layer depth","moduleCount":"one evidence object, two cutaways, one comparison, one conclusion"}
+  ],
+  "physicalVisualSystem": {"material":"warm uncoated encyclopedia paper, precise naturalist illustration, crisp ink edges, subtle print grain, shallow paper-layer relief","lighting":"large soft daylight from upper left, gentle fill, restrained contact shadows only under overlapping modules","color":"warm ivory, graphite, muted sage, and one evidence-specific ochre accent","typography":"editorial Chinese hierarchy with a strong title zone, compact labels, tabular numerals, and no decorative fake copy"},
+  "allowedVariations":["subject-specific anatomy or mechanism","page-role module geometry","evidence accent placement"],
+  "forbiddenElements":["empty rounded cards","rating markers that cannot be counted","callout lines that miss their named feature","collection numbering or mascot treatment","glossy advertising finish"],
+  "qcAssertions":["every module teaches a supplied fact","rating number and visible markers agree exactly","detail insets belong to the hero subject","callouts terminate on the named feature","subject and every module remain above the subtitle-safe band"]
+}

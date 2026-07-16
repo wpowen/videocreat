@@ -54,6 +54,11 @@ try {
   expect(titleFrontend?.status === "passed", "凡人修仙传 must pass the real MeloTTS frontend probe");
   expect(titleFrontend?.tones?.includes(4), "MeloTTS frontend verification must contain fourth-tone phones for 凡人修仙传");
 
+  const ordinary = analyze("ordinary-context", "《红楼梦》里的林黛玉，很多时候嘴上问的只是一件小事：你刚才去了哪里？这件东西是谁送的？");
+  expect(ordinary.result.status === 0, `ordinary contextual Chinese must not be blocked by obscure standalone dictionary readings: ${ordinary.result.stderr || ordinary.result.stdout}`);
+  expect(ordinary.report?.unresolved?.length === 0, "ordinary contextual Chinese must not create unresolved reviewed-risk polyphones");
+  expect(Number(ordinary.report?.counts?.ignoredHeteronymOccurrencesOutsideReviewedRiskSet || 0) > 0, "ordinary contextual Chinese should audit ignored unreviewed heteronym occurrences");
+
   const override = analyze("override", "凡人修仙传", {
     overrides: [{ phrase: "凡人修仙传", pinyin: ["fan2", "ren2", "xiu1", "xian1", "chuan2"], note: "test override" }],
   });
@@ -72,7 +77,8 @@ try {
 
   const preflightIndex = workflowScript.indexOf("runChinesePronunciationPreflight({");
   const segmentationIndex = workflowScript.indexOf("const narrationSegments = frameNarrationSegments", preflightIndex);
-  const ttsIndex = workflowScript.indexOf("const audio = await generateAudio", segmentationIndex);
+  const ttsMatch = workflowScript.slice(segmentationIndex).match(/(?:const|let)?\s*audio\s*=\s*await generateAudio\(/);
+  const ttsIndex = ttsMatch ? segmentationIndex + ttsMatch.index : -1;
   expect(preflightIndex >= 0 && preflightIndex < segmentationIndex && segmentationIndex < ttsIndex, "whole-document pronunciation preflight must run before segmentation and TTS");
   expect(/jieba\.add_word\(phrase, freq=10\*\*9/.test(workflowScript), "MeloTTS adapter must inject controlled phrases into jieba as well as pypinyin");
   expect(/if not phrases:[\s\S]*pronunciation plan contains no synthesis-ready phrases/.test(workflowScript), "MeloTTS adapter must reject a supplied pronunciation plan whose phrases array is empty");
@@ -85,12 +91,16 @@ try {
   expect(/if \(pronunciationPlan\?\.requiresMeloTts\)[\s\S]*order = \["melotts_local"\]/.test(workflowScript), "controlled Chinese pronunciation must lock auto routing to MeloTTS");
   expect(/existingManifest\.pronunciationPlanHash !== pronunciationPlan\.effectivePronunciationHash/.test(workflowScript), "audio reuse must reject a changed pronunciation plan hash");
   expect(/pronunciationPlanHash: pronunciationPlan\?\.effectivePronunciationHash/.test(workflowScript), "voice manifest must record the effective pronunciation plan hash");
+  expect(/function buildProvidedAudioPronunciationLineage\(/.test(workflowScript), "provided workflow audio must build a pronunciation lineage artifact");
+  expect(/provided-audio-pronunciation-lineage\.json/.test(workflowScript), "provided workflow audio must persist pronunciation lineage evidence");
+  expect(/pronunciationStrictPreflightPassed/.test(workflowScript), "final QC must hard-gate strict generated-TTS pronunciation evidence");
+  expect(/allowUnresolvedPronunciationsUsed/.test(workflowScript), "allow-unresolved pronunciation runs must be exposed to final QC as degraded");
 
   const report = {
     ok: failures.length === 0,
     analyzer: "scripts/analyze-chinese-pronunciation.py",
     python: "research/voice-quality-poc/melotts/.venv/bin/python",
-    cases: ["full-article-title", "synthesis-plan-contract", "run-override-priority", "unresolved-audit", "strict-block", "workflow-order", "backend-lock", "cache-reuse-gate"],
+    cases: ["full-article-title", "ordinary-context-no-false-positive", "synthesis-plan-contract", "run-override-priority", "unresolved-audit", "strict-block", "workflow-order", "backend-lock", "cache-reuse-gate"],
     failures,
   };
   console.log(JSON.stringify(report, null, 2));

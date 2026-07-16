@@ -144,6 +144,8 @@ function scenarios(fixtureDir) {
         activeCapabilities: ["remotion"],
         inactiveCapabilities: ["build-web-data-visualization", "product-design", "website-to-hyperframes", "video-use-style-footage-editing", "remotion-style-template-props", "reference-video-alignment-qc"],
         inactiveExternal: ["raw-footage-editing", "ip-diagram-creator-planner", "template-props-contract", "data-or-math-motion-inserts", "reference-video-alignment-qc"],
+        ipPlanFilePresent: true,
+        ipPlanActive: false,
       },
     },
     {
@@ -297,10 +299,6 @@ function scenarios(fixtureDir) {
         objective: "生成个人 IP 手绘图解视频，用个人 IP 形象把口播内容做成白底手绘知识卡，不要普通模板。",
         videoType: "professional-explainer",
         durationSeconds: 720,
-        personalIp: {
-          name: "方法课主讲人",
-          allowGenericFallback: false,
-        },
         scenes: [
           {
             id: "personal-ip-promise",
@@ -347,7 +345,10 @@ function scenarios(fixtureDir) {
         ipHandDrawnChoice: "off",
         ipPrimaryPlannerRoute: true,
         ipPersonaStatus: "ready-default-persona",
-        ipNativeMinResolvedImageCount: 24,
+        ipNativeMinResolvedImageCount: 8,
+        ipSemanticLayerRequested: false,
+        ipSemanticLayerSelected: false,
+        ipSemanticLayerStatus: "not-applicable",
       },
     },
     {
@@ -356,11 +357,11 @@ function scenarios(fixtureDir) {
         title: "个人 IP + 动画：钩子升级路径",
         objective: "保留个人 IP 原生页面，增加克制的前景路径动画、圈画和顶层字幕。",
         videoType: "tutorial-explainer",
-        personalIp: {
-          name: "方法课主讲人",
-          allowGenericFallback: true,
+        personalIpAnimationAuthorization: {
+          authorizedByUser: true,
+          mode: "semantic-layers",
+          source: "用户明确要求：生成个人 IP + 动画视频。",
         },
-        personalIpAnimation: "subtle",
         scenes: [
           { id: "hook", label: "建立压力", headline: ["先给压力", "再给未知"], body: "个人 IP 主讲人指出第一个节点。", subtitle: "先建立压力。", palette: "blue" },
           { id: "path", label: "路径升级", headline: ["倒计时", "信息差"], body: "路径线在原生页面上方依次绘制。", subtitle: "再沿路径升级。", palette: "orange" },
@@ -377,15 +378,101 @@ function scenarios(fixtureDir) {
           "workflow/ip-diagram-layout-audit.json",
         ],
         ipNativeDirectSelected: false,
-        ipNativeFinalRequested: true,
+        ipNativeFinalRequested: false,
         ipNativeFinalSelected: false,
         ipIntegratedSelected: false,
-        ipNativeFinalStatus: "blocked-needs-native-page-provenance",
+        ipNativeFinalStatus: "available-on-planner-request",
+        ipSemanticLayerRequested: true,
+        ipSemanticLayerSelected: false,
+        ipSemanticLayerStatus: "blocked-needs-personal-ip-master-reference",
         ipPromptOnlySelected: false,
         ipPersonalIpChoice: "auto",
-        ipHandDrawnChoice: "subtle",
+        ipHandDrawnChoice: "semantic-layers",
         ipPrimaryPlannerRoute: true,
         ipPersonaStatus: "ready-default-persona",
+      },
+    },
+    {
+      id: "zh-personal-ip-animation-explicit-contract",
+      brief: baseBrief({
+        title: "钩子升级路径",
+        objective: "为个人 IP 视觉母版启用语义分层，并让内容按阅读顺序呈现。",
+        videoType: "tutorial-explainer",
+        personalIp: { name: "方法课主讲人", allowGenericFallback: true },
+        personalIpAnimation: "semantic-layers",
+        personalIpAnimationAuthorization: {
+          authorizedByUser: true,
+          mode: "semantic-layers",
+          source: "用户明确要求：生成个人 IP + 动画视频。",
+        },
+        scenes: [
+          { id: "hook", label: "建立压力", headline: ["先给压力", "再给未知"], body: "主讲人指出第一个节点。", subtitle: "先建立压力。", palette: "blue" },
+          { id: "path", label: "路径升级", headline: ["倒计时", "信息差"], body: "路径按阅读顺序绘制。", subtitle: "再沿路径升级。", palette: "orange" },
+          { id: "resolve", label: "行动收束", headline: ["保持终态", "字幕最高"], body: "终态保留全部内容。", subtitle: "最后收束成行动。", palette: "gold" },
+        ],
+        narration: "先建立压力。再沿路径升级。最后收束成行动。",
+      }),
+      expect: {
+        activeExternal: ["ip-diagram-creator-planner"],
+        ipNativeFinalRequested: false,
+        ipNativeFinalSelected: false,
+        ipIntegratedSelected: false,
+        ipNativeFinalStatus: "available-on-planner-request",
+        ipSemanticLayerRequested: true,
+        ipSemanticLayerSelected: false,
+        ipSemanticLayerStatus: "blocked-needs-personal-ip-master-reference",
+        ipHandDrawnChoice: "semantic-layers",
+        ipPrimaryPlannerRoute: true,
+      },
+    },
+    {
+      id: "zh-personal-ip-animation-negated",
+      brief: baseBrief({
+        title: "个人 IP：钩子升级路径",
+        objective: "使用个人 IP 原生页面，但不做动画，不用动效，保留原来的页面逻辑。",
+        videoType: "tutorial-explainer",
+        scenes: [
+          { id: "hook", label: "建立角色", headline: ["个人 IP", "原生页面"], body: "保持原生页面。", subtitle: "先建立角色。", palette: "blue" },
+          { id: "resolve", label: "行动收束", headline: ["保持页面", "不加动画"], body: "不增加语义分层动画。", subtitle: "再给出行动。", palette: "gold" },
+        ],
+        narration: "先建立角色。再给出行动。",
+      }),
+      expect: {
+        activeExternal: ["ip-diagram-creator-planner"],
+        ipNativeFinalRequested: true,
+        ipNativeFinalSelected: false,
+        ipNativeFinalStatus: "blocked-needs-native-page-provenance",
+        ipSemanticLayerRequested: false,
+        ipSemanticLayerSelected: false,
+        ipSemanticLayerStatus: "not-applicable",
+        ipHandDrawnChoice: "off",
+        ipPrimaryPlannerRoute: true,
+      },
+    },
+    {
+      id: "zh-personal-ip-animation-legacy-subtle",
+      brief: baseBrief({
+        title: "个人 IP 旧版前景动效合同",
+        objective: "验证历史 brief 继续使用原生页面上的克制前景动效。",
+        videoType: "tutorial-explainer",
+        personalIp: { name: "方法课主讲人", allowGenericFallback: true },
+        personalIpAnimation: "subtle",
+        scenes: [
+          { id: "hook", label: "旧版动效", headline: ["原生页面", "前景强调"], body: "保持历史字段含义。", subtitle: "历史语义保持不变。", palette: "blue" },
+          { id: "resolve", label: "回归保护", headline: ["不迁移", "不串路"], body: "不进入新的语义分层路线。", subtitle: "旧包不会被静默迁移。", palette: "gold" },
+        ],
+        narration: "历史语义保持不变。旧包不会被静默迁移。",
+      }),
+      expect: {
+        activeExternal: ["ip-diagram-creator-planner"],
+        ipNativeFinalRequested: true,
+        ipNativeFinalSelected: false,
+        ipNativeFinalStatus: "blocked-needs-native-page-provenance",
+        ipSemanticLayerRequested: false,
+        ipSemanticLayerSelected: false,
+        ipSemanticLayerStatus: "not-applicable",
+        ipHandDrawnChoice: "subtle",
+        ipPrimaryPlannerRoute: true,
       },
     },
     {
@@ -746,15 +833,14 @@ function validateScenario(scenario, run) {
     "workflow/quality-consistency-contract.json",
     "workflow/retention-structure-contract.json",
     "workflow/generation-mode-contract.json",
-    "workflow/semi-auto-config.json",
     "workflow/cover-design.json",
     "delivery-manifest.json",
-    "semi-auto-config.html",
     "delivery-service.mjs",
   ];
   for (const file of requiredCoreFiles) assert(existsSync(join(out, file)), `missing core artifact ${file}`, failures);
-  assert(manifest.mode === "semi-auto-config", "default capability route smoke must stop at semi-auto config mode", failures);
-  assert(manifest.generationMode === "semi-auto", "default capability route smoke must keep ordinary topic/script intake on semi-auto", failures);
+  assert(manifest.mode === "cover-only", "implicit capability route smoke must stay on the full-auto branch", failures);
+  assert(manifest.generationMode === "full-auto", "implicit capability route smoke must default to full-auto", failures);
+  assert(!existsSync(join(out, "semi-auto-config.html")), "implicit capability route smoke must not stop at semi-auto config", failures);
   assert(plugin.governor === "codex-video-workflow", "plugin routing governor mismatch", failures);
   assert(plugin.rule === "plugins-are-capabilities-not-quality-substitutes", "plugin routing rule mismatch", failures);
   assert(external.governor === "codex-video-workflow", "external fusion governor mismatch", failures);
@@ -783,11 +869,21 @@ function validateScenario(scenario, run) {
 	  for (const file of expect.files || []) {
 	    assert(existsSync(join(out, file)), `missing expected routed artifact ${file}`, failures);
 	  }
+	  if (typeof expect.ipPlanFilePresent === "boolean") {
+	    assert(existsSync(join(out, "workflow/ip-diagram-creator-plan.json")) === expect.ipPlanFilePresent, `expected ip-diagram-creator-plan present=${expect.ipPlanFilePresent}`, failures);
+	  }
+	  if (typeof expect.ipPlanActive === "boolean") {
+	    const ipPlan = read("workflow/ip-diagram-creator-plan.json");
+	    assert(ipPlan.active === expect.ipPlanActive, `expected ip-diagram-creator-plan active=${expect.ipPlanActive}, got ${ipPlan.active}`, failures);
+	  }
 	  if (typeof expect.ipNativeDirectSelected === "boolean"
         || typeof expect.ipNativeFinalRequested === "boolean"
         || typeof expect.ipNativeFinalSelected === "boolean"
         || typeof expect.ipIntegratedSelected === "boolean"
         || typeof expect.ipPromptOnlySelected === "boolean"
+        || typeof expect.ipSemanticLayerRequested === "boolean"
+        || typeof expect.ipSemanticLayerSelected === "boolean"
+        || expect.ipSemanticLayerStatus
         || expect.ipNativeFinalStatus
         || expect.ipPersonalIpChoice
         || expect.ipHandDrawnChoice) {
@@ -796,6 +892,7 @@ function validateScenario(scenario, run) {
 	    const nativeFinal = (ipPlan.executionModes || []).find((mode) => mode.id === "native-final-video") || {};
 	    const integrated = (ipPlan.executionModes || []).find((mode) => mode.id === "integrated-html-video-composition") || {};
 	    const promptOnly = (ipPlan.executionModes || []).find((mode) => mode.id === "prompt-only-native-handoff") || {};
+	    const semanticLayers = (ipPlan.executionModes || []).find((mode) => mode.id === "personal-ip-semantic-layers-svg-html-video") || {};
 	    if (typeof expect.ipNativeDirectSelected === "boolean") {
 	      assert(nativeDirect.selected === expect.ipNativeDirectSelected, `expected native-skill-direct-generation selected=${expect.ipNativeDirectSelected}, got ${nativeDirect.selected}`, failures);
 	      assert(ipPlan.nativeDirectUsePlan?.selectedNow === expect.ipNativeDirectSelected, `expected nativeDirectUsePlan.selectedNow=${expect.ipNativeDirectSelected}, got ${ipPlan.nativeDirectUsePlan?.selectedNow}`, failures);
@@ -813,6 +910,15 @@ function validateScenario(scenario, run) {
 	    if (expect.ipNativeFinalStatus) {
 	      assert(ipPlan.nativeFinalVideoPlan?.status === expect.ipNativeFinalStatus, `expected nativeFinalVideoPlan.status=${expect.ipNativeFinalStatus}, got ${ipPlan.nativeFinalVideoPlan?.status}`, failures);
 	      assert(nativeFinal.status === expect.ipNativeFinalStatus, `expected native-final-video mode status=${expect.ipNativeFinalStatus}, got ${nativeFinal.status}`, failures);
+	    }
+	    if (typeof expect.ipSemanticLayerRequested === "boolean") assert(ipPlan.semanticLayerVideoPlan?.requestedNow === expect.ipSemanticLayerRequested, `expected semanticLayerVideoPlan.requestedNow=${expect.ipSemanticLayerRequested}, got ${ipPlan.semanticLayerVideoPlan?.requestedNow}`, failures);
+	    if (typeof expect.ipSemanticLayerSelected === "boolean") {
+	      assert(semanticLayers.selected === expect.ipSemanticLayerSelected, `expected semantic-layer mode selected=${expect.ipSemanticLayerSelected}, got ${semanticLayers.selected}`, failures);
+	      assert(ipPlan.semanticLayerVideoPlan?.selectedNow === expect.ipSemanticLayerSelected, `expected semanticLayerVideoPlan.selectedNow=${expect.ipSemanticLayerSelected}, got ${ipPlan.semanticLayerVideoPlan?.selectedNow}`, failures);
+	    }
+	    if (expect.ipSemanticLayerStatus) {
+	      assert(semanticLayers.status === expect.ipSemanticLayerStatus, `expected semantic-layer mode status=${expect.ipSemanticLayerStatus}, got ${semanticLayers.status}`, failures);
+	      assert(ipPlan.semanticLayerVideoPlan?.status === expect.ipSemanticLayerStatus, `expected semanticLayerVideoPlan.status=${expect.ipSemanticLayerStatus}, got ${ipPlan.semanticLayerVideoPlan?.status}`, failures);
 	    }
 	    if (typeof expect.ipPromptOnlySelected === "boolean") {
 	      assert(promptOnly.selected === expect.ipPromptOnlySelected, `expected prompt-only-native-handoff selected=${expect.ipPromptOnlySelected}, got ${promptOnly.selected}`, failures);

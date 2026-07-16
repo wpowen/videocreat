@@ -1,0 +1,4 @@
+interface:
+  display_name: "关系图谱设计"
+  short_description: "Design verifiable character, faction, and concept maps"
+  default_prompt: "Use $build-relationship-map to create a clean relationship map from structured nodes and typed edges."

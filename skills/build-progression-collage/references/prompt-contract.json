@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "progression-collage-structured-prompt-v2",
+  "skillId": "build-progression-collage",
+  "seriesId": "photo-collage-grid-v1",
+  "outputIntent": "Prove a sequence of change across separately validated states while preserving one base identity, camera, light, scale, and background.",
+  "positioning": "Not a mood collage or one-call multi-panel fantasy; it is an evidence contact sheet assembled from identity-locked state assets.",
+  "contentSchema": ["one measurable base identity", "two to six ordered states", "explicit per-state change allowlist", "locked camera lens distance crop and background", "progression legible without labels"],
+  "layoutFamilies": [
+    {"id":"equal-contact-sheet","roles":["recap-grid","comparison-grid"],"topology":"two or four equal cells share identical subject bounding boxes, horizons, gutters, and color grade; no cell receives decorative emphasis","readingPath":"state one -> state two -> state three -> state four","cameraAndScale":"identical camera and subject scale across separately generated state references","moduleCount":"two to four validated state cells and uniform gutters"},
+    {"id":"progression-filmstrip","roles":["progression-grid","mood-grid"],"topology":"three to six ordered frames run on one disciplined axis with identical crop and a single visible state variable changing step by step","readingPath":"earliest state -> intermediate states -> final state","cameraAndScale":"locked lens viewpoint horizon crop and key-light direction across every source frame","moduleCount":"three to six separately validated states assembled deterministically"}
+  ],
+  "physicalVisualSystem": {"material":"consistent editorial photography or one consistent illustration medium selected for the run; clean contact-sheet paper and thin gutters","lighting":"one locked key-light direction size softness fill and background tone across all states","color":"one unified grade with fixed white balance contrast and saturation; only the allowed state variable changes color","typography":"no generated text by default; state labels, if needed, are deterministic outside the image cells"},
+  "allowedVariations":["declared per-state variable only","state-specific surface moisture or wear only when supplied"],
+  "forbiddenElements":["one-call final multi-cell generation","identity or silhouette drift","camera or crop drift","lighting drift","state-order ambiguity","changes beyond the allowlist"],
+  "qcAssertions":["every state asset passes identity comparison before assembly","subject bounding box and camera remain matched","only declared variables change","state order is visually unambiguous","the final row and all cells remain above the subtitle-safe band"]
+}

@@ -6,15 +6,14 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { buildPersonalIpPageCapacityPlan, partitionContentText } from "./lib/adaptive-content-scene-planner.mjs";
 
 const VERTICAL_WIDTH = 1080;
 const VERTICAL_HEIGHT = 1920;
 const HORIZONTAL_WIDTH = 1920;
 const HORIZONTAL_HEIGHT = 1080;
 const DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT = 4;
-const DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT = 48;
-const DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE = 140;
-const DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE = 30;
+const DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE = 420;
 const DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE = 4;
 const DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND = 4.5;
 const DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET = 4;
@@ -38,7 +37,7 @@ function parseArgs(argv) {
     persona: "成人中文知识主讲人，现代短黑发，简洁眼镜，深色外套，白色内搭，专业但亲和；不承诺真人相似度",
     coreIdea: "用个人 IP 主讲，把一个观点拆成观点、拆解、行动三段。",
     requiredText: "个人IP图解;观点;拆解;行动",
-    agentJobs: "搬运卡片;标记风险;递交结果",
+    agentJobs: "",
     outputName: "",
     aspect: "9:16",
     personaGender: "auto",
@@ -52,7 +51,7 @@ function parseArgs(argv) {
     script: "",
     narration: "",
     minImageCount: String(DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT),
-    maxImageCount: String(DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT),
+    maxImageCount: "",
     targetImageCount: "",
     imageGrowthStepChars: "160",
     durationSeconds: "",
@@ -60,7 +59,7 @@ function parseArgs(argv) {
     videoDurationSeconds: "",
     subtitleCueCount: "",
     cueCount: "",
-    imageSecondsPerPage: String(DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE),
+    imageSecondsPerPage: "",
     subtitleCuesPerImage: String(DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE),
     speechCharsPerSecond: String(DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND),
     allowSingleImage: "false",
@@ -93,13 +92,13 @@ function usage() {
     "    [--aspect 9:16|16:9] [--persona-manifest <manifest.json>] [--persona-gender auto|male|female] \\",
     "    [--audio-gender male|female] [--voice-gender male|female] [--audio-speaker <speaker>] \\",
     "    [--content-file <script.txt>] [--content <text>] [--required-text <a;b;c>] \\",
-    "    [--min-image-count 4] [--max-image-count 48] [--target-image-count n] \\",
-    "    [--duration-seconds n] [--subtitle-cue-count n] [--image-seconds-per-page 30] \\",
+    "    [--min-image-count 4] [--max-image-count <optional>] [--target-image-count n] \\",
+    "    [--duration-seconds n] [--subtitle-cue-count n] [--image-seconds-per-page <optional override>] \\",
     "    [--allow-under-count true] [--allow-draft-output true] \\",
-    "    [--agent-jobs <a;b;c>] [--source-images <page1.png;page2.png;...>]",
+    "    [--agent-jobs <a;b;c>]",
     "",
     "Writes a vertical 9:16 or horizontal 16:9 personal-IP diagram multi-page contract and page prompts.",
-    "If --source-images or --source-image is provided, ingests generated bitmaps and verifies orientation/count.",
+    "Final generated pages are ingested only through scripts/ingest-native-imagegen-page-set.mjs after dispatch receipts and vision inspection records are written.",
     "Personal-IP output always resolves a fixed persona manifest. Without --persona-manifest, it chooses",
     "~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json from audio/voice gender.",
   ].join("\n");
@@ -116,6 +115,10 @@ function writeJson(path, value) {
 
 function sha256File(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function sha256Text(value) {
+  return createHash("sha256").update(String(value), "utf8").digest("hex");
 }
 
 function readJson(path) {
@@ -391,12 +394,14 @@ function normalizePlanningText(text = "") {
 
 function collectPlanningContent(args = {}) {
   const fileText = readTextFileIfExists(args.contentFile || args.script || args.narration);
-  return normalizePlanningText([
+  const primaryNarration = normalizePlanningText([
     fileText,
     args.content,
-    args.coreIdea,
-    splitList(args.requiredText).join("。"),
   ].filter(Boolean).join("\n"));
+  if (primaryNarration) return primaryNarration;
+  return normalizePlanningText(
+    args.coreIdea || splitList(args.requiredText).join("。"),
+  );
 }
 
 function splitContentUnits(text = "") {
@@ -421,10 +426,10 @@ function buildImageQuantityPlan(args = {}, canvas) {
   const allowSingleImage = isEnabled(args.allowSingleImage);
   const requestedMin = toPositiveInt(args.minImageCount, DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT);
   const minImageCount = Math.max(allowSingleImage ? 1 : DEFAULT_PERSONAL_IP_MIN_IMAGE_COUNT, requestedMin);
-  const requestedMaxImageCount = Math.max(minImageCount, toPositiveInt(args.maxImageCount, DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT));
+  const requestedMaxImageCount = args.maxImageCount ? Math.max(minImageCount, toPositiveInt(args.maxImageCount, minImageCount)) : null;
   const allowUnderCount = isEnabled(args.allowUnderCount);
   const growthStepChars = Math.max(80, toPositiveInt(args.imageGrowthStepChars, 160));
-  const secondsPerImage = Math.max(12, toPositiveNumber(args.imageSecondsPerPage || args.secondsPerImage, DEFAULT_PERSONAL_IP_SECONDS_PER_IMAGE));
+  const secondsPerImageOverride = toPositiveNumber(args.imageSecondsPerPage || args.secondsPerImage, 0);
   const subtitleCuesPerImage = Math.max(1, toPositiveInt(args.subtitleCuesPerImage || args.cuesPerImage, DEFAULT_PERSONAL_IP_SUBTITLE_CUES_PER_IMAGE));
   const speechCharsPerSecond = Math.max(2.5, toPositiveNumber(args.speechCharsPerSecond, DEFAULT_PERSONAL_IP_SPEECH_CHARS_PER_SECOND));
   const content = collectPlanningContent(args);
@@ -446,48 +451,40 @@ function buildImageQuantityPlan(args = {}, canvas) {
     toPositiveInt(args.cueCount, 0),
     toPositiveInt(args.narrationCueCount, 0),
   );
-  const charGrowthBucket = Math.max(0, Math.ceil(charCount / growthStepChars) - 1);
-  const unitGrowthBucket = Math.max(0, Math.ceil(unitCount / 4) - 1);
-  const boundedCharGrowthBucket = Math.min(DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET, charGrowthBucket);
-  const boundedUnitGrowthBucket = Math.min(DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET, unitGrowthBucket);
-  const exponentialByChars = minImageCount * (2 ** boundedCharGrowthBucket);
-  const exponentialByUnits = minImageCount * (2 ** boundedUnitGrowthBucket);
-  const semanticFloor = Math.ceil(unitCount / 1.5);
-  const clarityByChars = Math.ceil(charCount / DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE);
-  const durationBasedTarget = effectiveDurationSeconds > 0 ? Math.ceil(effectiveDurationSeconds / secondsPerImage) : 0;
-  const subtitleCueBasedTarget = subtitleCueCount > 0 ? Math.ceil(subtitleCueCount / subtitleCuesPerImage) : 0;
-  const contentClarityTarget = Math.max(minImageCount, semanticFloor, clarityByChars);
-  const contentMatchTarget = Math.max(minImageCount, unitCount, clarityByChars);
-  const contentGrowthTarget = Math.min(
-    Math.max(exponentialByChars, exponentialByUnits),
-    Math.max(contentMatchTarget, Math.ceil(contentMatchTarget * 1.5)),
-  );
-  const automaticTarget = Math.max(
-    contentClarityTarget,
-    contentMatchTarget,
-    durationBasedTarget,
-    subtitleCueBasedTarget,
-    contentGrowthTarget,
-  );
-  const automaticMaxPolicyFloor = Math.min(
-    DEFAULT_PERSONAL_IP_MAX_IMAGE_COUNT,
-    Math.max(minImageCount, automaticTarget),
-  );
-  const maxImageCountUnderAutomaticPolicy = requestedMaxImageCount < automaticMaxPolicyFloor;
-  const maxImageCount = allowUnderCount
-    ? requestedMaxImageCount
-    : Math.max(requestedMaxImageCount, automaticMaxPolicyFloor);
-  const automaticResolvedTarget = clamp(automaticTarget, minImageCount, maxImageCount);
-  const explicitRequestedTarget = args.targetImageCount
-    ? clamp(toPositiveInt(args.targetImageCount, minImageCount), minImageCount, maxImageCount)
-    : null;
-  const explicitTarget = args.targetImageCount
-    ? allowUnderCount
-      ? explicitRequestedTarget
-      : Math.max(explicitRequestedTarget, automaticResolvedTarget)
-    : null;
+  const adaptiveCount = buildPersonalIpPageCapacityPlan({
+    aspect: canvas.aspectRatio,
+    sourceCount: minImageCount,
+    durationSeconds: effectiveDurationSeconds,
+    subtitleCueCount,
+    charCount,
+    contentUnitCount: unitCount,
+    minCount: minImageCount,
+    requestedTarget: args.targetImageCount,
+    requestedMaximum: requestedMaxImageCount || 0,
+    secondsPerPage: secondsPerImageOverride,
+  });
+  const charGrowthBucket = null;
+  const unitGrowthBucket = null;
+  const boundedCharGrowthBucket = null;
+  const boundedUnitGrowthBucket = null;
+  const exponentialByChars = null;
+  const exponentialByUnits = null;
+  const semanticFloor = adaptiveCount.semanticUnitTarget;
+  const clarityByChars = adaptiveCount.contentBasedTarget;
+  const durationBasedTarget = adaptiveCount.durationBasedTarget;
+  const subtitleCueBasedTarget = adaptiveCount.subtitleCueBasedTarget;
+  const contentClarityTarget = adaptiveCount.contentBasedTarget;
+  const contentMatchTarget = adaptiveCount.semanticUnitTarget;
+  const contentGrowthTarget = Math.max(contentClarityTarget, contentMatchTarget);
+  const automaticTarget = adaptiveCount.automaticTarget;
+  const automaticMaxPolicyFloor = automaticTarget;
+  const maxImageCountUnderAutomaticPolicy = adaptiveCount.requestedMaximumUnderAutomatic;
+  const maxImageCount = adaptiveCount.maxUniquePages;
+  const automaticResolvedTarget = adaptiveCount.automaticTarget;
+  const explicitRequestedTarget = adaptiveCount.requestedTarget;
+  const explicitTarget = adaptiveCount.requestedTarget;
   const explicitTargetUnderAutomatic = Boolean(explicitRequestedTarget && explicitRequestedTarget < automaticResolvedTarget);
-  const resolvedImageCount = explicitTarget || automaticResolvedTarget;
+  const resolvedImageCount = adaptiveCount.uniqueGeneratedPageCount;
   const targetDrivers = [
     ["explicitTarget", explicitTarget || 0],
     ["durationBasedTarget", durationBasedTarget],
@@ -501,6 +498,7 @@ function buildImageQuantityPlan(args = {}, canvas) {
     .sort((a, b) => Number(b[1]) - Number(a[1]))[0] || ["minImageCount", minImageCount];
   const requiredText = splitList(args.requiredText);
   const agentJobs = splitList(args.agentJobs);
+  const contentBeats = partitionContentText(content, resolvedImageCount, { label: "personal-IP source content" });
   const roles = [
     "hook-contrast",
     "definition-board",
@@ -514,18 +512,12 @@ function buildImageQuantityPlan(args = {}, canvas) {
     "payoff-close",
   ];
   const slots = Array.from({ length: resolvedImageCount }, (_, index) => {
-    const unitStart = Math.floor(index * contentUnits.length / resolvedImageCount);
-    const unitEnd = Math.floor((index + 1) * contentUnits.length / resolvedImageCount);
-    const matchedUnits = contentUnits.slice(unitStart, Math.max(unitStart + 1, unitEnd));
-    const selectedUnits = matchedUnits.length
-      ? matchedUnits
-      : [contentUnits[Math.min(contentUnits.length - 1, index % contentUnits.length)]];
     return {
       id: `page-${String(index + 1).padStart(2, "0")}`,
       order: index + 1,
       role: roles[index % roles.length],
-      contentBeat: selectedUnits.join(" "),
-      sourceUnitIndexes: selectedUnits.map((unit) => contentUnits.indexOf(unit) + 1).filter((item) => item > 0),
+      contentBeat: contentBeats[index],
+      sourceUnitIndexes: [],
       requiredText: distributeList(requiredText, index, resolvedImageCount),
       agentJobs: distributeList(agentJobs, index, resolvedImageCount),
       promptFile: `prompts/${canvas.filePrefix}-pages/page-${String(index + 1).padStart(2, "0")}-prompt.txt`,
@@ -542,15 +534,21 @@ function buildImageQuantityPlan(args = {}, canvas) {
     maxImageCount,
     requestedMaxImageCount,
     maxImageCountUnderAutomaticPolicy,
-    maxImageCountRaisedToAutomaticPolicy: maxImageCountUnderAutomaticPolicy && !allowUnderCount,
+    maxImageCountRaisedToAutomaticPolicy: false,
+    requestedMaximumApplied: adaptiveCount.requestedMaximumApplied,
+    maximumPolicy: adaptiveCount.maximumPolicy,
+    maxUniquePages: adaptiveCount.maxUniquePages,
+    coverageStrategy: adaptiveCount.coverageStrategy,
+    repairVariantPolicy: adaptiveCount.repairVariantPolicy,
+    maxRepairGenerations: adaptiveCount.maxRepairGenerations,
     resolvedImageCount,
     automaticResolvedTarget,
     explicitRequestedTarget,
     explicitTarget,
     explicitTargetUnderAutomatic,
-    explicitTargetRaisedToAutomatic: explicitTargetUnderAutomatic && !allowUnderCount,
+    explicitTargetRaisedToAutomatic: false,
     allowUnderCount,
-    underCountRejectedByDefault: explicitTargetUnderAutomatic && !allowUnderCount,
+    underCountRejectedByDefault: false,
     allowSingleImage,
     singleImageRejectedByDefault: !allowSingleImage,
     contentMetrics: {
@@ -567,7 +565,7 @@ function buildImageQuantityPlan(args = {}, canvas) {
       durationSecondsSource: explicitDurationSeconds ? "explicit-duration/audio/video" : "estimated-from-content-chars",
       estimatedSpeechDurationSeconds,
       effectiveDurationSeconds,
-      secondsPerImage,
+      secondsPerImage: adaptiveCount.pageCapacity.secondsPerPage,
       subtitleCueCount,
       subtitleCuesPerImage,
       durationBasedTarget,
@@ -585,20 +583,21 @@ function buildImageQuantityPlan(args = {}, canvas) {
       strongestAutomaticDriver: strongestAutomaticDriver[0],
     },
     durationDensityRule: {
-      targetSecondsPerImage: secondsPerImage,
+      targetSecondsPerImage: adaptiveCount.pageCapacity.secondsPerPage,
       subtitleCuesPerImage,
       speechCharsPerSecond,
       durationBasedTarget,
       subtitleCueBasedTarget,
-      reason: "Personal-IP video source pages must scale with the actual voice/video duration, so long videos cannot collapse to a few pages when the planner receives only a summarized core idea.",
+      reason: "Personal-IP source pages are packed by spoken-content capacity; subtitle and semantic cadence remains inside each page instead of creating extra Image2 requests.",
     },
     growthRule: {
-      formula: "clamp(max(contentClarityTarget, contentMatchTarget, durationBasedTarget, subtitleCueBasedTarget, contentGrowthTarget), minImageCount, maxImageCount)",
+      formula: "unique pages = semantic page-capacity target clamped to the duration safety band and any explicit user maximum; subtitle/semantic units become in-page micro beats",
       charGrowthBucket: `ceil(nonSpaceChineseOrLatinChars/${growthStepChars}) - 1`,
       unitGrowthBucket: "ceil(contentUnits/4) - 1",
       boundedGrowthBucketMax: DEFAULT_PERSONAL_IP_MAX_GROWTH_BUCKET,
-      clarityCharsPerImage: DEFAULT_PERSONAL_IP_CLARITY_CHARS_PER_IMAGE,
-      reason: "Short content still gets a multi-page visual set; longer scripts grow by content clarity, subtitle cue count, and actual/estimated duration. Exponential tiers are bounded by matchable content growth so long text does not blindly fill maxImageCount.",
+      clarityCharsPerImage: adaptiveCount.pageCapacity.charsPerPage,
+      durationSafetyBand: adaptiveCount.durationBand,
+      reason: "Short content keeps a useful page set while long scripts remain bounded by page capacity and duration bands; explicit user maxima are hard caps.",
     },
     matchingRule: {
       sourcePriority: ["content-file/script/narration", "content", "coreIdea", "requiredText"],
@@ -753,8 +752,8 @@ function buildPagePrompt({ title, persona, coreIdea, mode, canvas, fixedPersona,
     "",
     "Composition:",
     vertical
-      ? `Mobile top safe area is mandatory: keep the top ${canvas.mobileSafeAreas.topBlankPx}px as clean white space with no title, text, character, card, arrow, marker, icon, or decorative stroke, because phone status/navigation bars can cover this region. Begin the concise title \"${title}\" below that blank top band. Center: large hand-drawn knowledge card or diagram board. The fixed personal-IP presenter from the manifest must participate in the core action by pointing, annotating, assigning, reviewing, or resolving the diagram. Arrange 2-6 small execution Agents around the card only as concrete helpers, never as decoration. Preserve a clean bottom subtitle-safe band: the lower 18% of the canvas, at least ${canvas.mobileSafeAreas.bottomCaptionPx}px, must remain empty white space with no text, characters, cards, arrows, labels, frame lines, or decorative marks.`
-      : `Left or right side: fixed adult personal-IP presenter from the manifest. Center: wide whiteboard-style hand-drawn knowledge card or diagram board with clear left-to-right reading order. The presenter must point, annotate, assign, review, or resolve the diagram. Arrange 2-6 small execution Agents around the board only as concrete helpers. Preserve a clean subtitle-safe band along the bottom: the lower 18% of the canvas must remain empty white space with no text, characters, cards, arrows, labels, frame lines, or decorative marks.`,
+      ? `Mobile top safe area is mandatory: keep the top ${canvas.mobileSafeAreas.topBlankPx}px as clean white space with no title, text, character, card, arrow, marker, icon, or decorative stroke, because phone status/navigation bars can cover this region. Begin the concise title "${title}" below that blank top band. Center: large hand-drawn knowledge card or diagram board. The fixed personal-IP presenter from the manifest must participate in the core action by pointing, annotating, assigning, reviewing, or resolving the diagram. Arrange 2-6 small execution Agents around the card only as concrete helpers, never as decoration. Preserve a clean bottom subtitle-safe band: the lower 18% of the canvas, at least ${canvas.mobileSafeAreas.bottomCaptionPx}px, must remain empty white space with no text, characters, cards, arrows, labels, frame lines, or decorative marks.`
+      : `Left or right side: fixed adult personal-IP presenter from the manifest. Center: wide whiteboard-style hand-drawn knowledge card or diagram board with clear left-to-right reading order. The presenter must point, annotate, assign, review, or resolve the diagram. Arrange 2-6 small execution Agents around the board only as concrete helpers. Reserve the entire bottom 22% of the 16:9 canvas as physically blank pure white space across the full width. No presenter body, hair, hands, Agents, cards, borders, arrows, labels, icons, shadows, lines, signatures, or decorative marks may enter this bottom band. Keep every visible element inside the upper 78% and end all artwork clearly above the boundary.`,
     "",
     "Visual DNA:",
     "White or near-white background. Minimalist black hand-drawn line art with slight pen wobble. Sparse red-orange and blue marker accents. Adult professional creator proportions. Large whitespace. Clear reading order. No cheap PPT template, no dense corporate infographic, no glossy commercial poster, no 3D, no photorealism, no watermark, no logos, no internal workflow labels.",
@@ -762,7 +761,7 @@ function buildPagePrompt({ title, persona, coreIdea, mode, canvas, fixedPersona,
     "Hard layout rules:",
     vertical
       ? `Portrait page generated natively for 9:16. Do not crop or squeeze a horizontal composition. Keep the top ${canvas.mobileSafeAreas.topBlankPx}px blank for mobile chrome, and keep all content above the subtitle-safe band. No overlap between fixed presenter, cards, arrows, Agents, labels, top safe area, and bottom subtitle-safe area. Text must be short and legible.`
-      : "Horizontal page generated natively for 16:9. Do not crop or stretch a portrait composition. Keep all content above the subtitle-safe band. No overlap between fixed presenter, cards, arrows, Agents, labels, and bottom subtitle-safe area. Text must be short and legible.",
+      : "Horizontal page generated natively for 16:9. Do not crop or stretch a portrait composition. The bottom 22% must remain uninterrupted pure white pixels across the full width so opaque video subtitles can be placed there. This measurable blank-band rule overrides decorative balance. No overlap between fixed presenter, cards, arrows, Agents, labels, and bottom subtitle-safe area. Text must be short and legible.",
     "",
     "Series continuity:",
     `This page belongs to a ${imagePlan.resolvedImageCount}-image set. Keep the same fixed persona and white-canvas hand-drawn visual DNA, but vary the content card, gesture, diagram structure, and Agent action so adjacent video pages are visually distinct.`,
@@ -796,9 +795,16 @@ function main() {
     return { slot, prompt, promptPath };
   });
   const sourceImages = parseSourceImageList(args);
+  if (sourceImages.length > 0) {
+    throw new Error("--source-images is no longer a final ingest path. Record every generated result with scripts/record-native-imagegen-page-result.mjs, then run scripts/ingest-native-imagegen-page-set.mjs against workflow/context-image2-persona-page-requests.json.");
+  }
   const personaReferenceBound = isEnabled(args.personaReferenceBound);
   const personaReferenceImages = personaReferenceImagesForGeneration(fixedPersona);
   const forbiddenSourceImageAssets = collectForbiddenSourceImageAssets(fixedPersona, personaReferenceImages);
+  const existingRequestsPath = join(workflow, "context-image2-persona-page-requests.json");
+  const existingRequestsDocument = existsSync(existingRequestsPath) ? readJson(existingRequestsPath) : {};
+  const existingRequestsById = new Map((existingRequestsDocument.requests || []).map((request) => [String(request.id), request]));
+  const promptsById = new Map(pagePrompts.map(({ slot, prompt }) => [String(slot.id), prompt]));
   const contextImage2PersonaPageRequests = {
     schemaVersion: 1,
     stage: "context-image2-persona-page-requests",
@@ -811,6 +817,11 @@ function main() {
     route: `ip-diagram-creator-${canvas.orientation}-source-pages`,
     promptDirectory: `prompts/${filePrefix}-pages`,
     generationRule: "Generate each page with the same fixed persona reference images attached as context input. Text-only paths or visual-anchor prose do not prove character consistency.",
+    generationAcceptance: {
+      visualInspectionRequired: true,
+      rule: "Prompt lint and image provenance are necessary but insufficient. Inspect semantic match, identity, hierarchy, cross-page repetition, whitelist text, safe zones, material, lighting, line weight, and depth before the page may become a final native source.",
+      minimumSetReview: ["opening", "one mechanism or method page", "one dense evidence page", "closing"],
+    },
     referenceBindingRule: "Every final page must later be ingested with --persona-reference-bound true so source_generated_images[].personaReferenceBoundToGeneration is true.",
     parallelGenerationPolicy: {
       allowed: true,
@@ -829,33 +840,57 @@ function main() {
     resolvedPersonaGender: fixedPersona.resolvedPersonaGender,
     audioGenderBinding: fixedPersona.audioGenderBinding,
     contextImages: personaReferenceImages,
-    requests: imagePlan.slots.map((slot) => ({
-      id: slot.id,
-      order: slot.order,
-      provider: "codex-context-image2",
-      tool: "image_gen",
-      parallelSafe: true,
-      consistencyGroup: "fixed-persona-main-anchor-page-set",
-      requiredForFinalNativePages: true,
-      width: canvas.width,
-      height: canvas.height,
-      aspectRatio: canvas.aspectRatio,
-      promptPath: slot.promptFile,
-      expectedOutput: `images/${slot.expectedImageName}`,
-      fixedPersonaManifest: fixedPersona.manifestPath,
-      contextImages: personaReferenceImages,
-      requiredContextImageRoles: personaReferenceImages
-        .filter((image) => image.required)
-        .map((image) => image.role),
-      ingestCommand: `node scripts/plan-vertical-personal-ip-image.mjs --out ${out} --aspect ${canvas.aspectRatio} --title "${args.title}" --content-file <same-content-file-or-content> --source-images "<page-01.png>;...;<page-${String(imagePlan.resolvedImageCount).padStart(2, "0")}.png>" --persona-reference-bound true`,
-    })),
+    requests: imagePlan.slots.map((slot) => {
+      const existing = existingRequestsById.get(String(slot.id));
+      const prompt = promptsById.get(String(slot.id)) || "";
+      const receipt = existing?.generationReceipt;
+      const receiptOutputPath = String(receipt?.outputPath || existing?.sourceImage || "");
+      const receiptMatchesCurrentRequest = Boolean(receipt
+        && receipt.promptSha256 === sha256Text(prompt)
+        && receipt.outputSha256
+        && receiptOutputPath
+        && existsSync(receiptOutputPath)
+        && sha256File(receiptOutputPath) === receipt.outputSha256
+        && receipt.personaReferenceBound === true
+        && receipt.provider === "codex-context-image2"
+        && receipt.tool === "image_gen");
+      return {
+        id: slot.id,
+        order: slot.order,
+        provider: "codex-context-image2",
+        tool: "image_gen",
+        parallelSafe: true,
+        consistencyGroup: "fixed-persona-main-anchor-page-set",
+        requiredForFinalNativePages: true,
+        width: canvas.width,
+        height: canvas.height,
+        aspectRatio: canvas.aspectRatio,
+        promptPath: slot.promptFile,
+        visualInspectionRequired: true,
+        inspectionRecordPath: `workflow/context-image2-persona-page-evidence/${slot.id}-inspection-record.json`,
+        expectedOutput: `images/${slot.expectedImageName}`,
+        fixedPersonaManifest: fixedPersona.manifestPath,
+        contextImages: personaReferenceImages,
+        requiredContextImageRoles: personaReferenceImages
+          .filter((image) => image.required)
+          .map((image) => image.role),
+        recordCommand: `node scripts/record-native-imagegen-page-result.mjs --jobs ${existingRequestsPath} --job-id ${slot.id} --request-id ${slot.id} --source <generated-page.png> --persona-reference-bound true --inspection-status passed-vision-review --inspector-type vision`,
+        ...(receiptMatchesCurrentRequest ? {
+          requestId: existing.requestId || receipt.requestId,
+          generationReceipt: receipt,
+          sourceImage: receiptOutputPath,
+          sourceImageSha256: receipt.outputSha256,
+          promptSha256: receipt.promptSha256,
+        } : {}),
+      };
+    }),
   };
   const promptIndexPath = join(promptsDir, `${filePrefix}-prompt-index.md`);
   writeFileSync(promptIndexPath, [
     `# ${args.title}`,
     "",
     `This personal-IP source set requires ${imagePlan.resolvedImageCount} generated images.`,
-    `Do not generate a single combined image. Use \`workflow/context-image2-persona-page-requests.json\` so every page is generated with the same fixed persona context images, then ingest all images with \`--source-images\` and \`--persona-reference-bound true\`.`,
+    `Do not generate a single combined image. Use \`workflow/context-image2-persona-page-requests.json\` so every page is generated with the same fixed persona context images, record every result plus vision inspection, then use the canonical \`scripts/ingest-native-imagegen-page-set.mjs\` entrypoint.`,
     "",
     ...pagePrompts.map(({ slot }) => `- ${slot.id}: ${slot.promptFile} -> ${slot.expectedImageName} (${slot.role})`),
     "",
@@ -1003,6 +1038,9 @@ function main() {
     fixedPersonaTextOnlyReferenceRejectedForFinal: sourceImages.length > 0 ? personaReferenceBound : false,
     promptsIncludeFixedPersonaManifest: pagePrompts.every(({ prompt }) => prompt.includes(fixedPersona.manifestPath)),
     promptsIncludeFixedPersonaAnchors: fixedPersona.visualAnchors.length === 0 || pagePrompts.some(({ prompt }) => fixedPersona.visualAnchors.some((anchor) => prompt.includes(anchor))),
+    personalIpWhiteCanvasPreserved: pagePrompts.every(({ prompt }) => prompt.includes("White or near-white background")
+      && !prompt.includes("warm off-white")
+      && !prompt.includes("warm uncoated paper")),
     verticalTopSafeAreaPrompted: canvas.orientation !== "vertical" || pagePrompts.every(({ prompt }) => prompt.includes(`top ${DEFAULT_VERTICAL_TOP_SAFE_PX}px`) && prompt.includes("phone status/navigation bars")),
     verticalBottomSubtitleSafeAreaPrompted: canvas.orientation !== "vertical" || pagePrompts.every(({ prompt }) => prompt.includes(`at least ${DEFAULT_VERTICAL_BOTTOM_SUBTITLE_SAFE_PX}px`) && prompt.includes("bottom subtitle-safe band")),
     promptsMatchPlannedImageCount: pagePrompts.length === imagePlan.resolvedImageCount,
@@ -1012,8 +1050,12 @@ function main() {
     sourceImagesDoNotReusePersonaReferenceAssets: sourceImages.length > 0
       ? sourceImagePersonaReferenceConflicts.length === 0 && ingestedImages.every((image) => !image.personaReferenceAssetConflict)
       : true,
-    imageCountSatisfiesAutomaticPolicy: imagePlan.resolvedImageCount >= imagePlan.automaticResolvedTarget,
-    maxImageCountDoesNotUndercutAutomaticPolicy: imagePlan.maxImageCount >= imagePlan.contentMetrics.automaticMaxPolicyFloor,
+    imageCountSatisfiesAutomaticPolicy: imagePlan.resolvedImageCount === imagePlan.automaticResolvedTarget
+      || Boolean(imagePlan.explicitRequestedTarget)
+      || imagePlan.requestedMaximumApplied === true,
+    maxImageCountDoesNotUndercutAutomaticPolicy: !imagePlan.maxImageCountUnderAutomaticPolicy
+      || imagePlan.requestedMaximumApplied === true,
+    explicitMaximumNeverRaised: imagePlan.maxImageCountRaisedToAutomaticPolicy === false,
   };
   const qc = {
     schemaVersion: 1,

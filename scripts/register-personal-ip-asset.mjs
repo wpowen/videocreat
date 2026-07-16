@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(__dirname, "..");
-const workspace = resolve(skillRoot, "../../..");
+const workspace = process.cwd();
 const rootEnv = "CODEX_VIDEO_PERSONAL_IP_ASSET_ROOT";
 const defaultRoot = join(process.env.CODEX_HOME || join(homedir(), ".codex"), "video-workflow", "user-assets", "personal-ip");
 const imageExts = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]);

@@ -50,7 +50,7 @@ phrase_dict = {entry["phrase"]: [[p] for p in entry["pinyin"]] for entry in data
 load_phrases_dict(phrase_dict)
 for phrase in phrase_dict:
     jieba.add_word(phrase, freq=10**9, tag="x")
-sample_phrases = ["处处", "削苹果", "剥削", "模样", "埋怨", "挣扎", "传记", "凡人修仙传", "传略", "一行人"]
+sample_phrases = ["处处", "削苹果", "剥削", "模样", "埋怨", "挣扎", "传记", "凡人修仙传", "传略", "一行人", "伏地魔"]
 result = {}
 for phrase in sample_phrases:
     phones, tones, word2ph = chinese.g2p(chinese.text_normalize(phrase))

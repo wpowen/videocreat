@@ -79,7 +79,7 @@ When `data-newsroom` or any scene mentions data, metrics, curves, trends, growth
 
 When a brief includes full source material (`sourceMaterial.path`, `sourceText`, `fullText`, `chapterText`, etc.), the workflow must treat the source as the coverage contract by default. The rendered narration should cover the full material, not a short teaching digest, unless the run explicitly declares summary/condensed intent with `--allow-condensed-source`, `allowCondensedSourceMaterial: true`, or a summary-like `contentMode`.
 
-Every run with source material writes `workflow/content-coverage.json`; final QC must fail if full-source coverage is below the required ratio. Scene lists also must not be silently truncated: raise `--max-visual-frames` for long-form videos instead of relying on the default visual frame cap.
+Every run with source material writes `workflow/content-coverage.json`; final QC must fail if full-source coverage is below the required ratio. Scene lists also must not be silently truncated: the planner grows them from the current content, duration, subtitle cues, and methodology units with no default visual-frame cap. A historical `maxVisualFrames` value is advisory unless explicit degraded-draft truncation is enabled.
 If a brief points at `sourceMaterial.path`, `sourceMaterials[].path`, or `sourcePath`, that path must exist and be readable before rendering. A missing source path is a hard failure because otherwise the workflow can accidentally produce a short digest while appearing to satisfy full-content mode.
 
 ## Image Prompt Policy

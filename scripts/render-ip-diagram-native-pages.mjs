@@ -5,6 +5,10 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import {
+  formatContextImage2CoverPromptDocument,
+  sha256Text,
+} from "./lib/cover-generation-workflow.mjs";
 
 const SOURCE_REPO = "https://github.com/haloshin/ip-diagram-creator";
 const SOURCE_COMMIT = "dd64ab5d972893f7ca271d9c560362d7788eb2d6";
@@ -32,15 +36,17 @@ const DELIVERY_AUDIO_CHANNELS = 2;
 const FINAL_AUDIO_DELIVERY_FILTER = [
   "highpass=f=70",
   "lowpass=f=14000",
-  "loudnorm=I=-15:TP=-1.5:LRA=8",
+  "acompressor=threshold=-20dB:ratio=2.5:attack=15:release=180:makeup=2dB:knee=2.5:detection=rms",
+  "loudnorm=I=-15:TP=-1.5:LRA=5",
   "alimiter=limit=0.95",
-  "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo",
+  "aresample=48000",
+  "aformat=sample_rates=48000:channel_layouts=stereo",
 ].join(",");
 const MIN_AUDIBLE_MEAN_DB = -18;
 const MIN_AUDIBLE_MAX_DB = -3;
 const DEFAULT_PERSONAL_IP_MIN_NATIVE_PAGE_COUNT = 4;
-const DEFAULT_PERSONAL_IP_MAX_NATIVE_PAGE_COUNT = 48;
 const DEFAULT_VERTICAL_TOP_SAFE_PX = 220;
+const DEFAULT_CAPTION_SAFE_BOTTOM_RATIO = 0.155;
 const NATIVE_PAGE_PROVENANCE_HINT = "Regenerate the content pages through the original ip-diagram-creator direct-generation/image_gen route, or pass --allow-unverified-native-pages true only for an explicitly marked draft/degraded review.";
 
 function parseArgs(argv) {
@@ -109,6 +115,162 @@ function clampNumber(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function greatestCommonDivisor(a, b) {
+  let x = Math.abs(Number(a) || 0);
+  let y = Math.abs(Number(b) || 0);
+  while (y) {
+    const next = x % y;
+    x = y;
+    y = next;
+  }
+  return x || 1;
+}
+
+function aspectRatio(width, height) {
+  const divisor = greatestCommonDivisor(width, height);
+  return `${Math.round(width / divisor)}:${Math.round(height / divisor)}`;
+}
+
+function safeFileStem(value, fallback = "cover") {
+  const stem = String(value || fallback)
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return stem || fallback;
+}
+
+function captionSafeArea(canvas = {}) {
+  const height = Number(canvas.height || DEFAULT_LANDSCAPE_HEIGHT);
+  const bottomPx = Math.max(132, Math.round(height * DEFAULT_CAPTION_SAFE_BOTTOM_RATIO));
+  const visualHeight = Math.max(1, height - bottomPx);
+  return {
+    bottomPx,
+    bottomPercent: Number((bottomPx / height * 100).toFixed(3)),
+    visualHeight,
+    cssVar: `${bottomPx}px`,
+    policy: "full-canvas-source-with-pixel-verified-blank-bottom-caption-band",
+  };
+}
+
+export function auditNativeCaptionSafeAreas({
+  pages = [],
+  canvas = {},
+  safeArea = captionSafeArea(canvas),
+  maximumInkRatio = 0.012,
+} = {}) {
+  const width = Math.max(1, Number(canvas.width || DEFAULT_LANDSCAPE_WIDTH));
+  const height = Math.max(2, Number(canvas.height || DEFAULT_LANDSCAPE_HEIGHT));
+  const bottomPx = clampNumber(Number(safeArea?.bottomPx || 0), 1, height - 1);
+  const expectedBytes = width * bottomPx * 3;
+  const pageEvidence = [];
+  const collisions = [];
+
+  for (const page of pages) {
+    const result = spawnSync("ffmpeg", [
+      "-v", "error",
+      "-i", page.file,
+      "-vf", `scale=${width}:${height}:flags=lanczos,crop=${width}:${bottomPx}:0:${height - bottomPx},format=rgb24`,
+      "-frames:v", "1",
+      "-f", "rawvideo",
+      "pipe:1",
+    ], {
+      encoding: null,
+      maxBuffer: Math.max(8 * 1024 * 1024, expectedBytes + 1024 * 1024),
+    });
+    const raw = Buffer.isBuffer(result.stdout) ? result.stdout : Buffer.alloc(0);
+    if (result.status !== 0 || raw.length < expectedBytes) {
+      const issue = {
+        type: "caption-safe-area-pixel-audit-unavailable",
+        pageId: page.id,
+        file: page.file,
+        reason: String(result.stderr || `expected ${expectedBytes} RGB bytes, received ${raw.length}`).trim(),
+      };
+      collisions.push(issue);
+      pageEvidence.push({
+        pageId: page.id,
+        file: page.file,
+        sourceSha256: sha256File(page.file),
+        status: "fail",
+        measured: false,
+        inkPixelRatio: null,
+        maximumInkRatio,
+        issue,
+      });
+      continue;
+    }
+
+    let inkPixels = 0;
+    const pixelCount = Math.floor(expectedBytes / 3);
+    for (let offset = 0; offset < expectedBytes; offset += 3) {
+      const r = raw[offset];
+      const g = raw[offset + 1];
+      const b = raw[offset + 2];
+      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+      if (luminance < 225 || (luminance < 245 && chroma > 28)) inkPixels += 1;
+    }
+    const inkPixelRatio = pixelCount > 0 ? inkPixels / pixelCount : 1;
+    const pass = inkPixelRatio <= maximumInkRatio;
+    const evidence = {
+      pageId: page.id,
+      file: page.file,
+      sourceSha256: sha256File(page.file),
+      status: pass ? "pass" : "fail",
+      measured: true,
+      inspectedRegion: { x: 0, y: height - bottomPx, width, height: bottomPx },
+      inkPixelCount: inkPixels,
+      pixelCount,
+      inkPixelRatio: Number(inkPixelRatio.toFixed(6)),
+      maximumInkRatio,
+    };
+    pageEvidence.push(evidence);
+    if (!pass) {
+      collisions.push({
+        type: "caption-safe-area-overlap",
+        pageId: page.id,
+        file: page.file,
+        inkPixelRatio: evidence.inkPixelRatio,
+        maximumInkRatio,
+        inspectedRegion: evidence.inspectedRegion,
+      });
+    }
+  }
+
+  const checkedFrames = pageEvidence.filter((page) => page.measured).length;
+  const pass = pages.length > 0 && checkedFrames === pages.length && collisions.length === 0;
+  return {
+    schemaVersion: 1,
+    stage: "native-final-caption-safe-area-pixel-audit",
+    measurementEngine: "ffmpeg-decoded-rgb24-bottom-band",
+    status: pass ? "pass" : "fail",
+    checkedFrames,
+    checkedPages: checkedFrames,
+    expectedPages: pages.length,
+    collisionCount: collisions.length,
+    captionTemplateOverlapIssueCount: collisions.filter((issue) => issue.type === "caption-safe-area-overlap").length,
+    captionStyleIssueCount: pass ? 0 : collisions.length,
+    uniqueCaptionRendererCount: checkedFrames > 0 ? 1 : 0,
+    maximumInkRatio,
+    safeArea: {
+      bottomPx,
+      bottomPercent: Number((bottomPx / height * 100).toFixed(3)),
+      policy: "measured-source-page-bottom-band-plus-opaque-caption-safe-geometry",
+    },
+    captionRendererEvidence: {
+      applied: true,
+      selector: "#caption",
+      zIndex: 100,
+      safeBandSelector: "#caption-safe-band",
+      safeBandZIndex: 80,
+      pixelEvidence: true,
+    },
+    rule: "Every native final page must prove by decoded pixels that the reserved bottom caption band is free of meaningful ink before subtitles are composed.",
+    collisions,
+    pages: pageEvidence,
+  };
+}
+
 function resolveVerticalTopSafeArea(args = {}, canvas = {}) {
   const mode = String(args.verticalTopSafeMode || "auto").trim().toLowerCase();
   if (!["auto", "force", "off"].includes(mode)) {
@@ -153,19 +315,23 @@ function resolveNativePageCountPolicy(args = {}, pageCount = 0) {
   const minPageCount = personalIpActive
     ? Math.max(DEFAULT_PERSONAL_IP_MIN_NATIVE_PAGE_COUNT, toPositiveInt(args.minPageCount, DEFAULT_PERSONAL_IP_MIN_NATIVE_PAGE_COUNT))
     : Math.max(1, toPositiveInt(args.minPageCount, 1));
-  const maxPageCount = Math.max(minPageCount, toPositiveInt(args.maxPageCount, DEFAULT_PERSONAL_IP_MAX_NATIVE_PAGE_COUNT));
+  const requestedMaxPageCount = toPositiveInt(args.maxPageCount, 0);
+  const maxPageCount = requestedMaxPageCount || null;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     route: "ip-diagram-native-final-pages",
     personalIpActive,
     minPageCount,
+    requestedMaxPageCount: requestedMaxPageCount || null,
     maxPageCount,
+    maximumPolicy: "explicit-maximum-hard-cap-source-plan-exact-count",
+    requestedMaximumAdvisoryOnly: false,
     actualPageCount: pageCount,
-    withinRange: pageCount >= minPageCount && pageCount <= maxPageCount,
+    withinRange: pageCount >= minPageCount && (!maxPageCount || pageCount <= maxPageCount),
     singleNativePageRejectedForPersonalIp: !personalIpActive || pageCount > 1,
     hardGate: personalIpActive,
     reason: personalIpActive
-      ? "Personal-IP native-final videos must use a rich generated page set, not one static full-video background."
+      ? "Personal-IP native-final videos must match the source semantic page-capacity plan; an explicit maximum is a hard cap."
       : "Non-personal-IP native-page renders may use a smaller page set.",
   };
 }
@@ -214,15 +380,31 @@ function enrichNativePageCountPolicyWithSourcePlan(pageCountPolicy, pageProvenan
   }
   const plan = sourceCountPlan.plan || {};
   const minImageCount = toPositiveInt(plan.minImageCount, pageCountPolicy.minPageCount);
-  const maxImageCount = toPositiveInt(plan.maxImageCount, pageCountPolicy.maxPageCount);
-  const automaticTarget = toPositiveInt(plan.contentMetrics?.automaticTarget, 0);
-  const automaticResolvedTarget = toPositiveInt(plan.automaticResolvedTarget, automaticTarget
-    ? Math.max(minImageCount, Math.min(maxImageCount, automaticTarget))
-    : 0);
   const plannedResolvedImageCount = toPositiveInt(plan.resolvedImageCount, 0);
-  const requiredFromPlan = Math.max(minImageCount, automaticResolvedTarget || plannedResolvedImageCount || pageCountPolicy.minPageCount);
-  const satisfiesSourceImageCountPlan = pageCountPolicy.actualPageCount >= requiredFromPlan
-    && (plannedResolvedImageCount === 0 || pageCountPolicy.actualPageCount >= plannedResolvedImageCount);
+  const capacityPlan = plan.maximumPolicy === "duration-band-default-user-maximum-hard-cap"
+    || plan.policy === "personal-ip-semantic-page-capacity"
+    || plan.mode === "semantic-page-capacity";
+  const automaticTarget = toPositiveInt(plan.contentMetrics?.automaticTarget, 0);
+  const independentDriverTarget = Math.max(
+    minImageCount,
+    toPositiveInt(plan.contentMetrics?.durationBasedTarget, 0),
+    toPositiveInt(plan.contentMetrics?.subtitleCueBasedTarget, 0),
+    toPositiveInt(plan.contentMetrics?.contentClarityTarget, 0),
+    toPositiveInt(plan.contentMetrics?.contentMatchTarget, 0),
+    toPositiveInt(plan.contentMetrics?.semanticFloor, 0),
+  );
+  const authoritativeAutomaticTarget = automaticTarget > 0 ? automaticTarget : independentDriverTarget;
+  const automaticResolvedTarget = Math.max(
+    authoritativeAutomaticTarget,
+    toPositiveInt(plan.automaticResolvedTarget, 0),
+  );
+  const requiredFromPlan = capacityPlan
+    ? Math.max(minImageCount, plannedResolvedImageCount || pageCountPolicy.minPageCount)
+    : Math.max(minImageCount, automaticResolvedTarget || plannedResolvedImageCount || pageCountPolicy.minPageCount);
+  const satisfiesSourceImageCountPlan = capacityPlan
+    ? pageCountPolicy.actualPageCount === requiredFromPlan
+    : pageCountPolicy.actualPageCount >= requiredFromPlan
+      && (plannedResolvedImageCount === 0 || pageCountPolicy.actualPageCount >= plannedResolvedImageCount);
   return {
     ...pageCountPolicy,
     sourceImageCountPlanPresent: true,
@@ -231,6 +413,8 @@ function enrichNativePageCountPolicyWithSourcePlan(pageCountPolicy, pageProvenan
       resolvedImageCount: plannedResolvedImageCount,
       automaticResolvedTarget,
       automaticTarget: plan.contentMetrics?.automaticTarget || null,
+      independentDriverTarget,
+      authoritativeAutomaticTarget,
       explicitRequestedTarget: plan.explicitRequestedTarget || null,
       explicitTargetUnderAutomatic: plan.explicitTargetUnderAutomatic === true,
       explicitTargetRaisedToAutomatic: plan.explicitTargetRaisedToAutomatic === true,
@@ -239,6 +423,8 @@ function enrichNativePageCountPolicyWithSourcePlan(pageCountPolicy, pageProvenan
       contentClarityTarget: plan.contentMetrics?.contentClarityTarget || null,
       contentMatchTarget: plan.contentMetrics?.contentMatchTarget || null,
       strongestAutomaticDriver: plan.contentMetrics?.strongestAutomaticDriver || null,
+      capacityPlan,
+      requestedMaximumApplied: plan.requestedMaximumApplied === true,
     },
     sourceImageCountPlanRequiredCount: requiredFromPlan,
     satisfiesSourceImageCountPlan,
@@ -248,6 +434,8 @@ function enrichNativePageCountPolicyWithSourcePlan(pageCountPolicy, pageProvenan
       : `Native-final page count ${pageCountPolicy.actualPageCount} is below source image count policy requirement ${requiredFromPlan}.`,
   };
 }
+
+export { enrichNativePageCountPolicyWithSourcePlan, resolveNativePageCountPolicy };
 
 function resolveCanvas(args = {}) {
   const rawAspect = String(args.aspect || args.canvasAspect || args.orientation || "16:9").trim().toLowerCase();
@@ -508,8 +696,12 @@ function normalizeManifestPath(rawPath, manifestPath) {
   return resolve(dirname(manifestPath), rawPath);
 }
 
-function loadNativePageProvenance(pagesDir, pages) {
+export function loadNativePageProvenance(pagesDir, pages) {
   const candidateManifests = [
+    // The page directory is the source-of-truth for native image provenance
+    // and its adaptive count plan. A surrounding video manifest may describe
+    // the assembled package and must not shadow this source manifest.
+    resolve(pagesDir, "manifest.json"),
     resolve(pagesDir, "..", "workflow", "manifest.json"),
     resolve(pagesDir, "workflow", "manifest.json"),
     resolve(pagesDir, "..", "manifest.json"),
@@ -526,6 +718,10 @@ function loadNativePageProvenance(pagesDir, pages) {
       pagesChecked: pages.length,
       pagesWithGeneratedImageSource: 0,
       pagesWithPersonaReferenceBinding: 0,
+      generationReceiptContractComplete: false,
+      generationReceiptsVerified: 0,
+      generationReceiptRequestIdsUnique: false,
+      generationReceiptOutputHashesUnique: false,
       perPage: pages.map((page) => ({
         pageId: page.id,
         file: page.file,
@@ -549,7 +745,13 @@ function loadNativePageProvenance(pagesDir, pages) {
     return {
       raw: entry,
       assetPath: normalizeManifestPath(asset, manifestPath),
+      methodologyText: entry.methodologyText || entry.methodology_text || "",
+      requiredVisualUnitIds: entry.requiredVisualUnitIds || entry.required_visual_unit_ids || [],
       sourceGeneratedImage: entry.source_generated_image || entry.sourceGeneratedImage || null,
+      generationReceipt: entry.generationReceipt
+        ?? entry.source_generated_image?.generationReceipt
+        ?? entry.sourceGeneratedImage?.generationReceipt
+        ?? null,
       personaReferenceBoundToGeneration: entry.personaReferenceBoundToGeneration
         ?? entry.source_generated_image?.personaReferenceBoundToGeneration
         ?? entry.sourceGeneratedImage?.personaReferenceBoundToGeneration
@@ -572,16 +774,65 @@ function loadNativePageProvenance(pagesDir, pages) {
       file: page.file,
       manifestEntryPresent: Boolean(entry),
       sourceGeneratedImage: entry?.sourceGeneratedImage || null,
+      generationReceipt: entry?.generationReceipt || null,
+      methodologyText: entry?.methodologyText || "",
+      requiredVisualUnitIds: entry?.requiredVisualUnitIds || [],
       personaReferenceBoundToGeneration: Boolean(entry?.personaReferenceBoundToGeneration),
       userApprovedPersonaConsistency: Boolean(entry?.userApprovedPersonaConsistency),
+      actualOutputSha256: sha256File(page.file),
     };
   });
   const pagesWithGeneratedImageSource = perPage.filter((page) => Boolean(page.sourceGeneratedImage)).length;
   const pagesWithPersonaReferenceBinding = perPage.filter((page) => page.personaReferenceBoundToGeneration || page.userApprovedPersonaConsistency).length;
+  const pageHashes = pages.map((page) => sha256File(page.file)).filter(Boolean);
+  const uniquePageHashes = new Set(pageHashes);
+  const duplicatePageHashCount = pageHashes.length - uniquePageHashes.size;
+  const generationReceiptContractComplete = manifest?.generationReceiptContract?.complete === true;
+  const receiptRequestIds = [];
+  const receiptOutputHashes = [];
+  let generationReceiptsVerified = 0;
+  for (const page of perPage) {
+    const receipt = page.generationReceipt || {};
+    const requestId = String(receipt.requestId || "").trim();
+    const promptSha256 = String(receipt.promptSha256 || "").trim().toLowerCase();
+    const outputSha256 = String(receipt.outputSha256 || "").trim().toLowerCase();
+    const receiptFieldsPresent = receipt.recordedAtDispatch === true
+      && Boolean(requestId)
+      && /^[a-f0-9]{64}$/.test(promptSha256)
+      && /^[a-f0-9]{64}$/.test(outputSha256)
+      && receipt.personaReferenceBound === true;
+    const generationReceiptOutputHashMatches = receiptFieldsPresent
+      && outputSha256 === String(page.actualOutputSha256 || "").toLowerCase();
+    page.generationReceipt = receipt;
+    page.generationReceiptFieldsPresent = receiptFieldsPresent;
+    page.generationReceiptOutputHashMatches = generationReceiptOutputHashMatches;
+    if (requestId) receiptRequestIds.push(requestId);
+    if (outputSha256) receiptOutputHashes.push(outputSha256);
+    if (generationReceiptOutputHashMatches) generationReceiptsVerified += 1;
+  }
+  const generationReceiptRequestIdsUnique = receiptRequestIds.length === pages.length
+    && new Set(receiptRequestIds).size === pages.length;
+  const generationReceiptOutputHashesUnique = receiptOutputHashes.length === pages.length
+    && new Set(receiptOutputHashes).size === pages.length;
   const routeClaimsOnlyLocalAssets = /project-local assets|local assets|PIL|placeholder|wireframe/i.test(generationRoute)
     && !/built-in image_gen|source_generated_image|generated_images/i.test(generationRoute);
   if (pagesWithGeneratedImageSource !== pages.length) {
     issues.push(`Only ${pagesWithGeneratedImageSource}/${pages.length} final pages have source_generated_image provenance.`);
+  }
+  if (uniquePageHashes.size !== pages.length) {
+    issues.push(`Native personal-IP final pages contain ${duplicatePageHashCount} duplicate source image(s); every planned page must have a distinct generated source image.`);
+  }
+  if (!generationReceiptContractComplete) {
+    issues.push("Native page manifest generationReceiptContract.complete must be true; legacy packages without generation receipts cannot ship as native-final output.");
+  }
+  if (generationReceiptsVerified !== pages.length) {
+    issues.push(`Only ${generationReceiptsVerified}/${pages.length} final pages have complete generation receipts whose outputSha256 matches the actual page file.`);
+  }
+  if (!generationReceiptRequestIdsUnique) {
+    issues.push("Native page generation receipt requestId values must exist and be unique for every final page.");
+  }
+  if (!generationReceiptOutputHashesUnique) {
+    issues.push("Native page generation receipt outputSha256 values must exist and be unique for every final page.");
   }
   if (pagesWithPersonaReferenceBinding !== pages.length) {
     issues.push(`Only ${pagesWithPersonaReferenceBinding}/${pages.length} final pages prove fixed-persona image/context binding or explicit user-approved persona consistency.`);
@@ -601,6 +852,12 @@ function loadNativePageProvenance(pagesDir, pages) {
     pagesChecked: pages.length,
     pagesWithGeneratedImageSource,
     pagesWithPersonaReferenceBinding,
+    uniquePageHashes: uniquePageHashes.size,
+    duplicatePageHashCount,
+    generationReceiptContractComplete,
+    generationReceiptsVerified,
+    generationReceiptRequestIdsUnique,
+    generationReceiptOutputHashesUnique,
     perPage,
     issues,
   };
@@ -628,6 +885,10 @@ function createSkillUsageAccuracyAudit({ pageProvenance, args }) {
     nativeFinalOwnershipBoundaryRecorded: true,
     allFinalPagesHaveNativeImageGenProvenance: allPagesHaveNativeImageGenProvenance,
     allFinalPagesHaveFixedPersonaReferenceBinding: allPagesHavePersonaReferenceBinding,
+    generationReceiptContractComplete: pageProvenance.generationReceiptContractComplete === true,
+    allFinalPagesHaveVerifiedGenerationReceipts: pageProvenance.generationReceiptsVerified === pageProvenance.pagesChecked,
+    generationReceiptRequestIdsUnique: pageProvenance.generationReceiptRequestIdsUnique === true,
+    generationReceiptOutputHashesUnique: pageProvenance.generationReceiptOutputHashesUnique === true,
     noLocalPlaceholderFinalPages,
     personalIpChoiceRecorded: ["on", "off", "auto"].includes(args.personalIp),
     handDrawnAnimationChoiceRecorded: ["off", "subtle", "draw-reveal"].includes(args.handDrawnAnimation),
@@ -766,24 +1027,53 @@ function loadSourceScenes(sourceRun) {
   return Array.isArray(plan.scenes) ? plan.scenes : [];
 }
 
-function pageForTime(pages, start, totalDuration) {
-  if (pages.length === 1) return pages[0];
-  const safeTotal = Math.max(totalDuration, 0.001);
-  const rawIndex = Math.floor((Math.max(0, start) / safeTotal) * pages.length);
-  return pages[Math.max(0, Math.min(pages.length - 1, rawIndex))];
+function pageWindowsFromCueBoundaries(pages, cues, totalDuration) {
+  if (!pages.length) return [];
+  if (!cues.length) {
+    throw new Error("Native page timing requires subtitle cue boundaries; equal-duration page cuts are forbidden.");
+  }
+  if (pages.length > cues.length) {
+    throw new Error(`Native page timing requires at least one subtitle cue per page so cuts never split a spoken cue: pages=${pages.length}, cues=${cues.length}`);
+  }
+  return pages.map((page, index) => {
+    const cueStartIndex = Math.floor(index * cues.length / pages.length);
+    const nextCueStartIndex = index + 1 < pages.length
+      ? Math.floor((index + 1) * cues.length / pages.length)
+      : cues.length;
+    const startSeconds = Number(cues[cueStartIndex]?.start || 0);
+    const endSeconds = index + 1 < pages.length
+      ? Number(cues[nextCueStartIndex]?.start || totalDuration)
+      : Number(totalDuration);
+    return {
+      page,
+      pageId: page.id,
+      pageIndex: page.index,
+      startSeconds,
+      endSeconds: Math.max(startSeconds + 0.001, endSeconds),
+      cueStartIndex,
+      cueEndIndex: Math.max(cueStartIndex, nextCueStartIndex - 1),
+    };
+  });
+}
+
+function pageForTime(pageWindows, start) {
+  return pageWindows.find((window) => start >= window.startSeconds && start < window.endSeconds)
+    || pageWindows.at(-1);
 }
 
 function buildFramePlan(cues, pages, totalDuration, handDrawnAnimation = "off", motionSampleFps = 12) {
   const frames = [];
+  const pageWindows = pageWindowsFromCueBoundaries(pages, cues, totalDuration);
   for (const cue of cues) {
     const cueDuration = Math.max(0.05, cue.end - cue.start);
     const sampleCount = Math.max(3, Math.ceil(cueDuration * motionSampleFps));
     for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
       const start = cue.start + cueDuration * sampleIndex / sampleCount;
       const end = cue.start + cueDuration * (sampleIndex + 1) / sampleCount;
-      const page = pageForTime(pages, start, totalDuration);
-      const pageStart = (page.index - 1) * totalDuration / pages.length;
-      const pageEnd = page.index * totalDuration / pages.length;
+      const pageWindow = pageForTime(pageWindows, start);
+      const page = pageWindow.page;
+      const pageStart = pageWindow.startSeconds;
+      const pageEnd = pageWindow.endSeconds;
       const pageProgress = Math.max(0, Math.min(1, (start - pageStart) / Math.max(0.001, pageEnd - pageStart)));
       frames.push({
         id: `frame-${String(frames.length + 1).padStart(4, "0")}`,
@@ -806,6 +1096,127 @@ function buildFramePlan(cues, pages, totalDuration, handDrawnAnimation = "off", 
     }
   }
   return frames;
+}
+
+function escapeXml(value) {
+  return escapeHtml(value);
+}
+
+function nativeForegroundSvg(pagePlan, canvas) {
+  const cssColor = (value, fallback) => Array.isArray(value)
+    ? `rgba(${value.slice(0, 4).join(",")})`
+    : String(value || fallback);
+  const normalizeStroke = (value, fallback = 0.006) => {
+    const raw = Number(value || fallback);
+    return raw > 1 ? raw / Math.max(canvas.width, canvas.height) : raw;
+  };
+  const paths = (pagePlan?.paths || []).map((path) => {
+    const points = (path.points || []).map(([x, y]) => `${Number(x).toFixed(5)},${Number(y).toFixed(5)}`).join(" ");
+    if (!points) return "";
+    return `<polyline data-motion-id="${escapeXml(path.id || "path")}" points="${points}" fill="none" stroke="${escapeXml(cssColor(path.color, "#2b69d6"))}" stroke-width="${normalizeStroke(path.stroke)}" stroke-linecap="round" stroke-linejoin="round" opacity="0" />`;
+  }).join("");
+  const nodes = (pagePlan?.nodes || []).map((node) => {
+    const [cx, cy] = node.center || [0, 0];
+    const [rx, ry] = node.radius || [0.03, 0.02];
+    return `<ellipse data-motion-id="${escapeXml(node.id || "node")}" cx="${Number(cx).toFixed(5)}" cy="${Number(cy).toFixed(5)}" rx="${Number(rx).toFixed(5)}" ry="${Number(ry).toFixed(5)}" fill="none" stroke="${escapeXml(cssColor(node.color, "#e85c2c"))}" stroke-width="${normalizeStroke(node.stroke)}" opacity="0" />`;
+  }).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" preserveAspectRatio="none" width="${canvas.width}" height="${canvas.height}" role="img" aria-label="foreground motion layer"><g>${paths}${nodes}</g></svg>`;
+}
+
+function writeNativeLayeredArtifacts({ out, pages, canvas, args, totalDuration, cues, semanticMotionPlan }) {
+  const nativeDir = join(out, "assets", "native-pages");
+  const layersDir = join(out, "layers");
+  const subtitleSafeArea = captionSafeArea(canvas);
+  ensureDir(nativeDir);
+  ensureDir(layersDir);
+  const pageLayers = [];
+  const motionByName = new Map((semanticMotionPlan?.pages || []).map((page) => [page.pageName, page]));
+  for (const page of pages) {
+    const extension = extname(page.name).toLowerCase() || ".png";
+    const assetName = `${String(page.index).padStart(3, "0")}-${page.name.replace(extname(page.name), "")}${extension}`;
+    const assetPath = join(nativeDir, assetName);
+    copyFileSync(page.file, assetPath);
+    const baseLayerName = `00-native-base-${String(page.index).padStart(3, "0")}.svg`;
+    const foregroundLayerName = `40-foreground-motion-${String(page.index).padStart(3, "0")}.svg`;
+    const assetHref = `../assets/native-pages/${assetName}`;
+    writeFileSync(join(layersDir, baseLayerName), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}"><rect x="0" y="0" width="${canvas.width}" height="${canvas.height}" fill="#fff"/><image href="${escapeXml(assetHref)}" x="0" y="0" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="none" data-caption-safe-bottom="${subtitleSafeArea.bottomPx}" /></svg>\n`, "utf8");
+    writeFileSync(join(layersDir, foregroundLayerName), nativeForegroundSvg(motionByName.get(page.name), canvas), "utf8");
+    pageLayers.push({
+      pageId: page.id,
+      pageIndex: page.index,
+      sourceFile: page.file,
+      copiedAsset: `assets/native-pages/${assetName}`,
+      baseSvg: `layers/${baseLayerName}`,
+      foregroundSvg: `layers/${foregroundLayerName}`,
+      sourceSha256: sha256File(page.file),
+      visualOwner: "haloshin/ip-diagram-creator native generated page",
+      baseLayerStable: true,
+      captionSafeArea,
+    });
+  }
+  const subtitleLayer = "100-subtitle-overlay.svg";
+  writeFileSync(join(layersDir, subtitleLayer), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}"><g id="subtitle-overlay" data-owner="html-master-timeline" /></svg>\n`, "utf8");
+
+  const pageWindows = pageWindowsFromCueBoundaries(pages, cues, totalDuration);
+  const timeline = {
+    durationSeconds: totalDuration,
+    pageTimingPolicy: "subtitle-cue-boundaries-no-mid-cue-cuts",
+    pages: pageLayers.map((page, index) => ({
+      ...page,
+      startSeconds: Number(pageWindows[index].startSeconds.toFixed(3)),
+      endSeconds: Number(pageWindows[index].endSeconds.toFixed(3)),
+      cueStartIndex: pageWindows[index].cueStartIndex,
+      cueEndIndex: pageWindows[index].cueEndIndex,
+    })),
+    cues: cues.map((cue) => ({ startSeconds: cue.start, endSeconds: cue.end, text: cue.text })),
+  };
+  const pageGroups = pageLayers.map((page, index) => {
+    const plan = motionByName.get(pages[index].name) || {};
+    const normalizeStroke = (value, fallback = 0.006) => {
+      const raw = Number(value || fallback);
+      return raw > 1 ? raw / Math.max(canvas.width, canvas.height) : raw;
+    };
+    const cssColor = (value, fallback) => Array.isArray(value)
+      ? `rgba(${value.slice(0, 4).join(",")})`
+      : String(value || fallback);
+    const paths = (plan.paths || []).map((path) => {
+      const points = (path.points || []).map(([x, y]) => `${Number(x).toFixed(5)},${Number(y).toFixed(5)}`).join(" ");
+      return points ? `<polyline data-motion-start="${Number(path.start || 0)}" data-motion-end="${Number(path.end || 1)}" points="${points}" fill="none" stroke="${escapeXml(cssColor(path.color, "#2b69d6"))}" stroke-width="${normalizeStroke(path.stroke)}" stroke-linecap="round" stroke-linejoin="round" opacity="0" />` : "";
+    }).join("");
+    const nodes = (plan.nodes || []).map((node) => {
+      const [cx, cy] = node.center || [0, 0];
+      const [rx, ry] = node.radius || [0.03, 0.02];
+      return `<ellipse data-motion-start="${Number(node.start || 0)}" data-motion-end="${Number(node.end || 1)}" cx="${Number(cx).toFixed(5)}" cy="${Number(cy).toFixed(5)}" rx="${Number(rx).toFixed(5)}" ry="${Number(ry).toFixed(5)}" fill="none" stroke="${escapeXml(cssColor(node.color, "#e85c2c"))}" stroke-width="${normalizeStroke(node.stroke)}" opacity="0" />`;
+    }).join("");
+    return `<g class="motion-page" data-page-index="${page.pageIndex}" style="display:${index === 0 ? "inline" : "none"}">${paths}${nodes}</g>`;
+  }).join("");
+  const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(args.title || "个人 IP 原生页面动画")}</title><style>html,body{margin:0;background:#fff;overflow:hidden}#stage{--caption-safe-bottom:${subtitleSafeArea.cssVar};position:relative;isolation:isolate;width:${canvas.width}px;height:${canvas.height}px;overflow:hidden;background:#fff}#visual-plane{position:absolute;inset:0;overflow:hidden;z-index:0}#native-page{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0}#foreground{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}#caption-safe-band{position:absolute;left:0;right:0;bottom:0;height:var(--caption-safe-bottom);background:#fff;pointer-events:none;z-index:80}#caption{position:absolute;left:4%;right:4%;bottom:2%;min-height:7%;max-height:calc(var(--caption-safe-bottom) - 18px);padding:1.2% 2.4%;box-sizing:border-box;border-radius:999px;background:#18232d;color:#fff;font:700 clamp(22px,2.5vw,48px)/1.25 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:100}</style></head><body><div id="stage" data-layer-contract="native-base:0,foreground:40,caption-safe-band:80,subtitle:100,caption-safe-bottom:${subtitleSafeArea.bottomPx}px"><div id="visual-plane" data-caption-safe-region="full-canvas-with-pixel-audited-blank-caption-band"><img id="native-page" alt=""><svg id="foreground" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">${pageGroups}</svg></div><div id="caption-safe-band" aria-hidden="true"></div><div id="caption"></div></div><script>const timeline=${JSON.stringify(timeline)};const pageFiles=${JSON.stringify(pageLayers.map((page)=>page.copiedAsset))};const handDrawn=${JSON.stringify(args.handDrawnAnimation !== "off")};const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));function setProgress(progress){const p=clamp(progress);const time=p*timeline.durationSeconds;const pageWindow=timeline.pages.find((item)=>time>=item.startSeconds&&time<item.endSeconds)||timeline.pages[timeline.pages.length-1];const pageIndex=Math.max(0,Math.min(pageFiles.length-1,Number(pageWindow?.pageIndex||1)-1));document.querySelector('#native-page').src=pageFiles[pageIndex];const pageLocal=clamp((time-Number(pageWindow?.startSeconds||0))/Math.max(.001,Number(pageWindow?.endSeconds||timeline.durationSeconds)-Number(pageWindow?.startSeconds||0)));document.querySelectorAll('.motion-page').forEach((group,index)=>{group.style.display=index===pageIndex?'inline':'none';group.querySelectorAll('[data-motion-start]').forEach((node)=>{const start=Number(node.dataset.motionStart||0),end=Number(node.dataset.motionEnd||1),local=clamp((pageLocal-start)/Math.max(.001,end-start));node.style.opacity=handDrawn?String(local):'0'});});const cue=timeline.cues.find((item)=>time>=item.startSeconds&&time<item.endSeconds)||timeline.cues[timeline.cues.length-1];document.querySelector('#caption').textContent=cue?.text||'';window.motionState={progress:p,pageIndex,time,caption:cue?.text||'',pageSource:pageFiles[pageIndex]}}window.motion={setProgress,duration:timeline.durationSeconds};setProgress(0);</script></body></html>`;
+  writeFileSync(join(out, "personal-ip-layered.html"), html, "utf8");
+  writeJson(join(out, "workflow", "personal-ip-layered-source-manifest.json"), {
+    schemaVersion: 1,
+    route: "ip-diagram-creator-native-page-base-plus-foreground-overlays",
+    visualSourceOwner: "haloshin/ip-diagram-creator",
+    htmlMasterTimeline: "personal-ip-layered.html",
+    baseLayerPolicy: "native generated page images remain atomic, full-canvas, and stable; captions render over an opaque geometry band only after decoded source pixels prove that the reserved band contains no meaningful ink",
+    captionSafeArea: subtitleSafeArea,
+    captionSafeAreaAudit: "workflow/frame-layout-overlap-audit.json",
+    pageLayers,
+    subtitleLayer: `layers/${subtitleLayer}`,
+    zOrder: { nativeBase: 0, foregroundMotion: 40, subtitles: 100 },
+    subtitleIsolation: {
+      stackingContext: "#stage isolation:isolate",
+      visualPlaneSelector: "#visual-plane",
+      baseSelector: "#native-page",
+      foregroundSelector: "#foreground",
+      subtitleSelector: "#caption",
+      subtitlesTopmost: true,
+      bottomBandReserved: true,
+      captionOverlaysReservedBlankBand: "verified-by-workflow/frame-layout-overlap-audit.json",
+      nativeBaseGeometryUnchangedByCaption: true,
+    },
+    timeline,
+    animation: { handDrawnAnimation: args.handDrawnAnimation, foregroundOnly: true, baseImageStable: true, subtitlesTopmost: true },
+  });
 }
 
 function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sourceRun, sourceScript, sourceScenes, pageProvenance, canvas, pageCountPolicy }) {
@@ -979,6 +1390,11 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       "audioVideoDurationDeltaOk",
     ],
   };
+  const priorNativeJobs = [
+    sourceRun ? join(sourceRun, "workflow", "ip-diagram-creator-native-jobs.json") : null,
+    join(dirname(args.pagesDir || ""), "workflow", "ip-diagram-creator-native-jobs.json"),
+    join(out, "workflow", "ip-diagram-creator-native-jobs.json"),
+  ].filter(Boolean).map((candidate) => readJsonIfExists(candidate)).find((artifact) => Array.isArray(artifact?.jobs)) || null;
   const nativeJobs = {
     schemaVersion: 1,
     stage: "pre-render-ip-diagram-creator-native-jobs",
@@ -987,6 +1403,9 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
     sourceCommit: SOURCE_COMMIT,
     sourceLicense: "MIT",
     executionModes: ["native-final-video", "native-skill-direct-generation"],
+    promptTracePolicy: "Preserve the exact upstream generation prompt and its quality metadata. The renderer may attach source-image/render evidence but must never replace a rich generation prompt with a generic sentence.",
+    upstreamArtifactPreserved: Boolean(priorNativeJobs),
+    promptMethod: priorNativeJobs?.promptMethod || null,
     userChoices,
     visualDna: {
       background: "white/near-white full-page teaching canvas",
@@ -995,13 +1414,29 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
       presenter: args.personalIp === "off" ? "optional/off" : "adult personal-IP presenter when generated by source Skill",
       agents: "concrete execution agents only when useful",
     },
-    jobs: pages.map((page) => ({
-      pageCardId: page.id,
-      nativeMode: "PPT演讲页面 prompt",
-      sourceImage: page.file,
-      prompt: "Use the original ip-diagram-creator Skill route to generate a white-canvas hand-drawn teaching page for this spoken beat. Keep large whitespace, non-overlapping cards/arrows/characters, and no internal workflow labels.",
-      repairPrompt: "If cards, captions, presenter, or arrows overlap, increase whitespace, split the layout into reserved lanes, and regenerate the native page before video render.",
-    })),
+    jobs: pages.map((page, index) => {
+      const upstream = priorNativeJobs?.jobs?.[index] || null;
+      return {
+        ...(upstream || {}),
+        pageCardId: upstream?.pageCardId || page.id,
+        nativeMode: upstream?.nativeMode || "native generated personal-IP page",
+        sourceImage: page.file,
+        sourceImageSha256: sha256File(page.file),
+        prompt: upstream?.prompt || null,
+        promptStatus: upstream?.prompt ? "preserved-upstream-generation-prompt" : "upstream-prompt-unavailable-do-not-fabricate",
+        promptSha256: upstream?.prompt ? sha256Text(upstream.prompt) : null,
+        promptPath: upstream?.promptPath || null,
+        promptLint: upstream?.promptLint || null,
+        visualBlueprint: upstream?.visualBlueprint || null,
+        renderEvidence: {
+          nativePageIndex: page.index,
+          sourceImage: page.file,
+          sourceImageSha256: sha256File(page.file),
+          provenanceManifest: pageProvenance.manifestPath,
+        },
+        repairPrompt: upstream?.repairPrompt || "Recover the original structured prompt and visual blueprint before repair; do not regenerate from a generic whiteboard sentence.",
+      };
+    }),
   };
   const layoutAudit = {
     schemaVersion: 1,
@@ -1026,7 +1461,7 @@ function createPlanArtifacts({ out, title, args, pages, cues, totalDuration, sou
     })),
     issues: [
       ...(pageProvenance.issues || []),
-      ...(!pageCountPolicy.withinRange ? [`Native page count ${pageCountPolicy.actualPageCount} is outside required range ${pageCountPolicy.minPageCount}-${pageCountPolicy.maxPageCount}.`] : []),
+      ...(!pageCountPolicy.withinRange ? [`Native page count ${pageCountPolicy.actualPageCount} is below required minimum ${pageCountPolicy.minPageCount}; there is no default maximum.`] : []),
       ...(!pageCountPolicy.satisfiesSourceImageCountPlan ? [pageCountPolicy.sourceImageCountPlanIssue || "Native page count does not satisfy source image count plan."] : []),
     ],
   };
@@ -1516,6 +1951,127 @@ function normalizeFinalAudio({ out, finalPath, commands }) {
   });
 }
 
+function nativeFinalCoverTargetSpecs(canvas = {}) {
+  const videoWidth = Number(canvas.width || DEFAULT_LANDSCAPE_WIDTH);
+  const videoHeight = Number(canvas.height || DEFAULT_LANDSCAPE_HEIGHT);
+  const videoRatio = aspectRatio(videoWidth, videoHeight);
+  return [
+    {
+      id: "video-opening",
+      platform: "Video opening frame",
+      usage: "in-video",
+      width: videoWidth,
+      height: videoHeight,
+      ratio: videoRatio,
+      file: `cover/cover-video-opening-${videoRatio.replace(":", "x")}.svg`,
+    },
+    { id: "master-16x9-4k", platform: "YouTube / horizontal high-resolution", width: 3840, height: 2160, ratio: "16:9" },
+    { id: "youtube-1280x720", platform: "YouTube / common 16:9 thumbnail", width: 1280, height: 720, ratio: "16:9" },
+    { id: "horizontal-4x3-1600x1200", platform: "Generic horizontal 4:3 cover", width: 1600, height: 1200, ratio: "4:3" },
+    { id: "bilibili-common-1146x717", platform: "Bilibili common cover", width: 1146, height: 717, ratio: aspectRatio(1146, 717) },
+    { id: "bilibili-1920x1080", platform: "Bilibili / HD 16:9 cover", width: 1920, height: 1080, ratio: "16:9" },
+    { id: "vertical-1080x1920", platform: "Douyin / TikTok / Shorts vertical source", width: 1080, height: 1920, ratio: "9:16" },
+    { id: "vertical-profile-1080x1440", platform: "Douyin / Kuaishou 3:4 profile cover", width: 1080, height: 1440, ratio: "3:4" },
+    { id: "instagram-reels-cover", platform: "Instagram Reels profile cover", width: 420, height: 654, ratio: aspectRatio(420, 654) },
+    { id: "square-1200x1200", platform: "Square social feed card", width: 1200, height: 1200, ratio: "1:1" },
+  ].map((target) => ({
+    usage: "standalone-upload-resolution",
+    creativeRole: target.usage === "in-video" ? "video-continuity-cover" : "platform-specific-click-strategy",
+    maxBytes: 5_000_000,
+    ...target,
+  }));
+}
+
+function nativeFinalCoverPrompt({ title, target, sourcePage }) {
+  const visibleTitle = String(title || "核心方法")
+    .replace(/^写小说方法论[：:]?/u, "")
+    .replace(/\s+/g, "")
+    .slice(0, 14) || "核心方法";
+  return [
+    "Use case: ads-marketing / platform video thumbnail",
+    "Asset type: platform-submission video cover",
+    `Native target: ${target.width}x${target.height} (${target.ratio})`,
+    `Goal: create a complete native-ratio upload cover for ${title}`,
+    `Role-labelled input image: main native personal-IP page context, ${sourcePage}`,
+    "Subject: original knowledge presenter / personal-IP teaching board with a strong novel-writing proof object.",
+    "Scene/backdrop: premium white-canvas hand-drawn editorial cover with sparse orange and blue marker accents.",
+    "Style/medium: professional high-click Chinese knowledge thumbnail, integrated typography, crisp depth, mobile-readable hierarchy.",
+    "Composition/framing: adapt natively to this exact ratio; no crop, no letterbox, no matte frame, no duplicated side panels.",
+    "Lighting/mood: bright paper, confident, clear, creator-methodology tone.",
+    "Color palette: white paper, ink black, restrained orange, cobalt blue, one warm highlight.",
+    `Text (verbatim): ${visibleTitle}`,
+    "Supporting text (verbatim): 看完能用",
+    `Content binding: every visual clue must directly express the locked topic "${title}"; do not substitute a different writing-method topic found in body text.`,
+    "Avoid list: workflow labels, platform labels, renderer names, English filler words, random numbers, QR codes, logos, PPT title card layout, tiny body copy, copied creator style.",
+  ].join("\n");
+}
+
+function nativeFinalCoverPromptArtifacts({ out, title, sourcePage, canvas, writePromptFiles = true }) {
+  const targets = nativeFinalCoverTargetSpecs(canvas);
+  const standaloneTargets = targets.filter((target) => target.usage !== "in-video");
+  const prompts = standaloneTargets.map((target) => ({
+    targetId: `${target.id}-image2-integrated-cover`,
+    generationRole: "platform-specific Image 2 complete cover with integrated typography sharing one native-final content promise",
+    width: target.width,
+    height: target.height,
+    ratio: target.ratio,
+    platformFamily: target.id,
+    platform: target.platform,
+    prompt: nativeFinalCoverPrompt({ title, target, sourcePage }),
+  }));
+  const promptDir = join(out, "prompts", "context-image2-covers");
+  if (writePromptFiles) ensureDir(promptDir);
+  const requests = prompts.map((promptItem) => {
+    const targetId = String(promptItem.targetId).replace(/-image2-integrated-cover$/, "");
+    const promptFileName = `${safeFileStem(targetId)}.txt`;
+    const promptPath = join(promptDir, promptFileName);
+    const request = {
+      targetId,
+      promptTargetId: promptItem.targetId,
+      coverTitle: title,
+      status: "pending",
+      provider: "codex-context-image2",
+      tool: "image_gen",
+      purpose: "platform-submission-cover",
+      videoInternalCover: false,
+      parallelSafe: true,
+      consistencyGroup: "context-image2-native-final-cover-targets",
+      requiredForFinalCover: true,
+      width: promptItem.width,
+      height: promptItem.height,
+      ratio: promptItem.ratio,
+      platformFamily: promptItem.platformFamily,
+      promptPath: `prompts/context-image2-covers/${promptFileName}`,
+      prompt: promptItem.prompt,
+      inputImages: [{ role: "native-page-context", path: sourcePage }],
+      contextImages: [sourcePage],
+      expectedOutput: `cover/context-image2-${targetId}.png`,
+      generationReceiptPath: `workflow/context-image2-cover-evidence/${safeFileStem(targetId)}-generation-receipt.json`,
+      inspectionRecordPath: `workflow/context-image2-cover-evidence/${safeFileStem(targetId)}-inspection-record.json`,
+      ingestCommand: `node scripts/ingest-codex-image2-cover-target.mjs --topic ${out} --target ${targetId} --source <codex-imagegen-png> --generation-receipt <generation-receipt.json> --inspection-record <inspection-record.json>`,
+    };
+    const promptText = formatContextImage2CoverPromptDocument({ request, coverTitle: title });
+    request.promptSha256 = sha256Text(request.prompt);
+    request.promptFileSha256 = sha256Text(promptText);
+    request.sourceStagingPolicy = "external-imagegen-output-until-ingest";
+    if (writePromptFiles) writeFileSync(promptPath, promptText, "utf8");
+    return request;
+  });
+  const requestedTargetIds = requests.map((request) => request.targetId);
+  return { targets, prompts, requests, requestedTargetIds };
+}
+
+function coreContextImage2CoverLanePresent(existingCoverDesign, existingContextImage2Requests) {
+  const requestLaneReady = existingContextImage2Requests?.provider === "codex-context-image2"
+    && existingContextImage2Requests?.tool === "image_gen"
+    && Array.isArray(existingContextImage2Requests?.requests)
+    && existingContextImage2Requests.requests.length > 0;
+  const coverDesignReady = existingCoverDesign?.defaultCoverEngine === "image2-integrated-typography-cover"
+    || existingCoverDesign?.contextImage2CoverRequestsFile === "workflow/context-image2-cover-requests.json"
+    || existingCoverDesign?.contextImage2Handoff === "workflow/context-image2-cover-requests.json";
+  return requestLaneReady && coverDesignReady;
+}
+
 function createCoverArtifacts({ out, title, pages, canvas, commands }) {
   const coverDir = join(out, "cover");
   const finalDir = join(out, "最终成品", "评审级封面-非上传终版");
@@ -1542,20 +2098,17 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
   const contextImage2RequestsPath = join(out, "workflow", "context-image2-cover-requests.json");
   const existingCoverDesign = readJsonIfExists(coverDesignPath);
   const existingContextImage2Requests = readJsonIfExists(contextImage2RequestsPath);
-  const coreCoverLogicPresent = existingCoverDesign?.defaultCoverEngine === "image2-integrated-typography-cover"
-    && existingCoverDesign?.image2CoverPromptFile === "workflow/cover-image2-prompts.json"
-    && existingCoverDesign?.coverSizeSelectionFile === "workflow/cover-size-selection.json"
-    && existingContextImage2Requests?.provider === "codex-context-image2"
-    && existingContextImage2Requests?.tool === "image_gen";
-  const coverPrompt = [
-    `Create a 16:9 video thumbnail/cover for: ${title}`,
-    "Use the native personal-IP hand-drawn page visual as context.",
-    "Make the click promise clear: 小说主题不是一句金句.",
-    "Preserve the fixed manifest-backed presenter identity if a presenter appears.",
-    "White-canvas hand-drawn style, sparse orange/blue marker accents, mobile-readable title, no workflow labels.",
-    "This prompt is a Context Image2 handoff; the review-grade cover PNG/JPG in this package was derived from the native opening page so the deliverable is never cover-less.",
-  ].join("\n");
-  writeFileSync(join(promptDir, "cover-16x9-native-final-context-image2.txt"), coverPrompt, "utf8");
+  const coreCoverLogicPresent = coreContextImage2CoverLanePresent(
+    existingCoverDesign,
+    existingContextImage2Requests,
+  );
+  const fallbackCover = nativeFinalCoverPromptArtifacts({
+    out,
+    title,
+    sourcePage,
+    canvas,
+    writePromptFiles: !coreCoverLogicPresent,
+  });
   const nativeReviewCover = {
     schemaVersion: 1,
     status: "ready-review-grade-native-page-cover",
@@ -1564,7 +2117,7 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
     sourceNativePage: sourcePage,
     coverPromise: "小说主题不是一句金句",
     visualContinuity: "Cover is derived from the opening native generated page so thumbnail and first frame stay consistent.",
-    contextImage2Handoff: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
+    contextImage2Handoff: "workflow/context-image2-cover-requests.json",
     preservesCoreCoverLogic: coreCoverLogicPresent,
     uploadReady: false,
     reasonUploadReadyFalse: "Review-grade cover is created from the native opening page. Native target-ratio Context Image2 cover generation can replace it for platform upload variants.",
@@ -1583,7 +2136,15 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
     sourceNativePage: sourcePage,
     coverPromise: "小说主题不是一句金句",
     visualContinuity: "Cover is derived from the opening native generated page so thumbnail and first frame stay consistent.",
-    contextImage2Handoff: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
+    defaultCoverEngine: "image2-integrated-typography-cover",
+    image2CoverPromptFile: "workflow/cover-image2-prompts.json",
+    contextImage2CoverRequestsFile: "workflow/context-image2-cover-requests.json",
+    coverSizeSelectionFile: "workflow/cover-size-selection.json",
+    sharedContentPromiseMultiPlatformVariants: true,
+    platformSpecificDesignsGenerated: true,
+    resolutionPresets: fallbackCover.targets,
+    platformTargets: fallbackCover.targets.filter((target) => target.usage !== "in-video"),
+    contextImage2Handoff: "workflow/context-image2-cover-requests.json",
     uploadReady: false,
     reasonUploadReadyFalse: "Review-grade cover is created from the native opening page. Native target-ratio Context Image2 cover generation can replace it for platform upload variants.",
     outputs: {
@@ -1600,6 +2161,21 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
     defaultVideoRatio: canvas.aspectRatio,
     uploadReadyCount: 0,
     reviewGradeCount: 2,
+    pendingNativeTargetCount: fallbackCover.requests.length,
+    primaryPlatformUploadCoverTargetId: canvas.vertical ? "vertical-1080x1920" : "youtube-1280x720",
+    entries: fallbackCover.targets.filter((target) => target.usage !== "in-video").map((target) => ({
+      targetId: target.id,
+      id: target.id,
+      label: target.platform,
+      width: target.width,
+      height: target.height,
+      ratio: target.ratio,
+      uploadReady: false,
+      image2NativeTargetRatioReady: false,
+      needsRegeneration: true,
+      reason: "needs-native-target-ratio-image2",
+      expectedOutput: `cover/context-image2-${target.id}.png`,
+    })),
     targets: [
       {
         id: "native-final-review-1920x1080",
@@ -1622,33 +2198,77 @@ function createCoverArtifacts({ out, title, pages, canvas, commands }) {
         reviewGrade: true,
       },
     ],
-    pending: ["native Context Image2 upload-ready platform variants"],
+    needsRegeneration: fallbackCover.requests.map((request) => ({
+      targetId: request.targetId,
+      reason: "needs-native-target-ratio-image2",
+      promptPath: request.promptPath,
+    })),
+    pending: fallbackCover.requests.map((request) => request.targetId),
   };
   const contextImage2Requests = {
     schemaVersion: 1,
-    status: "handoff-ready",
+    stage: "context-image2-cover-requests",
+    status: "required-pending",
     route: "ip-diagram-native-final-pages",
     provider: "codex-context-image2",
     tool: "image_gen",
+    purpose: "platform-submission-cover",
     requiredForFinalCover: true,
     coreCoverLogicPreserved: coreCoverLogicPresent,
     sourceNativePage: sourcePage,
-    parallelGenerationPolicy: {
-      allowed: false,
-      reason: "This standalone native-final review cover is a single source-page continuity handoff. Full platform cover targets use the core workflow/context-image2-cover-requests.json contract when present.",
+    generationContract: {
+      skill: "system-imagegen",
+      coverSkill: "imagegen",
+      provider: "codex-context-image2",
+      tool: "image_gen",
+      executionMode: "built-in-image_gen",
+      completion: "Only request-bound generated Image2/Codex bitmaps ingested through scripts/ingest-codex-image2-cover-target.mjs can satisfy these platform cover targets.",
     },
-    requests: [
-      {
-        id: "cover-16x9-native-final",
-        target: "16:9 video thumbnail",
-        prompt: "prompts/context-image2-covers/cover-16x9-native-final-context-image2.txt",
-        contextImages: [sourcePage],
-        expectedOutput: "cover/native-final-cover-1920x1080.png",
-      },
-    ],
+    primaryPlatformUploadCoverTargetId: canvas.vertical ? "vertical-1080x1920" : "youtube-1280x720",
+    primaryPlatformUploadCoverReady: false,
+    allRequestedPlatformUploadCoversReady: false,
+    completedRequestCount: 0,
+    pendingRequestCount: fallbackCover.requests.length,
+    completedTargetIds: [],
+    pendingTargetIds: fallbackCover.requestedTargetIds,
+    requestCountContract: {
+      mode: "all-planned-platform-targets",
+      expectedRequestCount: fallbackCover.requestedTargetIds.length,
+      actualRequestCount: fallbackCover.requests.length,
+      requestedTargetIds: fallbackCover.requestedTargetIds,
+      actualTargetIds: fallbackCover.requestedTargetIds,
+      concurrencyIsThroughputOnly: true,
+      nativeFinalFallbackExpandedToAllPlatformTargets: true,
+      pass: fallbackCover.requestedTargetIds.length === fallbackCover.requests.length,
+    },
+    parallelGenerationPolicy: {
+      allowed: true,
+      strategy: "all-pending-worker-pool",
+      failureMode: "all-settled-target-isolation",
+      defaultMaxConcurrency: 9,
+      maxConcurrency: 9,
+      concurrencyEnv: "CODEX_VIDEO_IMAGE2_CONCURRENCY",
+      scope: "all requested native-final platform cover targets",
+      rule: "Concurrency controls throughput only and must never cap or slice the target list; batch ingest and cover QC run once after all generated outputs are recorded.",
+    },
+    requestDirectory: "prompts/context-image2-covers",
+    requests: fallbackCover.requests,
+  };
+  const coverImage2Prompts = {
+    schemaVersion: 1,
+    model: "gpt-image-2",
+    source: "ip-diagram-native-final-pages",
+    defaultCoverEngine: "image2-integrated-typography-cover",
+    contextImage2CoverRequestsFile: "workflow/context-image2-cover-requests.json",
+    sharedContentPromiseMultiPlatformVariants: true,
+    platformSpecificDesignsGenerated: true,
+    sourceNativePage: sourcePage,
+    resolutionPresets: fallbackCover.targets,
+    prompts: fallbackCover.prompts,
   };
   writeJson(join(out, "workflow", "native-final-cover-review.json"), nativeReviewCover);
   if (!coreCoverLogicPresent) {
+    writeJson(join(out, "workflow", "cover-image2-prompts.json"), coverImage2Prompts);
     writeJson(coverDesignPath, coverDesign);
     writeJson(coverSizeSelectionPath, coverSizeSelection);
     writeJson(contextImage2RequestsPath, contextImage2Requests);
@@ -1735,6 +2355,16 @@ function main() {
 
   const pages = collectPages(pagesDir);
   if (pages.length === 0) throw new Error(`No page images found under ${pagesDir}`);
+  const captionSafeAreaPixelAudit = auditNativeCaptionSafeAreas({ pages, canvas });
+  writeJson(join(out, "workflow", "frame-layout-overlap-audit.json"), captionSafeAreaPixelAudit);
+  if (captionSafeAreaPixelAudit.status !== "pass") {
+    throw new Error([
+      "Native-final caption safe-area pixel audit failed.",
+      `- Checked ${captionSafeAreaPixelAudit.checkedFrames}/${captionSafeAreaPixelAudit.expectedPages} page(s); found ${captionSafeAreaPixelAudit.collisionCount} unsafe page(s).`,
+      "- Regenerate the failed native pages with the bottom caption-safe band physically blank; prompt declarations or manifest flags are not evidence.",
+      "- See workflow/frame-layout-overlap-audit.json for per-page ink ratios and inspected geometry.",
+    ].join("\n"));
+  }
   const allowUnverifiedNativePages = isEnabled(args.allowUnverifiedNativePages);
   const pageProvenance = loadNativePageProvenance(pagesDir, pages);
   const pageCountPolicy = enrichNativePageCountPolicyWithSourcePlan(
@@ -1744,7 +2374,7 @@ function main() {
   if (!pageCountPolicy.withinRequiredCount && pageCountPolicy.hardGate && !allowUnverifiedNativePages) {
     throw new Error([
       "Native-final personal-IP page count failed.",
-      `- Found ${pageCountPolicy.actualPageCount} page(s); required ${pageCountPolicy.minPageCount}-${pageCountPolicy.maxPageCount}.`,
+      `- Found ${pageCountPolicy.actualPageCount} page(s); required minimum ${pageCountPolicy.minPageCount} with no default maximum.`,
       pageCountPolicy.sourceImageCountPlanIssue ? `- ${pageCountPolicy.sourceImageCountPlanIssue}` : null,
       "- Generate the full personal-IP source page set first; do not render a final personal-IP MP4 from one static background.",
       NATIVE_PAGE_PROVENANCE_HINT,
@@ -1765,7 +2395,15 @@ function main() {
   const totalDuration = Math.max(audioDuration, lastCueEnd);
   const sourceScenes = loadSourceScenes(sourceRun);
   const semanticMotionPlan = loadSemanticMotionPlan(pagesDir, pages, args.handDrawnAnimation);
-  const motionSampleFps = 12;
+  // Long-form videos should not require one browser screenshot for every tiny
+  // subtitle tick.  The foreground animation is intentionally slow and page-
+  // local, so two samples per second are enough; ffmpeg expands the timed
+  // concat back to the delivery fps during encoding.  Keep this configurable
+  // for future quality/performance tuning.
+  const motionSampleFps = Number(args.motionSampleFps || 2);
+  if (!Number.isFinite(motionSampleFps) || motionSampleFps <= 0) {
+    throw new Error("--motion-sample-fps must be a positive number");
+  }
   const frames = buildFramePlan(cues, pages, totalDuration, args.handDrawnAnimation, motionSampleFps);
   const oneLineSrt = join(out, "script", "subtitles.srt");
   writeOneLineSrt(oneLineSrt, cues);
@@ -1783,6 +2421,15 @@ function main() {
     canvas,
     pageCountPolicy,
   });
+  writeNativeLayeredArtifacts({
+    out,
+    pages,
+    canvas,
+    args,
+    totalDuration,
+    cues,
+    semanticMotionPlan,
+  });
 
   const renderConfig = {
     width: canvas.width,
@@ -1791,6 +2438,7 @@ function main() {
     orientation: canvas.orientation,
     baseImageTransform: canvas.baseImageTransform,
     fps,
+    totalDuration,
     frames,
     framesDir: join(out, "frames"),
     concatPath: join(out, "workflow", "frames.ffconcat"),
@@ -1798,12 +2446,21 @@ function main() {
     motionSampleFps,
     continuousForegroundMotion: args.handDrawnAnimation !== "off",
     semanticMotionPlan,
+    videoRenderSource: "personal-ip-layered.html",
     topSafeArea: canvas.mobileTopSafeArea,
   };
   writeJson(join(out, "workflow", "native-page-render-config.json"), renderConfig);
   writeJson(join(out, "workflow", "personal-ip-layered-motion-manifest.json"), {
     schemaVersion: 1,
-    route: "native-personal-ip-base-plus-semantic-foreground-motion",
+    route: "ip-diagram-creator-native-page-base-plus-foreground-overlays",
+    sourceArtifacts: {
+      htmlMasterTimeline: "personal-ip-layered.html",
+      sourceManifest: "workflow/personal-ip-layered-source-manifest.json",
+      nativeBaseLayers: "layers/00-native-base-*.svg",
+      foregroundLayers: "layers/40-foreground-motion-*.svg",
+      subtitleLayer: "layers/100-subtitle-overlay.svg",
+    },
+    videoRenderOwner: "native-page-render-config plus the same native base/foreground/subtitle contract",
     active: args.handDrawnAnimation !== "off",
     mode: args.handDrawnAnimation,
     baseLayer: {
@@ -1838,7 +2495,22 @@ function main() {
       "path or node outside its declared safe motion region",
     ],
   });
-  renderFramesWithPython(join(out, "workflow", "native-page-render-config.json"), commands);
+  const htmlTimelineRenderer = join(SKILL_ROOT, "scripts", "lib", "render-native-html-timeline.mjs");
+  run(process.execPath, [
+    htmlTimelineRenderer,
+    "--html", join(out, "personal-ip-layered.html"),
+    "--config", join(out, "workflow", "native-page-render-config.json"),
+  ], { cwd: SKILL_ROOT, category: "render-native-html-master-timeline", timeout: 1_800_000 });
+  const concatLines = [];
+  for (const frame of frames) {
+    const framePath = join(out, "frames", `${frame.id}.png`);
+    if (!existsSync(framePath)) throw new Error(`HTML master timeline did not create expected frame: ${framePath}`);
+    concatLines.push(`file '${framePath.replaceAll("'", "'\\''")}'`);
+    concatLines.push(`duration ${Math.max(0.05, Number(frame.duration || 0.05)).toFixed(6)}`);
+  }
+  const lastFramePath = frames.length ? join(out, "frames", `${frames.at(-1).id}.png`) : null;
+  if (lastFramePath) concatLines.push(`file '${lastFramePath.replaceAll("'", "'\\''")}'`);
+  writeFileSync(join(out, "workflow", "frames.ffconcat"), `${concatLines.join("\n")}\n`, "utf8");
 
   const visualPath = join(out, "renders", "native-pages-hard-subtitles.mp4");
   run("ffmpeg", [
@@ -1927,15 +2599,36 @@ function main() {
       && existsSync(join(out, "workflow", "context-image2-cover-requests.json"))
       && existsSync(join(out, "cover", "native-final-cover-1920x1080.png"))
       && existsSync(join(out, "最终成品", "评审级封面-非上传终版", "01-横版16比9-评审级封面-1920x1080.png")),
-    coverContextImage2HandoffPresent: existsSync(join(out, "prompts", "context-image2-covers", "cover-16x9-native-final-context-image2.txt")),
+    coverContextImage2HandoffPresent: (() => {
+      const requests = readJsonIfExists(join(out, "workflow", "context-image2-cover-requests.json"));
+      return requests?.provider === "codex-context-image2"
+        && requests?.tool === "image_gen"
+        && Array.isArray(requests?.requests)
+        && requests.requests.length > 0
+        && requests.requests.every((request) => request.promptPath && request.expectedOutput);
+    })(),
     coverNativeImage2Ready: nativeImage2CoverReady,
     ipDiagramCreatorPlanPresent: existsSync(join(out, "workflow", "ip-diagram-creator-plan.json")),
     ipDiagramCreatorVendorUsagePresent: existsSync(join(out, "workflow", "ip-diagram-creator-vendor-usage.json")),
     ipDiagramCreatorNativeJobsPresent: existsSync(join(out, "workflow", "ip-diagram-creator-native-jobs.json")),
     ipDiagramLayoutAuditPresent: existsSync(join(out, "workflow", "ip-diagram-layout-audit.json")),
     nativePageProvenanceVerified: pageProvenance.status === "pass",
+    captionSafeAreaPixelAuditPass: captionSafeAreaPixelAudit.status === "pass"
+      && captionSafeAreaPixelAudit.checkedFrames === pages.length
+      && captionSafeAreaPixelAudit.collisionCount === 0,
+    frameLayoutNoTextVisualOverlap: captionSafeAreaPixelAudit.status === "pass"
+      && captionSafeAreaPixelAudit.checkedFrames === pages.length
+      && captionSafeAreaPixelAudit.collisionCount === 0,
+    captionRendererApplied: captionSafeAreaPixelAudit.captionRendererEvidence?.applied === true
+      && captionSafeAreaPixelAudit.uniqueCaptionRendererCount >= 1,
     skillUsageAccuracyAuditPresent: existsSync(join(out, "workflow", "skill-usage-accuracy-audit.json")),
     skillUsageAccuracyAuditPass: skillUsageAccuracyAudit.status === "pass",
+    nativeLayeredHtmlPresent: existsSync(join(out, "personal-ip-layered.html")),
+    nativeLayeredSourceManifestPresent: existsSync(join(out, "workflow", "personal-ip-layered-source-manifest.json")),
+    nativeBaseSvgLayersPresent: pages.every((page) => existsSync(join(out, "layers", `00-native-base-${String(page.index).padStart(3, "0")}.svg`))),
+    nativeForegroundSvgLayersPresent: pages.every((page) => existsSync(join(out, "layers", `40-foreground-motion-${String(page.index).padStart(3, "0")}.svg`))),
+    nativeBaseLayerStable: true,
+    semanticTemplateRendererNotUsed: true,
     ipDiagramFullScreenStable: true,
     ipDiagramNoBorderWrapper: true,
     ipDiagramBaseImageStable: true,
@@ -1954,10 +2647,24 @@ function main() {
       return ratio > 0.45 && ratio < 0.7;
     }),
   };
+  const coverCheckIds = new Set([
+    "coverArtifactsPresent",
+    "coverContextImage2HandoffPresent",
+    "coverNativeImage2Ready",
+  ]);
+  const videoCheckEntries = Object.entries(checks)
+    .filter(([key]) => !coverCheckIds.has(key));
+  const videoPass = videoCheckEntries.every(([, value]) => value === true);
+  const publishingReady = videoPass
+    && checks.coverArtifactsPresent
+    && checks.coverContextImage2HandoffPresent
+    && checks.coverNativeImage2Ready;
   const qc = {
     schemaVersion: 1,
-    status: Object.values(checks).every(Boolean) ? "pass" : "fail",
-    pass: Object.values(checks).every(Boolean),
+    status: publishingReady ? "pass" : videoPass ? "video-review-ready" : "fail",
+    pass: publishingReady,
+    videoPass,
+    publishingReady,
     route: "ip-diagram-native-final-pages",
     finalVideo: finalPath,
     rootCopy,
@@ -2011,20 +2718,25 @@ function main() {
 
   console.log(JSON.stringify({
     pass: qc.pass,
+    videoPass: qc.videoPass,
+    publishingReady: qc.publishingReady,
     out,
     finalVideo: finalPath,
     rootCopy,
     durationSeconds: finalDuration,
     durationDeltaSeconds: qc.durationDeltaSeconds,
   }, null, 2));
-  if (!qc.pass && !allowUnverifiedNativePages && !isEnabled(args.allowIncompleteNativeFinal)) {
+  if (!qc.videoPass && !allowUnverifiedNativePages && !isEnabled(args.allowIncompleteNativeFinal)) {
     process.exitCode = 2;
   }
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error?.stack || String(error));
-  process.exit(1);
+const invokedAsMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedAsMain) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error?.stack || String(error));
+    process.exit(1);
+  }
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "百科档案设计"
+  short_description: "Design polished structured encyclopedia profile cards"
+  default_prompt: "Use $build-knowledge-encyclopedia to create a polished subject encyclopedia card for a vertical knowledge video."
