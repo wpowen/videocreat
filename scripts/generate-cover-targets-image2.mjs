@@ -13,8 +13,8 @@ function positiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function boundedConcurrency(value, fallback = 2) {
-  return Math.max(1, Math.min(6, positiveInt(value, fallback)));
+function boundedConcurrency(value, fallback = 9) {
+  return Math.max(1, Math.min(9, positiveInt(value, fallback)));
 }
 
 function readJson(path) {
@@ -36,17 +36,18 @@ function loadEnvFile(path) {
   }
 }
 
-async function runLimited(tasks, { limit = 2 } = {}) {
+async function runLimitedAllSettled(tasks, { limit = 9 } = {}) {
   const results = new Array(tasks.length);
   let cursor = 0;
   async function worker() {
     while (cursor < tasks.length) {
       const index = cursor;
       cursor += 1;
-      results[index] = await tasks[index]();
+      const [settled] = await Promise.allSettled([tasks[index]()]);
+      results[index] = settled;
     }
   }
-  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), tasks.length) }, () => worker()));
+  await Promise.allSettled(Array.from({ length: Math.min(Math.max(1, limit), tasks.length) }, () => worker()));
   return results;
 }
 
@@ -344,8 +345,10 @@ function updateArtifacts({ topicDir, entry, promptItem, pngFile, jpgFile, apiSiz
 async function main() {
   const root = resolve(argValue("--root", process.cwd()));
   const quality = argValue("--quality", "high");
-  const generationLimit = positiveInt(argValue("--limit", "0"), 0);
-  const concurrency = boundedConcurrency(argValue("--concurrency", process.env.CODEX_VIDEO_IMAGE2_CONCURRENCY || "2"), 2);
+  if (process.argv.includes("--limit")) {
+    throw new Error("--limit is forbidden for cover generation because it slices the requested target set. Use --concurrency to control throughput without reducing target count.");
+  }
+  const concurrency = boundedConcurrency(argValue("--concurrency", process.env.CODEX_VIDEO_IMAGE2_CONCURRENCY || "9"), 9);
   loadEnvFile(resolve(".env.local"));
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is missing. Refusing to fake Image2 cover generation.");
   const topicDirs = topicDirsForRoot(root);
@@ -366,7 +369,6 @@ async function main() {
       fallbackTitle: design.coverTitle || selection.title || topicDir.split(/[\\/]/).pop(),
     });
     for (const entry of pending) {
-      if (generationLimit && generationJobs.length >= generationLimit) break;
       const promptItem = matchingPrompt(prompts, entry.targetId);
       if (!promptItem?.prompt) throw new Error(`Missing Image2 prompt for ${topicDir} ${entry.targetId}`);
       const apiSize = chooseImage2Size(Number(entry.width), Number(entry.height));
@@ -378,10 +380,9 @@ async function main() {
       const prompt = `${promptItem.prompt}\n\n${targetPromptSuffix(entry)}\n\nAPI canvas: generate natively for ${apiSize.width}x${apiSize.height}. Final platform export: ${entry.width}x${entry.height}. Preserve the target composition and safe areas; do not create letterbox, matte, crop marks, or side extensions.`;
       generationJobs.push({ topicDir, entry, promptItem, apiSize, output, pngPath, jpgPath, rawPath, prompt });
     }
-    if (generationLimit && generationJobs.length >= generationLimit) break;
   }
 
-  const completedJobs = await runLimited(generationJobs.map((job) => async () => {
+  const settledJobs = await runLimitedAllSettled(generationJobs.map((job) => async () => {
     console.error(`[image2] generating ${job.entry.targetId} (${job.apiSize.width}x${job.apiSize.height})`);
     await generateImage2Png({
       prompt: job.prompt,
@@ -391,6 +392,14 @@ async function main() {
     });
     return job;
   }), { limit: concurrency });
+  const completedJobs = settledJobs.filter((result) => result.status === "fulfilled").map((result) => result.value);
+  const failedJobs = settledJobs
+    .map((result, index) => ({ result, job: generationJobs[index] }))
+    .filter((item) => item.result.status === "rejected")
+    .map((item) => ({
+      targetId: item.job.entry.targetId,
+      error: String(item.result.reason?.message || item.result.reason || "unknown Image2 failure"),
+    }));
 
   for (const job of completedJobs) {
     resizeToFinal({
@@ -426,8 +435,13 @@ async function main() {
     quality,
     concurrency,
     generatedCount: generated.length,
+    failedCount: failedJobs.length,
+    failed: failedJobs,
     generated,
   });
+  if (failedJobs.length) {
+    throw new Error(`Image2 cover generation failed for ${failedJobs.map((item) => item.targetId).join(", ")}; successful targets were preserved and only failed targets should be retried.`);
+  }
   console.log(JSON.stringify({ ok: true, root, concurrency, generatedCount: generated.length }, null, 2));
 }
 

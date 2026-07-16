@@ -17,7 +17,7 @@ Vendored source:
 
 ## Integration Boundary
 
-Use it as a Planner-routed capability portfolio, not as a forced replacement. Planner may choose one of four video-level routes: keep the existing `codex-video-workflow` design logic, use `ip-diagram-creator` as a full native-final visual engine, use its visual DNA inside the current HTML renderer, or preserve a native direct-generation handoff for role sheets/source-plate images. Do not hard-blend it into every video. Personal-IP requests activate the `ip-diagram-creator` primary route, fixed/default persona binding, vendored Skill usage, native source jobs, native-final page provenance, and rendered-frame QC. For personal-IP video requests, `native-final-video` is mandatory: if verified native page provenance is missing, the workflow must stop before final MP4 composition and generate or ingest native pages first. It must not deliver a personal-IP final video through deterministic HTML/SVG/CSS imitation.
+Use it as a Planner-routed capability portfolio, not as a forced replacement. Planner may choose one of four video-level routes: keep the existing `codex-video-workflow` design logic, use `ip-diagram-creator` as a full native-final visual engine, use its visual DNA inside the current HTML renderer for non-personal-IP work, or preserve a native direct-generation handoff for role sheets/source-plate images. Do not hard-blend it into every video. Every personal-IP request activates the `ip-diagram-creator` primary route, fixed/default persona binding, vendored Skill usage, native source jobs, native-final page provenance, and rendered-frame QC. `native-final-video` remains mandatory when animation is requested: animation changes only the page-local foreground policy, never the visual source owner. It must not use deterministic HTML/SVG/CSS to imitate or reconstruct the native personal-IP page.
 
 `ip-diagram-creator` is useful when a brief asks for a personal IP role, creator persona, hand-drawn explainer diagrams, knowledge cards, Agent collaboration diagrams, course/PPT/livestream pages, or a creator-led teaching visual system.
 
@@ -32,6 +32,14 @@ Execution modes:
 - `standalone-source-page-set`: the Skill generates or prepares a portrait `9:16` or horizontal `16:9` personal-IP knowledge-card/page image set using the same visual DNA. This is for image review, source page creation, posters, or a future native-final video page set. It must write a min/max image-count plan, prompt/job list, contract, manifest, and QC package, and may ingest the full Codex `image_gen` bitmap set after generation.
 - `prompt-only-native-handoff`: when image generation is unavailable or a human review step is needed, write native-compatible prompts and repair prompts without claiming generation happened.
 
+### Full-Auto Continuation Contract
+
+When generation mode is `full-auto`, a missing native-page provenance gate is recoverable internal state, not a valid final response. The agent must run the planner, execute every request in the generated Context Image2 / built-in `image_gen` native-page manifest with the same fixed persona context, ingest the complete page set with per-page `source_generated_image` evidence and the adaptive count plan, then resume native rendering, QC, packaging, and delivery. A full-auto task is not complete at `semi-auto-config.html`, a prompt-only package, a native-job list, or `personal-ip-native-final-blocked.json`. Only an explicit semi-auto/custom request may stop for human configuration or page review.
+
+The gate itself must prepare executable work. Before stopping the local Node stage, it writes `workflow/context-image2-persona-page-requests.json`, prepares every pending cover in `workflow/cover-image2-dispatch-plan.json`, and writes `workflow/full-auto-continuation.json` with both lanes, exact pending counts, immutable presentation route, prohibited fallbacks, and the rerun command. `workflow/ip-diagram-creator-native-jobs.json` alone is not an executable Context Image2 page dispatch contract.
+
+Every run also writes `workflow/presentation-route-lock.json` before planning. Plain `个人 IP` resolves to `personal-ip-native-final-pages`. `personalIpAnimation:"semantic-layers"` or `visualMode:"个人 IP + 动画"` is valid only with `personalIpAnimationAuthorization.authorizedByUser:true`, `mode:"semantic-layers"`, and a literal user-request `source` that explicitly asks for personal IP plus animation. An agent-created brief, retry, alternate output directory, or missing-page blocker may not supply that authorization or change the locked route.
+
 The native-final route can be used directly when it is better suited to the requested teaching diagram. In that route, final frames should be full IP diagram pages rather than a mix with the current framework headline/body card layout.
 
 ## Planner User Choices
@@ -39,12 +47,12 @@ The native-final route can be used directly when it is better suited to the requ
 For this route Planner must expose two user-facing choices, and record the resolved values in `workflow/ip-diagram-creator-plan.json`:
 
 - `makePersonalIp`: `on | off | auto`. `on` or `auto` means the single fixed-persona personal-IP chain is active: the run must resolve one saved user-material-library persona manifest before final personal-IP delivery. `off` keeps the page/director route but does not request a role/persona asset.
-- `addHandDrawnImageAnimation`: `off | subtle | draw-reveal`. A plain personal-IP request resolves to `off`; only an explicit combined personal-IP + animation signal or field enables `subtle` / `draw-reveal`. This controls only foreground hand-drawn marks, progress strokes, semantic highlights, or reveal accents. It must never move, crop, scale, bounce, or redraw the generated page itself.
+- `addHandDrawnImageAnimation`: `off | semantic-layers | subtle | draw-reveal`. A plain personal-IP request resolves to `off`; an explicit combined personal-IP + animation signal normalizes to `semantic-layers`. Historical `subtle` and `draw-reveal` values retain the native-page foreground-overlay route.
 - `personalIpAssetRegistry`: a user-material-library manifest path. If a saved user-specific persona exists, it must be reused before any new persona generation. If no user-specific persona or authorized input is provided, use the fixed default non-likeness hosts under `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/{male,female}/manifest.json` and record `doNotClaimUserLikeness`. The default host gender must follow the actual package audio gender after audio generation/reuse/provided-audio normalization: `workflow/voice-subtitle-manifest.json.audioGender: "female"` uses the female host manifest, `"male"` uses the male host manifest. For local TTS, derive this from the actual selected backend speaker/default voice metadata, not only the pre-audio brief. For user-provided audio, require `brief.audioGender` / `brief.voiceGender` or `--audio-gender` when the gender is not otherwise recorded. If the user requires their own likeness, the semi-auto configuration page must guide them to provide an authorized photo, avatar, character sheet, or existing manifest and create it once.
 
 The old framework-drawn personal-IP presenter template is retired. Final personal-IP video frames must not render `ip-persona-svg`, `template-fallback`, or any locally invented presenter as the personal IP. The active route must bind a fixed manifest-backed persona: either a saved user-specific manifest or the default male/female non-likeness host manifest. When native-final is selected, verified native page images with `image_gen`/`source_generated_image` provenance are required. When native-final is not selected, integrated composition must still render `fixed-persona-manifest` evidence in the HTML frames and must not use the retired local SVG/template fallback.
 
-Routing default: `makePersonalIp: "auto"`. A plain personal-IP request uses `personalIpAnimation: "off"` and may retain verified native bitmap pages. `个人 IP + 动画` or `personalIpAnimation: "semantic-layers"` selects a different renderer contract: preserve the fixed persona anchor and the personal-IP design system, but reconstruct each page as separately owned semantic SVG layers and compose them through one HTML timeline. Compatibility values `subtle` and `draw-reveal` resolve to the same semantic-layer route; they no longer authorize generic foreground geometry over a flattened page. The active route writes `workflow/personal-ip-semantic-layer-manifest.json`, exports `layers/*.svg`, `personal-ip-layered.svg`, `index.html`, and a video rendered from `window.motion.setProgress(progress)`. Missing layers, incomplete final state, path-above-card ordering, caption occlusion, or use of a flat composite animation base is a hard failure. Non-personal-IP teaching routes may borrow the same visual design grammar without activating a personal identity.
+Routing default: `makePersonalIp: "auto"`. A plain personal-IP request uses `personalIpAnimation: "off"` and preserves the original native page route. Non-negated `个人 IP + 动画` wording and explicit `semantic-layers` select the isolated `personal-ip-semantic-layers-svg-html-video` route; historical `subtle` / `draw-reveal` stay on the native-page foreground-overlay route. The semantic route first generates/ingests the personal-IP visual master, then binds its source path/hash/dimensions and exact content inventory into `workflow/personal-ip-semantic-decomposition.json`. Enforce `references/personal-ip-animation-layer-ownership.md`: flattened source pixels require exclusive ownership, physically interlocked card/Agent clusters use one atomic content-unit transform, and paths stay below content with object masks subtracted. The master is audit/reference-only and must not appear as a full-canvas runtime `<img>`/`<image>`. Required evidence includes the decomposition, layer spec/manifest, `workflow/personal-ip-layer-ownership-audit.json`, independent SVGs, combined SVG, interactive HTML, final MP4, and measured QC. Missing provenance, duplicate source-pixel owners, missing roles/text, opaque slices, full-page bitmap fallback, clipping, overlap, caption occlusion, or incomplete final state is a hard failure. A blocked personal-IP animation request must not downgrade to default HTML, plain personal-IP, or whiteboard rendering. Non-personal-IP teaching routes may borrow the visual design grammar without activating a personal identity.
 
 The semantic-layer renderer owns two native aspect layouts: `9:16` renders 1080x1920 with vertically stacked semantic modules, while `16:9` renders 1920x1080 with a dedicated horizontal two-module layout. Horizontal output must never be produced by cropping, squeezing, scaling down, or letterboxing the vertical composition. Manifest and QC evidence must prove the requested aspect, selected layout, exact dimensions, collision-free checkpoints, and caption-safe final state.
 
@@ -53,6 +61,8 @@ The semantic-layer renderer owns two native aspect layouts: `9:16` renders 1080x
 When `native-final-video` consumes pages produced by the original Skill route:
 
 - Treat a "native page" as an official direct-generation/image_gen page asset, or an explicitly user-approved imported final page asset, with page-card metadata and provenance. For generated pages, the manifest must preserve `source_generated_image` or equivalent native-generation evidence per final content page.
+- The page count plan has two different quantities. `uniqueGeneratedPageCount` is the number of distinct Image2 assets and is driven by original topic/methodology groups, actual or declared duration, spoken-character density, and explicit targets. `microVisualBeatTarget` is the subtitle/semantic emphasis cadence; it may drive captions, highlights, reveals, pointers, or foreground strokes inside a page, but it must not create one new Image2 request per punctuation-delimited sentence.
+- Every generated final page must have a unique content-bound job and generation receipt containing a unique `requestId`, the exact prompt SHA-256, the output SHA-256, and fixed-persona binding. The receipt output hash must match the actual final page file. Missing receipts, duplicate request IDs, duplicate output hashes, source cycling, or stale extra files fail final provenance; reuse is draft-only.
 - Deterministic PIL/SVG/HTML placeholder pages, wireframes, local layout sketches, or framework-drawn replicas are planning drafts only. They must not be labeled `native-final-video`, passed to `render-ip-diagram-native-pages.mjs` as final pages, or described as official Skill outputs unless the package is explicitly marked draft/degraded.
 - If the contact sheet reads as cheap PPT, sparse wireframe, low-detail template, or decorative persona over empty boxes, stop the MP4 assembly and repair/regenerate the pages through the original native Skill route. Do not hide the problem by wrapping those pages in video motion or subtitles.
 - Render each generated page as the whole target canvas, using a single deterministic cover/fit transform for that page. Horizontal native-final output is `1920x1080` / `16:9`; vertical personal-IP native-final output is `1080x1920` / `9:16`.
@@ -62,6 +72,7 @@ When `native-final-video` consumes pages produced by the original Skill route:
 - Do not create visual rhythm by changing the page crop, zoom, pan, x/y offset, or scale per subtitle cue.
 - If the page itself is static, keep its base pixels stable for the whole page window. Rhythm may come from page changes, subtitles, progress indicators, hand-drawn foreground strokes, reveal masks, highlights, or other foreground-only animation.
 - Hand-drawn animation must be layered above the stable page and below subtitles. It may draw arrows, underlines, circles, marker strokes, or semantic reveals, but it must not cover subtitle safe areas or become the owner of final readable text.
+- The bottom subtitle band is a measured bitmap contract, not prompt text. Before frame rendering, decode every native page, inspect the reserved bottom band, and write `workflow/frame-layout-overlap-audit.json` with one measured record and source hash per page. `checkedFrames: 0`, `skipped`, declaration-only flags, or hiding page content under an opaque caption band must fail final QC. Regenerate any page whose bottom band contains meaningful ink.
 - If a native generated page has overlapping cards/characters/arrows, regenerate or repair that page through the native Skill route before video assembly. Do not hide overlap by shrinking the page into a bordered frame.
 
 The reusable executor for this route is:
@@ -91,7 +102,7 @@ node .agents/skills/codex-video-workflow/scripts/render-ip-diagram-native-pages.
 ```
 
 The executor rejects unverified native pages by default. `--allow-unverified-native-pages true` is allowed only for local draft/degraded review packages and must not be used for a claimed final delivery.
-For personal-IP native-final delivery, the executor also rejects a page set outside the native-page count range and below the source package's automatic duration/content/cue policy. The default range is 4-48 pages for video assembly. A higher explicit max is allowed only when the script has enough clear narration beats to justify it. A lower explicit max is only a draft request: by default the planner raises it to the automatic duration/content/cue policy and records `requestedMaxImageCount`, `maxImageCountUnderAutomaticPolicy`, and `maxImageCountRaisedToAutomaticPolicy`. One static page may be rendered only as an explicitly degraded draft and will fail final QC.
+For personal-IP native-final delivery, the executor requires the exact unique-page count from the source package's semantic page-capacity plan. The default minimum is four pages. The plan uses the canonical final spoken script once, duration, character capacity, topic groups, aspect, and duration safety bands; subtitle/semantic cue density remains in `microVisualBeatTarget` and must not create extra Image2 requests. A literal user maximum is a hard cap and is never raised. One static page may be rendered only as an explicitly degraded draft and will fail final QC.
 
 ## Standalone Personal-IP Image Contract
 
@@ -99,10 +110,11 @@ When the user asks for a个人 IP 图解图片、竖屏知识卡样张、横屏�
 
 The route must never default to one image for personal-IP video source material. It computes `workflow/personal-ip-image-count-plan.json` before generation:
 - Default minimum image count: 4.
-- Default reasonable maximum image count: 48 for planning/package generation; this is a guardrail, not a target.
-- Growth rule: split口播稿/内容 into sentence units, estimate the number of pages needed for clear explanation, apply bounded growth tiers for longer content, and apply duration/cue density floors before the max-image guardrail.
-- Duration density rule: pass the actual `--duration-seconds` / `--audio-duration-seconds` / `--video-duration-seconds` and `--subtitle-cue-count` whenever the page set belongs to a video. Default target is one source page about every 30 seconds, plus one page per 4 subtitle cues. A 10-12 minute personal-IP video should normally resolve around 20-24 source pages or higher when the content has enough beats, not the 4-page minimum, even if the planning brief only contains a compact core idea. `--target-image-count` and `--max-image-count` are upper-level intent only; by default either value is raised when it would undercut the automatic target/policy, recording `explicitTargetRaisedToAutomatic:true`, `maxImageCountUnderAutomaticPolicy:true`, and `maxImageCountRaisedToAutomaticPolicy:true`. `--allow-under-count true` is a draft/degraded escape hatch and cannot feed a final native-page video.
-- Matching rule: each generated image owns one contiguous口播/内容 beat, its own required text subset, and its own execution-Agent jobs. Do not compress the whole script into one all-purpose card.
+- Page-capacity rule: horizontal `16:9` pages target about `420` spoken characters or `90` seconds; vertical `9:16` pages target about `300` characters or `60` seconds. Count only the canonical final spoken script, not duplicated brief/scenes/pages metadata.
+- Duration safety bands: `<=3 min: 3-5`, `3-8 min: 5-9`, `8-15 min: 8-14`, `15-30 min: 14-24`, `>30 min: normally 24-32`. The content/duration calculation is clamped to the matching band by default.
+- Explicit control rule: `--target-image-count` is honored and `--max-image-count` is a hard cap. Never raise a user maximum to the automatic target. When the cap is lower than the unconstrained target, preserve coverage through semantic packing plus `microVisualBeatTarget`.
+- Matching rule: each generated image owns one contiguous capacity-packed口播/content segment, its required text subset, and its execution-Agent jobs. Covers and role references are excluded from unique page count.
+- Variant rule: default proactive variants and per-run role-asset regeneration are zero. Reuse the fixed persona manifest. Generate a repair variant only after page QC fails; total repair generations are limited to `ceil(uniqueGeneratedPageCount * 20%)`, maximum `6`.
 
 Always create the package contract first:
 
@@ -119,25 +131,31 @@ node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image
   --agent-jobs "搬运卡片;标记风险;递交结果" \
   --duration-seconds <actual-audio-or-video-seconds> \
   --subtitle-cue-count <cue-count-when-known> \
-  --min-image-count 4 \
-  --max-image-count 48
+  --min-image-count 4
 ```
+
+`--max-image-count` is optional legacy/draft input only. It must be recorded for audit but cannot cap a final automatic plan below the current run's duration/content/cue/methodology target.
 
 If `--persona-manifest` is omitted, the script must resolve the fixed default non-likeness host manifest from `~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/<male|female>/manifest.json` according to audio gender first, then `--persona-gender` only when explicitly supplied as an override. Female audio maps to the female host; male audio maps to the male host. In full video runs, use the actual post-TTS / reused-audio / provided-audio value recorded in `workflow/voice-subtitle-manifest.json.audioGender`; brief-level gender is only a pre-audio hint and must be replaced when the generated backend reports a different actual voice. Pass `--audio-gender` / `--voice-gender` or `--audio-speaker` / `--voice-speaker` when the source audio gender is known outside the brief. The prompt and contract must record the resolved manifest path, role anchor image, visual anchors, `doNotClaimUserLikeness`, public Skill storage prohibition, `audioGenderBinding`, and `workflow/personal-ip-asset-registry.json`. Do not use a free-text persona description as the visual identity for final personal-IP output.
 
-Then generate every image with Codex Context Image2 / `image_gen` from `workflow/context-image2-persona-page-requests.json`, not from the text prompt files alone. Each request attaches the same fixed persona context images to every page and records provider `codex-context-image2`, tool `image_gen`, prompt path, expected output, dimensions, and stable request id. The required context image is `main-anchor`, and it must be a clean presenter-only anchor image, not a full role sheet with Chinese labels, whiteboard examples, color swatches, multi-view thumbnails, or unrelated page content. Spec/action sheets may be optional supporting context only. Text-only file paths or visual-anchor prose are prompt drafts only and do not prove character consistency. The request manifest records `parallelGenerationPolicy`: pages may be generated with bounded concurrency, but only when every concurrent request binds the same required `main-anchor` context set and writes to its own expected output. Do not seed page 2 from page 1 or let each page invent a new presenter. Each generated page must preserve the fixed manifest-backed presenter while covering only its matched content beat. Keep the original generated images in the Codex image output directory. Copy/ingest the whole generated page set into the package and include `--persona-reference-bound true` only when the generation step really used those context images. The ingest step must reject `--source-images` when any path or file hash matches `main-anchor`, `sourceGeneratedImage`, role/spec sheets, style boards, or any other persona reference asset; these files are context/provenance only, not final page images:
+Then generate every image with Codex Context Image2 / `image_gen` from `workflow/context-image2-persona-page-requests.json`, not from the text prompt files alone. Each request attaches the same fixed persona context images to every page and records provider `codex-context-image2`, tool `image_gen`, prompt path, expected output, dimensions, and stable request id. The required context image is `main-anchor`, and it must be a clean presenter-only anchor image, not a full role sheet with Chinese labels, whiteboard examples, color swatches, multi-view thumbnails, or unrelated page content. Spec/action sheets may be optional supporting context only. Text-only file paths or visual-anchor prose are prompt drafts only and do not prove character consistency. The request manifest records `parallelGenerationPolicy`: pages may be generated with bounded concurrency, but only when every concurrent request binds the same required `main-anchor` context set and writes to its own expected output. Do not seed page 2 from page 1 or let each page invent a new presenter. Each generated page must preserve the fixed manifest-backed presenter while covering only its matched content beat. Keep the original generated images in the Codex image output directory. After vision inspection, record each request-bound result and then run the single canonical ingest entrypoint. It rejects missing persona manifests/main anchors, missing or stale inspection evidence, mismatched request/prompt/output/persona hashes, duplicate output hashes, and any source that reuses a persona reference asset:
 
 ```bash
-node .agents/skills/codex-video-workflow/scripts/plan-vertical-personal-ip-image.mjs \
-  --out <output-dir> \
-  --aspect 9:16 \
-  --persona-manifest ~/.codex/video-workflow/user-assets/personal-ip/generic-hosts/male/manifest.json \
-  --title "个人IP图解" \
-  --core-idea "<this image's teaching idea>" \
-  --persona "<creator role summary only; fixed visual identity comes from the manifest>" \
-  --required-text "个人IP图解;观点;拆解;行动" \
-  --agent-jobs "搬运卡片;标记风险;递交结果" \
-  --source-images "<page-01.png>;<page-02.png>;<page-03.png>;<page-04.png>" \
+node scripts/record-native-imagegen-page-result.mjs \
+  --jobs <output-dir>/workflow/context-image2-persona-page-requests.json \
+  --job-id <page-id> \
+  --request-id <request-id> \
+  --source <generated-page.png> \
+  --persona-reference-bound true \
+  --inspection-status passed-vision-review \
+  --inspector-type vision
+
+node scripts/ingest-native-imagegen-page-set.mjs \
+  --jobs <output-dir>/workflow/context-image2-persona-page-requests.json \
+  --source-dir <generated-pages-dir> \
+  --out <output-dir>/native-pages \
+  --target-count <resolved-image-count> \
+  --persona-manifest <fixed-persona-manifest.json> \
   --persona-reference-bound true
 ```
 
@@ -230,6 +248,9 @@ workflow/ip-diagram-layout-audit.json
 workflow/native-page-provenance-audit.json
 workflow/native-page-count-policy.json
 workflow/skill-usage-accuracy-audit.json
+workflow/personal-ip-layered-source-manifest.json    # required for personal-IP plus animation
+workflow/personal-ip-layered-motion-manifest.json    # required for personal-IP plus animation
+workflow/native-page-render-config.json              # required for personal-IP plus animation
 workflow/vertical-personal-ip-design-contract.json  # required when active native-final canvas is 9:16
 workflow/top-safe-area-audit.json                   # required when active native-final canvas is 9:16
 workflow/personal-ip-image-count-plan.json          # required for standalone personal-IP source-page planning
@@ -369,7 +390,7 @@ Inactive plans may use `status: "not-applicable"` but must still preserve the so
 
 For Image 2 / Codex image generation:
 - Prompt only for role reference assets, small scene illustrations, knowledge-card source plates, character actions, visual metaphor plates, or PPT-style page background assets.
-- IP diagram prompts must include the native visual DNA when active: white/near-white background, black minimal hand-drawn line art, slight pen wobble, adult presenter, sparse orange/red/blue annotation, and concrete execution Agents when useful.
+- IP diagram prompts must include the native visual DNA when active: white/near-white background, black minimal hand-drawn line art, slight pen wobble, adult presenter, sparse orange/red/blue annotation, and concrete execution Agents when useful. For native personal-IP pages, this is a hard background contract: topic-driven palettes such as newsprint, warm paper, cream, or beige must not override the white/near-white canvas unless the brief explicitly specifies a background/color system.
 - Do not ask a generated bitmap to own final exact Chinese labels, subtitles, claim text, metrics, or UI copy. Those remain deterministic HTML/SVG/CSS layers, except for intentionally generated cover typography governed by the cover contract.
 - Include character reference priority when authorized role assets exist: user-provided role assets outrank generic style references.
 - Include saved-persona priority when `workflow/personal-ip-asset-registry.json` reports `ready-existing-persona`; prompts must preserve that manifest as the fixed character reference instead of redesigning a presenter per scene.

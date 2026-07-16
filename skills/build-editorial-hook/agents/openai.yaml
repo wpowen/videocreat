@@ -1,0 +1,4 @@
+interface:
+  display_name: "编辑式 Hook 设计"
+  short_description: "Design premium opening hooks, dividers, and reveals"
+  default_prompt: "Use $build-editorial-hook to create a premium editorial opening hook for a vertical video."

@@ -186,13 +186,20 @@ function main() {
     }
 
     const qc = readJson(qcPath);
+    const semanticLayerRenderer = /personal-ip-semantic-layers/.test(qc.renderer || "");
     expect(qc.pass === true, "logs/qc.json pass must be true", failures);
     expect(qc.checks?.visualSubtitleSingleLine === true, "logs/qc.json must pass visualSubtitleSingleLine", failures);
     expect(qc.checks?.captionStylePlanPresent === true, "logs/qc.json must pass captionStylePlanPresent", failures);
     expect(qc.checks?.captionStylePlanEnforced === true, "logs/qc.json must pass captionStylePlanEnforced", failures);
     expect(qc.checks?.frameAudioTimingBound === true, "logs/qc.json must pass frameAudioTimingBound", failures);
     expect(qc.checks?.openingAudioStartsImmediately === true, "logs/qc.json must pass openingAudioStartsImmediately", failures);
-    expect(qc.checks?.directFirstSceneStart === true || qc.coverTimingMode === "overlap-first-scene", "logs/qc.json must pass directFirstSceneStart unless an opening cover was explicitly requested", failures);
+    if (semanticLayerRenderer) {
+      expect(qc.checks?.personalIpSemanticPackageQcPass === true, "semantic-layer video must pass its package QC", failures);
+      expect(qc.checks?.personalIpSemanticAllScenesRepresented === true, "semantic-layer video must represent every planned scene", failures);
+      expect(qc.checks?.personalIpSemanticSourceContentCoveragePreserved === true, "semantic-layer video must preserve source content coverage", failures);
+    } else {
+      expect(qc.checks?.directFirstSceneStart === true || qc.coverTimingMode === "overlap-first-scene", "logs/qc.json must pass directFirstSceneStart unless an opening cover was explicitly requested", failures);
+    }
     expect(qc.checks?.visualAssetsContentBound === true, "logs/qc.json must pass visualAssetsContentBound", failures);
     expect(qc.checks?.imageGenerationStrategyPresent === true, "logs/qc.json must pass imageGenerationStrategyPresent", failures);
     expect(qc.checks?.visualRhythmPlanPresent === true, "logs/qc.json must pass visualRhythmPlanPresent", failures);
@@ -202,7 +209,9 @@ function main() {
     expect(qc.checks?.firstThirtySecondContractPresent === true, "logs/qc.json must pass firstThirtySecondContractPresent", failures);
     expect(qc.checks?.evidenceCadencePlanned === true, "logs/qc.json must pass evidenceCadencePlanned", failures);
     expect(qc.checks?.progressAndPayoffPlanned === true, "logs/qc.json must pass progressAndPayoffPlanned", failures);
-    expect(qc.checks?.generatedImagePurposeFit === true, "logs/qc.json must pass generatedImagePurposeFit", failures);
+    if (!semanticLayerRenderer) {
+      expect(qc.checks?.generatedImagePurposeFit === true, "logs/qc.json must pass generatedImagePurposeFit", failures);
+    }
     expect(qc.checks?.generatedVisualDesignLayersPresent === true, "logs/qc.json must pass generatedVisualDesignLayersPresent", failures);
     expect(qc.checks?.runtimeConfigPresent === true, "logs/qc.json must pass runtimeConfigPresent", failures);
 

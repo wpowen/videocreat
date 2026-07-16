@@ -9,6 +9,9 @@ const skillRoot = resolve(__dirname, "..");
 const workspace = resolve(skillRoot, "../../..");
 const workflowScript = join(skillRoot, "scripts", "poc-video-workflow.mjs");
 const routeSelfTestScript = join(skillRoot, "scripts", "self-test-capability-routing.mjs");
+const generationModeDefaultSelfTest = join(skillRoot, "scripts", "self-test-generation-mode-default.mjs");
+const personalIpSemanticScenePlanningSelfTest = join(skillRoot, "scripts", "self-test-personal-ip-semantic-scene-planning.mjs");
+const personalIpNoDowngradeSelfTest = join(skillRoot, "scripts", "self-test-personal-ip-no-downgrade.mjs");
 const semiAutoConfigBuilder = join(skillRoot, "scripts", "build-semi-auto-config-html.mjs");
 const pageReviewBuilder = join(skillRoot, "scripts", "build-page-review-html.mjs");
 const htmlTemplateValidator = join(skillRoot, "scripts", "validate-html-motion-templates.mjs");
@@ -16,6 +19,8 @@ const pluginValidator = join(skillRoot, "scripts", "validate-plugin-routing-cont
 const subtitleCoverValidator = join(skillRoot, "scripts", "validate-subtitle-cover-contract.mjs");
 const voicePauseValidator = join(skillRoot, "scripts", "validate-voice-pause-policy.mjs");
 const briefTemplatePath = join(skillRoot, "assets", "self-tests", "full-framework-capability-brief.json");
+const quickValidateScript = process.env.CODEX_SKILL_QUICK_VALIDATE
+  || join(process.env.CODEX_HOME || join(process.env.HOME || "", ".codex"), "skills", ".system", "skill-creator", "scripts", "quick_validate.py");
 
 function parseArgs(argv) {
   const args = {
@@ -25,7 +30,7 @@ function parseArgs(argv) {
     keepExisting: false,
     validateExistingPackage: false,
     skipHtmlTemplateValidation: false,
-    maxVisualFrames: 30,
+    maxVisualFrames: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const item = argv[i];
@@ -471,10 +476,10 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
   assert(runtimeConfig.resolved?.generationMode === expectedGenerationMode, `self-test generation mode must be ${expectedGenerationMode}`, failures);
   assert(runtimeConfig.environmentCapabilities?.openaiApiKeyChangesDefaultImageSource === false, "OPENAI_API_KEY must not silently change the default image source", failures);
   assert(generation.schemaVersion === 1 && generation.status === "active-generation-mode-contract", "generation-mode-contract must be active", failures);
-  assert(generation.defaultMode === "semi-auto", "generation-mode-contract must keep ordinary topic/script intake on semi-auto config by default", failures);
+  assert(generation.defaultMode === "full-auto", "generation-mode-contract must keep ordinary topic/script intake on full-auto by default", failures);
   assert(generation.selectedMode === expectedGenerationMode, `workflow run must select ${expectedGenerationMode}`, failures);
   assert(generation.modeSelectionRule?.verticalOnlyWhenExplicit === true, "generation mode must preserve explicit-only vertical rule", failures);
-  assert((generation.supportedModes || []).some((mode) => mode.id === "semi-auto" && mode.default === true), "generation mode must support default semi-auto config", failures);
+  assert((generation.supportedModes || []).some((mode) => mode.id === "full-auto" && mode.default === true), "generation mode must support default full-auto rendering", failures);
   assert((generation.supportedModes || []).some((mode) => mode.id === "full-auto"), "generation mode must support explicit full-auto", failures);
   for (const stageId of ["prepare", "configure", "page-edit", "compose"]) {
     assert((generation.semiAutoPipeline?.stages || []).some((stage) => stage.id === stageId), `generation mode missing semi-auto stage: ${stageId}`, failures);
@@ -483,7 +488,7 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
   assert(Number(generation.capabilityInventory?.captionStyleCount || 0) >= 68, "generation mode capability inventory must include 68 caption styles", failures);
   assert(Number(generation.capabilityInventory?.motionTemplateCount || 0) >= 6, "generation mode capability inventory must include motion templates", failures);
   assert(semiAutoConfig.status === "semi-auto-config-ready", "semi-auto-config.json must be ready", failures);
-  assert(semiAutoConfig.generationMode?.defaultMode === "semi-auto", "semi-auto config must preserve semi-auto as the ordinary intake default", failures);
+  assert(semiAutoConfig.generationMode?.defaultMode === "full-auto", "semi-auto config must preserve full-auto as the ordinary intake default", failures);
   assert(semiAutoConfig.baseParameters?.selected?.fps === 60, "semi-auto config must default frame rate to 60fps", failures);
   assert(semiAutoConfig.baseParameters?.selected?.resolution === "1920x1080", "semi-auto config must keep 1920x1080 as the stable default resolution", failures);
   assert(semiAutoConfig.baseParameters?.resolutionSupport?.supports2k === false, "semi-auto config must not claim 2K support before full-chain validation", failures);
@@ -517,13 +522,18 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
   assert(semiAutoConfig.personalIp?.source?.assetsAvailable === true, "semi-auto config must find local IP diagram creator preview assets", failures);
   assert(semiAutoConfig.personalIp?.integration?.handDrawnLayer, "semi-auto config must integrate hand-drawn personal-IP content", failures);
   assert((semiAutoConfig.personalIp?.presetIdentities || []).length >= 4, "semi-auto config must expose preset personal-IP identities", failures);
-  if (semiAutoConfig.personalIp?.enabledByDefault || semiAutoConfig.personalIp?.imageCountPolicy?.mode === "rich-by-default") {
-    assert(Number(semiAutoConfig.personalIp?.imageCountPolicy?.totalPlannedImageJobs || semiAutoConfig.personalIp?.imageCountPolicy?.targetTotal || 0) >= Number(semiAutoConfig.pageEditing?.pageCount || 0) + 6, "semi-auto config personal-IP image policy must plan richer image coverage than one image per page", failures);
+  if (semiAutoConfig.personalIp?.enabledByDefault || semiAutoConfig.personalIp?.imageCountPolicy?.mode === "capacity-controlled") {
+    const policy = semiAutoConfig.personalIp?.imageCountPolicy || {};
+    assert(Number(policy.totalPlannedImageJobs || policy.targetTotal || 0) === Number(policy.mainSceneJobs || policy.mainSceneImageJobs || 0), "semi-auto personal-IP image policy must not include proactive variants or repeated role-asset generation", failures);
+    assert(Number(policy.sceneVariantsPerScriptUnit || policy.sceneVariantsPerPage || 0) === 0, "semi-auto personal-IP image policy must expose zero default variants", failures);
   }
   assert(semiAutoConfig.whiteboard?.enabledByDefault === true, "semi-auto config must include whiteboard drawing capability", failures);
   assert(semiAutoConfig.whiteboard?.sourceSkill === "gnipbao/codex-whiteboard-video-skill", "semi-auto config must identify the whiteboard skill adapter source", failures);
   assert(semiAutoConfig.whiteboard?.sourceEngine === "gnipbao/whiteboard-video-engine", "semi-auto config must identify the whiteboard rendering engine source", failures);
-  assert(semiAutoConfig.whiteboard?.previewArtifacts?.validatedPocVideo?.available === true, "semi-auto config must reference the validated local whiteboard POC video", failures);
+  assert(Boolean(semiAutoConfig.whiteboard?.previewArtifacts?.validatedPocVideo), "semi-auto config must expose the optional validated whiteboard POC preview slot", failures);
+  if (semiAutoConfig.whiteboard?.previewArtifacts?.validatedPocVideo?.available === true) {
+    assert(/whiteboard-layered-subtitle-top-demo\.mp4/.test(semiAutoConfig.whiteboard.previewArtifacts.validatedPocVideo.path || ""), "available whiteboard POC preview must point to the validated demo video", failures);
+  }
   assert((semiAutoConfig.whiteboard?.layerOrder || []).some((layer) => layer.id === "subtitles"), "semi-auto config must record topmost subtitle layer for whiteboard", failures);
   assert((semiAutoConfig.whiteboard?.modes || []).length >= 4, "semi-auto config must expose whiteboard drawing modes", failures);
   assert(semiAutoConfig.pageEditing?.tds?.T && semiAutoConfig.pageEditing?.tds?.D && semiAutoConfig.pageEditing?.tds?.S, "semi-auto config must expose TDS editing dimensions", failures);
@@ -562,7 +572,11 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
   assert(/data-whiteboard-skill-preview/.test(semiAutoHtml) && /whiteboard-mode-row/.test(semiAutoHtml), "semi-auto config page must render the validated whiteboard skill preview", failures);
   assert(!/<label class="whiteboard-mode-row/.test(semiAutoHtml), "semi-auto config page must keep whiteboard modes as preview cards rather than independent checkboxes", failures);
   assert(/codex-whiteboard-video-skill/.test(semiAutoHtml) && /whiteboard-video-engine/.test(semiAutoHtml), "semi-auto config page must identify the whiteboard skill and engine route", failures);
-  assert(/whiteboard-layered-subtitle-top-demo\.mp4/.test(semiAutoHtml), "semi-auto config page must use the validated whiteboard POC video preview", failures);
+  if (semiAutoConfig.whiteboard?.previewArtifacts?.validatedPocVideo?.available === true) {
+    assert(/whiteboard-layered-subtitle-top-demo\.mp4/.test(semiAutoHtml), "semi-auto config page must use the validated whiteboard POC video preview when installed", failures);
+  } else {
+    assert(!/<video[^>]+src=""/.test(semiAutoHtml), "semi-auto config page must not render a broken empty whiteboard video preview", failures);
+  }
   assert((semiAutoHtml.match(/data-voice-mode=/g) || []).length >= 4, "semi-auto config page must render voice language mode choices", failures);
   assert(/select name="dialect"/.test(semiAutoHtml), "semi-auto config page must render concrete dialect selector", failures);
   assert((semiAutoHtml.match(/name="voice-gender"/g) || []).length >= 2, "semi-auto config page must render male/female voice choices", failures);
@@ -722,10 +736,28 @@ function main() {
 
   runCommand({ id: "node-check-workflow", command: "node", args: ["--check", rel(workflowScript)] }, report);
   runCommand({ id: "node-check-routing-self-test", command: "node", args: ["--check", rel(routeSelfTestScript)] }, report);
+  runCommand({ id: "node-check-generation-mode-default-self-test", command: "node", args: ["--check", rel(generationModeDefaultSelfTest)] }, report);
+  runCommand({ id: "node-check-personal-ip-semantic-scene-planning", command: "node", args: ["--check", rel(personalIpSemanticScenePlanningSelfTest)] }, report);
+  runCommand({ id: "node-check-personal-ip-no-downgrade", command: "node", args: ["--check", rel(personalIpNoDowngradeSelfTest)] }, report);
   runCommand({ id: "node-check-full-framework-self-test", command: "node", args: ["--check", rel(join(skillRoot, "scripts", "self-test-full-framework.mjs"))] }, report);
   runCommand({ id: "node-check-semi-auto-config-builder", command: "node", args: ["--check", rel(semiAutoConfigBuilder)] }, report);
   runCommand({ id: "node-check-page-review-builder", command: "node", args: ["--check", rel(pageReviewBuilder)] }, report);
   if (!args.validateExistingPackage) {
+    runCommand({
+      id: "generation-mode-default-self-test",
+      command: "node",
+      args: [rel(generationModeDefaultSelfTest), rel(join(outRoot, "generation-mode-default"))],
+    }, report);
+    runCommand({
+      id: "personal-ip-semantic-scene-planning-self-test",
+      command: "node",
+      args: [rel(personalIpSemanticScenePlanningSelfTest)],
+    }, report);
+    runCommand({
+      id: "personal-ip-no-downgrade-self-test",
+      command: "node",
+      args: [rel(personalIpNoDowngradeSelfTest), rel(join(outRoot, "personal-ip-no-downgrade"))],
+    }, report);
     runCommand({
       id: "route-coverage-self-test",
       command: "node",
@@ -743,10 +775,12 @@ function main() {
     "--out", rel(packageOut),
     "--no-open-delivery-page",
     "--image-source", args.imageSource,
-    "--max-visual-frames", String(args.maxVisualFrames),
   ];
+  if (Number.isFinite(args.maxVisualFrames) && args.maxVisualFrames >= 3) {
+    workflowArgs.push("--max-visual-frames", String(args.maxVisualFrames));
+  }
   if (args.fullRender) workflowArgs.push("--generation-mode", "full-auto");
-  if (!args.fullRender) workflowArgs.push("--cover-only");
+  if (!args.fullRender) workflowArgs.push("--generation-mode", "semi-auto", "--cover-only");
   if (!args.validateExistingPackage) {
     runCommand({ id: args.fullRender ? "full-framework-full-render" : "full-framework-cover-only", command: "node", args: workflowArgs }, report);
   } else {
@@ -781,7 +815,7 @@ function main() {
   runCommand({
     id: "skill-quick-validate",
     command: "python3",
-    args: ["/Users/example/.codex/skills/.system/skill-creator/scripts/quick_validate.py", rel(skillRoot)],
+    args: [quickValidateScript, rel(skillRoot)],
   }, report);
 
   if (args.fullRender && existsSync(packageOut)) {

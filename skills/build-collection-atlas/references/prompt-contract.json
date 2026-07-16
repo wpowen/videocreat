@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "collection-atlas-structured-prompt-v2",
+  "skillId": "build-collection-atlas",
+  "seriesId": "collection-atlas-card-v1",
+  "outputIntent": "Create one repeatable museum-grade specimen plate that makes the individual specimen desirable, identifiable, and factually specific.",
+  "positioning": "Not a general encyclopedia, ranking page, or sticker sheet; it is one plate in a coherent collection with a stable specimen identity.",
+  "contentSchema": ["exactly one specimen and collection ID", "two to four identifying features", "habitat origin or usage context", "season era or lifecycle context", "one verified surprising fact"],
+  "layoutFamilies": [
+    {"id":"museum-specimen-field","roles":["cover-specimen","anatomy-details","top-features"],"topology":"hero specimen fills the central-left field; three asymmetric feature vignettes pin around it; collection plaque and fact strip stay secondary","readingPath":"hero silhouette -> identifying features -> collection plaque -> fact","cameraAndScale":"precise natural-history plate view with one hero scale and macro detail insets","moduleCount":"one hero, two to four feature vignettes, one plaque, one fact strip"},
+    {"id":"context-drawer-card","roles":["habitat-context","traits-tags","fun-facts"],"topology":"specimen remains dominant while a shallow archival drawer reveals one context object, two material callouts, and one lifecycle cue","readingPath":"specimen -> context -> feature proof -> fact","cameraAndScale":"high three-quarter museum drawer view with repeatable specimen bounding box","moduleCount":"one specimen, one context vignette, two callouts, one lifecycle cue, one fact"}
+  ],
+  "physicalVisualSystem": {"material":"warm archival cotton paper, precise naturalist gouache and ink, restrained label plaques, subtle deckled texture, no faux antique distress","lighting":"soft museum daylight from upper left with shallow specimen grounding and clean vignette illumination","color":"warm paper, charcoal, muted botanical green, restrained ochre accent","typography":"elegant museum-label hierarchy with concise Chinese identifiers and stable collection numbering"},
+  "allowedVariations":["specimen-specific silhouette","feature vignette geometry","verified context object"],
+  "forbiddenElements":["multiple hero specimens","unrelated vignette imagery","unsupported origin story","rating or ranking modules","frame system that cannot repeat","cute mascot drift in museum tone"],
+  "qcAssertions":["all vignettes belong to the hero specimen","identifying features are visually precise","specimen scale and frame can repeat across a collection","fact wording stays within supplied evidence","outer frame and content stop above the subtitle-safe band"]
+}

@@ -99,12 +99,12 @@ function mergePresetFilesIntoEntry({ topicDir, entry, preset }) {
   if (files.length === 0) return entry;
   const width = Number(entry.width || preset.width || 0);
   const height = Number(entry.height || preset.height || 0);
-  const canBeUploadReady =
-    entry.uploadReady === true ||
-    entry.image2NativeTargetRatioReady === true ||
-    preset.uploadReady === true ||
-    preset.image2NativeTargetRatioReady === true ||
-    isSameRatio16x9(width, height);
+  const selectedProvider = String(entry.selectedAsset?.provider || preset.selectedAsset?.provider || "");
+  const nativeImage2Provenance = entry.image2NativeTargetRatioReady === true
+    || preset.image2NativeTargetRatioReady === true
+    || /(?:context-)?image2|image_gen/i.test(selectedProvider);
+  const canBeUploadReady = nativeImage2Provenance
+    && (entry.uploadReady === true || preset.uploadReady === true || entry.image2NativeTargetRatioReady === true || preset.image2NativeTargetRatioReady === true);
   const internalReviewFiles = [
     ...new Set([...(entry.internalReviewFiles || []), ...files.map((file) => file.file)]),
   ];
@@ -142,8 +142,7 @@ function entryFromMissingResolutionPreset({ topicDir, preset, title }) {
   if (!width || !height) return null;
   const files = presetFiles({ topicDir, preset });
   const nativeReady = preset.uploadReady === true && preset.image2NativeTargetRatioReady === true && files.length > 0;
-  const sameRatioReady = isSameRatio16x9(width, height) && files.length > 0;
-  const uploadReady = nativeReady || sameRatioReady;
+  const uploadReady = nativeReady;
   return {
     targetId: key,
     label: preset.label || `${title}-${width}x${height}`,

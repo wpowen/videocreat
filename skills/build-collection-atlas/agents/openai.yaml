@@ -1,0 +1,4 @@
+interface:
+  display_name: "单体图鉴设计"
+  short_description: "Design museum-grade specimen and object atlas cards"
+  default_prompt: "Use $build-collection-atlas to create a museum-grade single-specimen atlas card."

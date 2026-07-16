@@ -1,0 +1,4 @@
+interface:
+  display_name: "产品界面讲解设计"
+  short_description: "Design original explainable product interface walkthroughs"
+  default_prompt: "Use $build-interface-plate to create an original explainable SaaS interface walkthrough plate."

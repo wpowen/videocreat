@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "oriental-ink-structured-prompt-v2",
+  "skillId": "build-oriental-ink",
+  "seriesId": "oriental-ink-atmosphere-v1",
+  "outputIntent": "Use culturally coherent place, season, depth, and one narrative accent to create a meaningful breath or ending inside a video.",
+  "positioning": "Not generic antique wallpaper, pseudo-calligraphy, or a tourism poster; it is restrained contemporary ink atmosphere with a specific narrative job.",
+  "contentSchema": ["specific cultural or geographic context", "season and time-of-day cue", "one narrative accent with a reason", "near middle and far depth roles", "opening transition reflection or ending function"],
+  "layoutFamilies": [
+    {"id":"three-distance-ink-stage","roles":["opening-mood","landscape-wide","seasonal-shift"],"topology":"near texture anchors one upper corner, middle architecture or water carries the action, far landscape dissolves into paper; one accent crosses the middle plane","readingPath":"near tactile cue -> middle narrative accent -> far atmospheric resolution","cameraAndScale":"wide literati landscape perspective translated into a modern cinematic crop","moduleCount":"one near layer, one middle layer, one far layer, one narrative accent"},
+    {"id":"negative-space-ending","roles":["subject-focus","ending-blank-space"],"closing":true,"topology":"one small resolved subject sits off-center; most of the frame is pale rice-paper atmosphere with a gentle depth trace","readingPath":"small subject -> environmental echo -> open breathing field","cameraAndScale":"quiet medium-wide frame with restrained subject scale and soft atmospheric depth","moduleCount":"one subject, two environmental cues, one open field"}
+  ],
+  "physicalVisualSystem": {"material":"pale xuan paper, layered wet-ink gradients, dry-brush edge only where structure needs definition, subtle mineral pigment point color","lighting":"diffuse overcast or dusk illumination expressed through tonal wash; no studio spotlight or digital glow","color":"mist blue-grey, pale carbon ink, paper white, and one season-specific muted accent","typography":"no generated text, seals, or fake calligraphy; deterministic copy may occupy the planned negative space"},
+  "allowedVariations":["place-specific architecture or ecology","seasonal accent","narrative accent trajectory","negative-space side"],
+  "forbiddenElements":["mixed unrelated cultural symbols","red seal","fake calligraphy","tourist-poster density","flat single wash without depth","decorative point color without narrative purpose"],
+  "qcAssertions":["place and season are identifiable from concrete cues","near middle and far depth are distinct","the single accent serves the narrative beat","negative space is intentional rather than empty","dark ink and reflections fade before the subtitle-safe band"]
+}

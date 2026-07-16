@@ -17,6 +17,7 @@ from pypinyin.phrases_dict import phrases_dict as builtin_phrases
 
 TONE3_RE = re.compile(r"^[a-z]+[1-5]$", re.IGNORECASE)
 HAN_RE = re.compile(r"[\u4e00-\u9fff]")
+CONTEXTUAL_TONE_SANDHI_CHARACTERS = {"一", "不"}
 
 
 def load_entries(path: str, key_names: tuple[str, ...], source: str) -> list[dict]:
@@ -117,6 +118,23 @@ def standalone_candidates(character: str) -> list[str]:
     return list(dict.fromkeys(item.lower() for item in values if TONE3_RE.fullmatch(item)))
 
 
+def reviewed_polyphone_characters(entries: list[dict]) -> set[str]:
+    selected_by_character: dict[str, set[str]] = {}
+    for entry in entries:
+        for character, selected in zip(entry["phrase"], entry["pinyin"]):
+            if character in CONTEXTUAL_TONE_SANDHI_CHARACTERS:
+                continue
+            if len(standalone_candidates(character)) <= 1:
+                continue
+            selected_by_character.setdefault(character, set()).add(selected)
+    reviewed = set()
+    for character, selected_values in selected_by_character.items():
+        default = lazy_pinyin(character, style=Style.TONE3, neutral_tone_with_five=True)[0].lower()
+        if len(selected_values) > 1 or any(selected != default for selected in selected_values):
+            reviewed.add(character)
+    return reviewed
+
+
 def validate_melo_frontend(entries: list[dict]) -> list[dict]:
     phrase_dict = {entry["phrase"]: [[item] for item in entry["pinyin"]] for entry in entries}
     if phrase_dict:
@@ -168,6 +186,7 @@ def main() -> int:
     overrides = load_entries(args.overrides, ("pronunciations", "phrases"), "run-override") if args.overrides else []
     entries, shadowed = merge_entries(base, overrides)
     frontend_validation = validate_melo_frontend(entries)
+    reviewed_characters = reviewed_polyphone_characters(entries)
 
     occupied: set[int] = set()
     phrase_matches = non_overlapping_matches(text, entries, occupied)
@@ -183,9 +202,13 @@ def main() -> int:
 
     resolved = []
     unresolved = []
+    ignored_outside_reviewed_risk_set = 0
     for index, character in enumerate(text):
         candidates = standalone_candidates(character)
         if len(candidates) <= 1:
+            continue
+        if character not in reviewed_characters:
+            ignored_outside_reviewed_risk_set += 1
             continue
         resolution = coverage.get(index)
         item = {
@@ -213,7 +236,7 @@ def main() -> int:
         "narrationHash": narration_hash,
         "effectivePronunciationHash": effective_hash,
         "analysisOrder": "whole document before TTS segmentation and synthesis",
-        "matchingPolicy": "run override > base lexicon > pypinyin built-in phrase; longest non-overlapping phrase wins",
+        "matchingPolicy": "run override > base lexicon > pypinyin built-in phrase; longest non-overlapping phrase wins; strict unresolved blocking is limited to characters covered by the reviewed base/run phrase lexicon",
         "backendStrategy": "melotts-pypinyin-plus-jieba-phrase-injection" if resolved else "default-backend-pronunciation",
         "effectiveEntries": effective_payload,
         "phrases": effective_payload,
@@ -226,6 +249,8 @@ def main() -> int:
             "characters": len(text),
             "effectiveEntries": len(entries),
             "phraseMatches": len(phrase_matches),
+            "reviewedPolyphoneCharacters": len(reviewed_characters),
+            "ignoredHeteronymOccurrencesOutsideReviewedRiskSet": ignored_outside_reviewed_risk_set,
             "polyphoneCandidates": len(resolved) + len(unresolved),
             "resolved": len(resolved),
             "unresolved": len(unresolved),

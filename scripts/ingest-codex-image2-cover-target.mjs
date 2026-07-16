@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import {
+  buildCoverGenerationWorkflowContract,
+  buildCoverStatusSnapshot,
+  validateContextImage2PromptParity,
+  validateCoverRequestScopeContract,
+} from "./lib/cover-generation-workflow.mjs";
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -14,7 +22,17 @@ function readJson(path) {
 
 function writeJson(path, value) {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const temporary = `${path}.tmp-${process.pid}`;
+  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  renameSync(temporary, path);
+}
+
+function sha256File(path) {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function sha256Text(value) {
+  return createHash("sha256").update(String(value || "")).digest("hex");
 }
 
 function targetKey(id = "") {
@@ -56,6 +74,66 @@ function safePathPart(value, fallback) {
 
 function inspectionPassed(status) {
   return ["passed-human-review", "passed-vision-review", "passed-human-or-vision-review"].includes(String(status || ""));
+}
+
+function validateGenerationEvidence({ topicDir, targetId, source, receiptPath, inspectionPath }) {
+  if (!receiptPath || !inspectionPath) {
+    throw new Error("Context Image2 cover ingest requires both --generation-receipt <json> and --inspection-record <json>; --inspection-status alone cannot prove image_gen provenance.");
+  }
+  if (!existsSync(receiptPath)) throw new Error(`Generation receipt not found: ${receiptPath}`);
+  if (!existsSync(inspectionPath)) throw new Error(`Inspection record not found: ${inspectionPath}`);
+  const requestManifest = readJson(join(topicDir, "workflow", "context-image2-cover-requests.json"));
+  const key = targetKey(targetId);
+  const request = (requestManifest.requests || []).find((item) => targetKey(item.targetId || item.id || "") === key);
+  if (!request) throw new Error(`No canonical Context Image2 request found for ${targetId}`);
+  const promptParity = validateContextImage2PromptParity({ topicDir, manifest: requestManifest });
+  if (!promptParity.pass) {
+    throw new Error(`Canonical Context Image2 prompt files are stale or overwritten: ${promptParity.failures.join("; ")}`);
+  }
+  const promptPlanPath = join(topicDir, "workflow", "cover-image2-prompts.json");
+  if (!existsSync(promptPlanPath)) throw new Error(`Cover prompt plan not found: ${promptPlanPath}`);
+  const scopeContract = validateCoverRequestScopeContract({
+    manifest: requestManifest,
+    coverImage2Prompts: readJson(promptPlanPath),
+  });
+  if (!scopeContract.pass) throw new Error(`Cover request scope contract failed: ${scopeContract.failures.join("; ")}`);
+  const receipt = readJson(receiptPath);
+  const inspection = readJson(inspectionPath);
+  const sourceHash = sha256File(source);
+  const requestId = request.promptTargetId || request.targetId || request.id;
+  const promptHash = sha256Text(request.prompt || "");
+  const receiptTarget = targetKey(receipt.targetId || "");
+  if (receipt.provider !== "codex-context-image2" || receipt.tool !== "image_gen") {
+    throw new Error("Generation receipt must identify provider=codex-context-image2 and tool=image_gen.");
+  }
+  if (receiptTarget !== key || String(receipt.requestId || "") !== String(requestId || "")) {
+    throw new Error(`Generation receipt does not match canonical request ${requestId} for ${key}.`);
+  }
+  if (resolve(receipt.sourcePath || "") !== resolve(source)) throw new Error("Generation receipt sourcePath does not match --source.");
+  if (receipt.outputSha256 !== sourceHash) throw new Error("Generation receipt outputSha256 does not match the source bitmap.");
+  if (receipt.promptSha256 !== promptHash) throw new Error("Generation receipt promptSha256 does not match the package-bound request prompt.");
+  if (!Number.isFinite(Date.parse(receipt.generatedAt || ""))) throw new Error("Generation receipt generatedAt is missing or invalid.");
+  if (targetKey(inspection.targetId || "") !== key || inspection.sourceSha256 !== sourceHash) {
+    throw new Error("Inspection record does not match the target/source bitmap hash.");
+  }
+  if (!inspectionPassed(inspection.status) || !["human", "vision"].includes(inspection.inspectorType)) {
+    throw new Error("Inspection record must contain a passed status and inspectorType human or vision.");
+  }
+  if (!Number.isFinite(Date.parse(inspection.inspectedAt || ""))) throw new Error("Inspection record inspectedAt is missing or invalid.");
+  const topicPrefix = `${resolve(topicDir)}/`;
+  if (resolve(source).startsWith(topicPrefix)) throw new Error("The source bitmap must be an external image_gen output, not an existing topic-package artifact.");
+  const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
+  const reviewFiles = (selection.entries || []).flatMap((entry) => [
+    ...(entry.internalReviewFiles || []),
+    ...(entry.reviewGradeFiles || []),
+  ]).map((file) => typeof file === "string" ? file : file?.file)
+    .filter(Boolean)
+    .map((file) => join(topicDir, file))
+    .filter(existsSync);
+  if (reviewFiles.some((file) => sha256File(file) === sourceHash)) {
+    throw new Error("The supplied bitmap is byte-identical to an existing local review cover and cannot be relabeled as a Context Image2 output.");
+  }
+  return { request, receipt, inspection, sourceHash, requestId, promptHash };
 }
 
 function inferPrimaryPlatformTarget(selection = {}) {
@@ -100,6 +178,55 @@ function matchingPrompt(prompts, targetId) {
   return (prompts.prompts || []).find((item) => targetKey(String(item.targetId || "").replace(/-image2-integrated-cover$/, "")) === key)
     || (prompts.pendingNativeTargetRatioPrompts || []).find((item) => targetKey(item.id || item.targetId || "") === key)
     || null;
+}
+
+function ensureSelectionEntry({ topicDir, selection, targetId }) {
+  const key = targetKey(targetId);
+  const existing = (selection.entries || []).find((item) => targetKey(item.targetId) === key);
+  if (existing) return existing;
+  const requestPath = join(topicDir, "workflow", "context-image2-cover-requests.json");
+  const requests = existsSync(requestPath) ? readJson(requestPath) : {};
+  const request = (requests.requests || []).find((item) => targetKey(item.targetId) === key);
+  const designPath = join(topicDir, "workflow", "cover-design.json");
+  const design = existsSync(designPath) ? readJson(designPath) : {};
+  const preset = (design.resolutionPresets || []).find((item) => targetKey(item.id || item.targetId) === key);
+  const width = Number(request?.width || preset?.width || 0);
+  const height = Number(request?.height || preset?.height || 0);
+  if (!width || !height) throw new Error(`Target ${targetId} has no request or design dimensions for selection entry synthesis`);
+  const ratio = request?.ratio || preset?.ratio || ratioLabel(width, height);
+  const entry = {
+    targetId: key,
+    sourceTargetId: request?.targetId || preset?.id || key,
+    label: request?.targetId || preset?.label || key,
+    group: `平台投稿封面-${ratio}`,
+    width,
+    height,
+    ratio,
+    platformFamily: request?.platformFamily || preset?.platformFamily || "platform-submission",
+    qualityStatus: "pending-native-target-ratio",
+    uploadReady: false,
+    needsRegeneration: true,
+    requiresNativeImage2TargetRatio: true,
+    image2NativeTargetRatioReady: false,
+    codexNativeTargetRatioReady: false,
+    internalReviewFiles: [],
+    reviewGradeFiles: [],
+    files: [],
+    previewFiles: [],
+    synthesizedFromContextImage2Request: Boolean(request),
+  };
+  selection.entries = [...(selection.entries || []), entry];
+  selection.needsRegeneration = [
+    ...(selection.needsRegeneration || []).filter((item) => targetKey(item.targetId) !== key),
+    { targetId: key, width, height, ratio, reason: "pending native target-ratio Context Image2 cover" },
+  ];
+  selection.pendingNativeTargetCount = selection.needsRegeneration.length;
+  selection.allEntriesUploadReady = false;
+  selection.allTargetsUploadReady = false;
+  selection.primaryPlatformUploadCoverTargetId = key;
+  selection.primaryPlatformUploadCoverReady = false;
+  writeJson(join(topicDir, "workflow", "cover-size-selection.json"), selection);
+  return entry;
 }
 
 function promptIdOf(promptItem, targetId) {
@@ -160,7 +287,8 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
   entry.previewFiles = [];
   if (approved) selection.needsRegeneration = (selection.needsRegeneration || []).filter((item) => targetKey(item.targetId) !== key);
   selection.pendingNativeTargetCount = selection.needsRegeneration.length;
-  selection.allTargetsUploadReady = selection.pendingNativeTargetCount === 0;
+  selection.allEntriesUploadReady = (selection.entries || []).length > 0 && (selection.entries || []).every((item) => item.uploadReady === true);
+  selection.allTargetsUploadReady = selection.pendingNativeTargetCount === 0 && selection.allEntriesUploadReady;
   selection.primaryPlatformUploadCoverTargetId = inferPrimaryPlatformTarget(selection);
   selection.platformUploadReadyTargetIds = (selection.entries || [])
     .filter((item) => targetKey(item.targetId) !== "video-opening" && item.uploadReady === true && item.image2NativeTargetRatioReady === true)
@@ -173,6 +301,31 @@ function updateSelection({ topicDir, targetId, source, sourceCopy, pngFile, jpgF
     .filter(Boolean);
   writeJson(selectionPath, selection);
   return entry;
+}
+
+function cleanupCompletedCoverSelection({ topicDir, requestState }) {
+  if (!requestState.allRequestedPlatformUploadCoversReady) return;
+  const selectionPath = join(topicDir, "workflow", "cover-size-selection.json");
+  const selection = readJson(selectionPath);
+  const platformEntries = (selection.entries || []).filter((item) => targetKey(item.targetId) !== "video-opening");
+  const openingEntry = (selection.entries || []).find((item) => targetKey(item.targetId) === "video-opening");
+  if (openingEntry) {
+    openingEntry.needsRegeneration = false;
+    openingEntry.excludedFromPlatformUploadReadiness = true;
+    openingEntry.qualityStatus = "video-internal-review-only-not-platform-upload-target";
+  }
+  selection.needsRegeneration = [];
+  selection.pendingNativeTargetCount = 0;
+  selection.allEntriesUploadReady = platformEntries.length > 0
+    && platformEntries.every((item) => item.uploadReady === true && item.image2NativeTargetRatioReady === true);
+  selection.allTargetsUploadReady = selection.allEntriesUploadReady;
+  selection.reviewGradeCoverFiles = [];
+  selection.reviewGradeCoversInFinalDeliveryDirectory = false;
+  selection.reviewGradeCoversPolicy = "removed-after-all-requested-native-covers-completed";
+  selection.needsRegenerationManifest = null;
+  rmSync(join(topicDir, selection.finalDeliveryDirectory || "最终成品", "评审级封面-非上传终版"), { recursive: true, force: true });
+  rmSync(join(topicDir, selection.finalDeliveryDirectory || "最终成品", "需原生重生成清单.md"), { force: true });
+  writeJson(selectionPath, selection);
 }
 
 function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry, requestState }) {
@@ -219,6 +372,7 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
   design.primaryPlatformUploadCoverTargetId = requestState.primaryPlatformUploadCoverTargetId;
   design.primaryPlatformUploadCoverReady = requestState.primaryPlatformUploadCoverReady;
   design.allRequestedPlatformUploadCoversReady = requestState.allRequestedPlatformUploadCoversReady;
+  design.coverSizeSelection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
   design.rootOutputCopies = requestState.rootOutputCopies;
   design.thumbnailReadiness = {
     ...(design.thumbnailReadiness || {}),
@@ -237,7 +391,7 @@ function updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jp
   writeJson(designPath, design);
 }
 
-function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry, inspectionStatus }) {
+function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry, inspectionStatus, generationEvidence }) {
   const requestPath = join(topicDir, "workflow", "context-image2-cover-requests.json");
   if (!existsSync(requestPath)) throw new Error(`Missing canonical platform cover request manifest: ${requestPath}`);
   const manifest = readJson(requestPath);
@@ -261,6 +415,17 @@ function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile
   request.finalPlatformSize = `${entry.width}x${entry.height}`;
   request.inspectionStatus = inspectionStatus;
   request.inspectionPassed = passedInspection;
+  request.generationReceipt = generationEvidence.receipt;
+  request.inspectionRecord = generationEvidence.inspection;
+  if (request.generationReceiptPath) {
+    writeJson(join(topicDir, request.generationReceiptPath), generationEvidence.receipt);
+  }
+  if (request.inspectionRecordPath) {
+    writeJson(join(topicDir, request.inspectionRecordPath), generationEvidence.inspection);
+  }
+  request.outputSha256 = generationEvidence.sourceHash;
+  request.promptSha256 = generationEvidence.promptHash;
+  request.requestId = generationEvidence.requestId;
 
   const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
   const primaryTargetId = targetKey(manifest.primaryPlatformUploadCoverTargetId || inferPrimaryPlatformTarget(selection));
@@ -339,6 +504,10 @@ function updateCoverQc({ topicDir, requestState }) {
 
 function updatePackageDeliveryState({ topicDir, requestState }) {
   const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
+  const coverImage2Qc = readJson(join(topicDir, "workflow", "cover-image2-qc.json"));
+  const requestManifest = readJson(join(topicDir, "workflow", "context-image2-cover-requests.json"));
+  const coverDesignPath = join(topicDir, "workflow", "cover-design.json");
+  const coverDesign = existsSync(coverDesignPath) ? readJson(coverDesignPath) : {};
   const primaryEntry = (selection.entries || []).find((item) => targetKey(item.targetId) === requestState.primaryPlatformUploadCoverTargetId);
   const primaryPng = (primaryEntry?.files || []).find((item) => item.format === "png")?.file
     || primaryEntry?.internalReviewFiles?.find((file) => /\.png$/i.test(file))
@@ -360,15 +529,34 @@ function updatePackageDeliveryState({ topicDir, requestState }) {
       allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
       contextImage2Pending: !requestState.allRequestedPlatformUploadCoversReady,
     };
-    logQc.pass = Object.values(logQc.checks).every(Boolean);
-    logQc.status = logQc.pass ? "pass" : "fail";
+    logQc.pass = false;
+    logQc.publishingReady = false;
+    logQc.requiresFullQcRerun = true;
+    logQc.status = "pending-full-qc-rerun";
     writeJson(logQcPath, logQc);
   }
-  const deliveryPath = join(topicDir, "delivery-manifest.json");
-  if (existsSync(deliveryPath)) {
-    const delivery = readJson(deliveryPath);
-    delivery.cover = {
-      ...(delivery.cover || {}),
+  for (const packageManifestName of ["delivery-manifest.json", "review-manifest.json"]) {
+    const packageManifestPath = join(topicDir, packageManifestName);
+    if (!existsSync(packageManifestPath)) continue;
+    const packageManifest = readJson(packageManifestPath);
+    packageManifest.coverStatus = {
+      ...buildCoverStatusSnapshot({
+        imageSource: packageManifest.imageSource || "codex-context-image2",
+        platformReadiness: {
+          ready: requestState.primaryPlatformUploadCoverReady,
+          targetId: requestState.primaryPlatformUploadCoverTargetId,
+          failures: requestState.primaryPlatformUploadCoverReady ? [] : ["primary platform cover is not ready"],
+        },
+        coverImage2Qc,
+        coverSizeSelection: selection,
+        requestManifest,
+        coverDesign,
+      }),
+      videoProductionMayCompleteWhileCoverPending: true,
+      contextImage2CoverRequests: "workflow/context-image2-cover-requests.json",
+    };
+    packageManifest.cover = {
+      ...(packageManifest.cover || {}),
       purpose: "platform-submission-cover",
       primaryPlatformUploadCoverTargetId: requestState.primaryPlatformUploadCoverTargetId,
       primaryPlatformUploadCover: primaryPng,
@@ -376,7 +564,43 @@ function updatePackageDeliveryState({ topicDir, requestState }) {
       allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,
       status: requestState.primaryPlatformUploadCoverReady ? "primary-platform-submission-cover-ready" : "pending-context-image2",
     };
-    writeJson(deliveryPath, delivery);
+    writeJson(packageManifestPath, packageManifest);
+  }
+}
+
+function finalizePublishingPackageIfVideoExists(topicDir) {
+  const briefPath = join(topicDir, "brief.json");
+  const normalizedFinalVideo = join(topicDir, "renders", "final.audio-normalized.mp4");
+  const finalVideo = existsSync(normalizedFinalVideo)
+    ? normalizedFinalVideo
+    : join(topicDir, "renders", "final.mp4");
+  if (!existsSync(briefPath) || !existsSync(finalVideo)) {
+    return { attempted: false, status: "not-applicable-no-rendered-video" };
+  }
+  const workflowScript = join(dirname(fileURLToPath(import.meta.url)), "poc-video-workflow.mjs");
+  try {
+    const stdout = execFileSync(process.execPath, [
+      workflowScript,
+      "--brief", briefPath,
+      "--out", topicDir,
+      "--qc-only",
+      "--final-mp4", finalVideo,
+      "--no-open-output",
+    ], {
+      cwd: dirname(workflowScript),
+      encoding: "utf8",
+      env: { ...process.env, CODEX_VIDEO_WORKFLOW_HEADLESS: "1" },
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    return { attempted: true, status: "qc-rerun-complete", stdout: stdout.trim().split("\n").slice(-1)[0] || "" };
+  } catch (error) {
+    return {
+      attempted: true,
+      status: "qc-rerun-failed-package-remains-review-only",
+      exitCode: error.status ?? null,
+      stdout: String(error.stdout || "").slice(-8000),
+      stderr: String(error.stderr || error.message || "").slice(-4000),
+    };
   }
 }
 
@@ -424,22 +648,50 @@ function main() {
   const topicDir = resolve(argValue("--topic"));
   const targetId = targetKey(argValue("--target"));
   const source = resolve(argValue("--source"));
-  const inspectionStatus = argValue("--inspection-status", "pending-human-or-vision-review");
-  const approved = inspectionPassed(inspectionStatus);
+  const receiptArg = argValue("--generation-receipt");
+  const inspectionArg = argValue("--inspection-record");
+  const receiptPath = receiptArg ? resolve(receiptArg) : "";
+  const inspectionPath = inspectionArg ? resolve(inspectionArg) : "";
+  const validateOnly = process.argv.includes("--validate-only");
+  const deferPackageFinalization = process.argv.includes("--defer-package-finalization");
+  const runFullPackageQc = process.argv.includes("--run-full-package-qc");
   if (!topicDir || !targetId || !source) {
     throw new Error("Usage: ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>");
   }
   if (!existsSync(source)) throw new Error(`Source image not found: ${source}`);
+  const evidence = validateGenerationEvidence({ topicDir, targetId, source, receiptPath, inspectionPath });
+  const inspectionStatus = evidence.inspection.status;
+  const approved = true;
   const pngFile = standardCoverFileForTarget(targetId);
   if (!pngFile) throw new Error(`Unsupported cover target: ${targetId}`);
   const jpgFile = jpgForPng(pngFile);
   const imageSize = dimensions(source);
+  const selectionPath = join(topicDir, "workflow", "cover-size-selection.json");
+  const validationSelection = readJson(selectionPath);
+  const validationEntry = (validationSelection.entries || []).find((item) => targetKey(item.targetId) === targetKey(targetId));
+  if (!validationEntry) throw new Error(`Target ${targetId} not found in ${selectionPath}`);
+  const expectedRatio = Number(validationEntry.width || 0) / Number(validationEntry.height || 0);
+  const sourceRatio = imageSize.width / imageSize.height;
+  if (!expectedRatio || Math.abs(expectedRatio - sourceRatio) > 0.01) {
+    throw new Error(`Codex Image2 source ratio ${imageSize.width}x${imageSize.height} does not match target ${validationEntry.width}x${validationEntry.height}`);
+  }
+  if (validateOnly) {
+    console.log(JSON.stringify({
+      ok: true,
+      validationOnly: true,
+      topic: relative(process.cwd(), topicDir),
+      targetId,
+      source,
+      sourceDimensions: imageSize,
+      inspectionStatus,
+    }, null, 2));
+    return;
+  }
   const sourceCopy = `cover/source-codex-imagegen-native-${targetId}.png`;
   mkdirSync(dirname(join(topicDir, sourceCopy)), { recursive: true });
   copyFileSync(source, join(topicDir, sourceCopy));
   const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
-  const entry = (selection.entries || []).find((item) => targetKey(item.targetId) === targetId);
-  if (!entry) throw new Error(`Target ${targetId} not found before resize`);
+  const entry = ensureSelectionEntry({ topicDir, selection, targetId });
   resizeToFinal({
     source: join(topicDir, sourceCopy),
     png: join(topicDir, pngFile),
@@ -461,10 +713,26 @@ function main() {
     imageSize,
     entry: updatedEntry,
     inspectionStatus,
+    generationEvidence: evidence,
   });
+  writeJson(
+    join(topicDir, "workflow", "cover-generation-workflow.json"),
+    buildCoverGenerationWorkflowContract({ requestManifest: requestState.manifest }),
+  );
+  cleanupCompletedCoverSelection({ topicDir, requestState });
   const coverQc = updateCoverQc({ topicDir, requestState });
   updateCoverDesign({ topicDir, targetId, source, sourceCopy, pngFile, jpgFile, imageSize, entry: updatedEntry, requestState });
   updatePackageDeliveryState({ topicDir, requestState });
+  const packageFinalization = requestState.allRequestedPlatformUploadCoversReady && runFullPackageQc && !deferPackageFinalization
+    ? finalizePublishingPackageIfVideoExists(topicDir)
+    : {
+        attempted: false,
+        status: requestState.allRequestedPlatformUploadCoversReady
+          ? "cover-verified-full-video-qc-not-run"
+          : "deferred-until-all-requested-platform-covers-ready",
+        pendingTargetIds: requestState.pendingTargetIds,
+        fullVideoQcTriggeredByCoverWorkflow: false,
+      };
   console.log(JSON.stringify({
     ok: true,
     topic: relative(process.cwd(), topicDir),
@@ -477,6 +745,10 @@ function main() {
     sourceDimensions: imageSize,
     finalPlatformSize: `${updatedEntry.width}x${updatedEntry.height}`,
     inspectionStatus,
+    generationReceipt: relative(topicDir, receiptPath),
+    inspectionRecord: relative(topicDir, inspectionPath),
+    sourceSha256: evidence.sourceHash,
+    packageFinalization,
     primaryPlatformUploadCoverTargetId: requestState.primaryPlatformUploadCoverTargetId,
     primaryPlatformUploadCoverReady: requestState.primaryPlatformUploadCoverReady,
     allRequestedPlatformUploadCoversReady: requestState.allRequestedPlatformUploadCoversReady,

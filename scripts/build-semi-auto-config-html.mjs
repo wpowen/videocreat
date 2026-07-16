@@ -2687,13 +2687,14 @@ function buildConfigModel(context, outPath) {
   const pageCount = context.pages.length;
   const fallbackScriptUnits = estimateConfigPersonalIpScriptUnits(context);
   const fallbackScriptUnitCount = Math.max(pageCount, fallbackScriptUnits.length);
-  const fallbackRoleAssetMinimum = 8;
-  const fallbackVariantsPerScriptUnit = 5;
+  const fallbackRoleAssetMinimum = 0;
+  const fallbackVariantsPerScriptUnit = 0;
   const fallbackIpImageCountPolicy = {
-    mode: "rich-preview",
+    mode: "capacity-controlled",
     currentLegacyLogic: "one pageCard and one native main image job per active scene, plus a role-sheet brief",
-    upgradedLogic: "启用个人 IP 后按口播稿/字幕/页面拆分匹配单元，每个单元至少一张个人 IP 主图，并补充动作、协作角色、局部、白板描线和替代构图变体。",
+    upgradedLogic: "启用个人 IP 后按口播内容容量合并连续语义单元；默认只生成独立主页面，字幕、强调和揭示作为页内节拍，替代构图仅在 QC 失败时按预算补生成。",
     roleAssetMinimum: fallbackRoleAssetMinimum,
+    roleAssetGenerationJobs: 0,
     sceneCount: pageCount,
     scriptUnitCount: fallbackScriptUnitCount,
     scriptUnitSource: "config-page-fallback",
@@ -2702,7 +2703,9 @@ function buildConfigModel(context, outPath) {
     sceneVariantsPerScriptUnit: fallbackVariantsPerScriptUnit,
     sceneVariantsPerPage: fallbackVariantsPerScriptUnit,
     supplementalSceneVariantCount: fallbackScriptUnitCount * fallbackVariantsPerScriptUnit,
-    targetTotal: fallbackRoleAssetMinimum + fallbackScriptUnitCount * (fallbackVariantsPerScriptUnit + 1),
+    maxRepairGenerations: Math.min(6, Math.max(1, Math.ceil(fallbackScriptUnitCount * 0.2))),
+    repairVariantPolicy: "on-demand-qc-failures-only",
+    targetTotal: fallbackScriptUnitCount,
   };
   const plannerIpImageCountPolicy = context.ipPlan.imageCountPolicy || null;
   const ipImageCountPolicy = plannerIpImageCountPolicy?.mode && plannerIpImageCountPolicy.mode !== "not-applicable"
@@ -2711,11 +2714,11 @@ function buildConfigModel(context, outPath) {
   const nativeMainJobCount = arrayify(context.ipNativeJobs.jobs).length;
   const nativeSupplementalJobCount = arrayify(context.ipNativeJobs.supplementalImageJobs).length;
   const ipMainSceneJobs = ipActive
-    ? Math.max(nativeMainJobCount, Number(ipImageCountPolicy.mainSceneImageJobs || 0), Number(ipImageCountPolicy.scriptUnitCount || 0), pageCount)
+    ? Math.max(nativeMainJobCount, Number(ipImageCountPolicy.mainSceneImageJobs || 0), Number(ipImageCountPolicy.scriptUnitCount || 0))
     : Number(ipImageCountPolicy.mainSceneImageJobs || 0);
   const ipSupplementalJobs = ipActive
-    ? Math.max(nativeSupplementalJobCount, Number(ipImageCountPolicy.supplementalSceneVariantCount || 0) + Number(ipImageCountPolicy.roleAssetMinimum || 0))
-    : Number(ipImageCountPolicy.supplementalSceneVariantCount || 0) + Number(ipImageCountPolicy.roleAssetMinimum || 0);
+    ? Math.max(nativeSupplementalJobCount, Number(ipImageCountPolicy.supplementalSceneVariantCount || 0) + Number(ipImageCountPolicy.roleAssetGenerationJobs || 0))
+    : Number(ipImageCountPolicy.supplementalSceneVariantCount || 0) + Number(ipImageCountPolicy.roleAssetGenerationJobs || 0);
   return {
     schemaVersion: 1,
     status: "semi-auto-config-ready",
@@ -2724,7 +2727,7 @@ function buildConfigModel(context, outPath) {
     html: relative(context.packageDir, outPath).split("\\").join("/"),
     generationMode: {
       selected: context.contract.selectedMode || "semi-auto",
-      defaultMode: context.contract.defaultMode || "semi-auto",
+      defaultMode: context.contract.defaultMode || "full-auto",
       supportedModes: arrayify(context.contract.supportedModes).map((mode) => ({
         id: mode.id,
         label: mode.label,
@@ -3446,6 +3449,7 @@ function renderIpAssetRegistryCard(personalIp) {
   const status = registry.status || "not-configured";
   const statusLabel = {
     "ready-existing-persona": "已读取固定人设",
+    "ready-default-persona": "默认固定角色",
     "authorized-input-pending-save": "授权素材待保存",
     "needs-user-persona-onboarding": "需要先创建固定人设",
     "not-applicable": "当前未启用",
@@ -3530,12 +3534,13 @@ function renderIpMotionPane(model) {
         <b>图片数量策略</b>
         <span>口播匹配单元：${escapeHtml(scriptUnitCount)} 个</span>
         <span>主图任务：${escapeHtml(policy.mainSceneJobs || 0)} 个</span>
-        <span>每单元补充：${escapeHtml(variantsPerUnit)} 个</span>
-        <span>角色资产：${escapeHtml(policy.roleAssetMinimum || 0)} 个</span>
+        <span>默认变体：${escapeHtml(variantsPerUnit)} 个</span>
+        <span>角色资产重生成：${escapeHtml(policy.roleAssetGenerationJobs || 0)} 个</span>
+        <span>QC 修复预算：${escapeHtml(policy.maxRepairGenerations || 0)} 个</span>
         <span>补充任务：${escapeHtml(policy.supplementalJobs || 0)} 个</span>
         <span>目标总量：${escapeHtml(policy.totalPlannedImageJobs || policy.targetTotal || 0)} 个</span>
         ${renderIpScriptMatchSamples(policy)}
-        <em>${escapeHtml(policy.upgradedLogic || "优先按口播单元规划更多角色资产和页面变体，生成端可按质量下选。")}</em>
+        <em>${escapeHtml(policy.upgradedLogic || "按页面容量规划独立页面；默认不生成变体，只在 QC 失败时按修复预算补生成。")}</em>
       </div>
     </div>
   </div>`;

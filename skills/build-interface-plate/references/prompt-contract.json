@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "interface-plate-structured-prompt-v2",
+  "skillId": "build-interface-plate",
+  "seriesId": "interface-mockup-plate-v1",
+  "outputIntent": "Explain one fictional product task or state transition through a credible original interface whose selected state, data, and workflow agree.",
+  "positioning": "Not decorative dashboard art or a clone of a real SaaS product; it is functional visual evidence with one clearly explained user outcome.",
+  "contentSchema": ["one product goal and user task", "stable original app shell", "one selected module or state", "explicit transition when claimed", "coherent data direction", "planned deterministic label anchors"],
+  "layoutFamilies": [
+    {"id":"shell-feature-focus","roles":["dashboard-overview","feature-panel-zoom"],"topology":"stable shell frames one dominant working canvas; navigation recedes; one focal feature expands with two supporting evidence panels","readingPath":"task context -> selected feature -> evidence -> outcome","cameraAndScale":"front orthographic interface view with a subtle feature-plane lift, never a tilted device mockup","moduleCount":"one shell, one focal feature, two evidence panels, one outcome region"},
+    {"id":"state-transition-timeline","roles":["flow-state","before-after-panel","result-summary"],"topology":"three clearly distinct states share one component geometry along a left-to-right transition; result metric anchors the final state","readingPath":"before -> processing -> ready -> result proof","cameraAndScale":"matched component scale and fixed shell camera across all states","moduleCount":"one shell, three states, one transition path, one result metric"}
+  ],
+  "physicalVisualSystem": {"material":"clean light UI surfaces with restrained frosted layers, precise 8pt spacing rhythm, subtle elevation, and realistic component density","lighting":"neutral product-surface illumination with shallow soft shadows; no neon glow or glossy device reflections","color":"warm white and cool grey base, one cobalt product accent, one bounded status color only where semantically required","typography":"short exact Chinese UI labels in a consistent product sans hierarchy; reserve longer copy for deterministic overlays"},
+  "allowedVariations":["feature-specific component","data shape","selected state","bounded status color"],
+  "forbiddenElements":["real product resemblance","browser brand cues","multiple selected states","contradictory chart and metric direction","placeholder bars with no explanatory job","unwhitelisted ticks timestamps or step numbers"],
+  "qcAssertions":["the user task is visible without narration","exactly one state is selected","state transition and result metric agree","component tokens and shell stay internally consistent","important controls and evidence remain above the subtitle-safe band"]
+}

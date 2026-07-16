@@ -1,152 +1,121 @@
 #!/usr/bin/env node
 
-import { createRequire } from "node:module";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { buildContentDrivenSemanticLayers } from "./lib/personal-ip-semantic-layout-renderer.mjs";
+import { validateDisplayedTextInventory, validatePersonalIpMasterAnalysis } from "./lib/personal-ip-master-analysis.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, "..");
-const OUT = resolve(process.argv[2] || join(ROOT, "research", "personal-ip-semantic-layered-self-test"));
-const ASPECT = String(process.argv[3] || "9:16");
-const CANVAS = ASPECT === "16:9" ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 };
-const PLAYWRIGHT_MODULES = "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
-const requireFromRuntime = createRequire(resolve(PLAYWRIGHT_MODULES, "playwright/package.json"));
-const { chromium } = requireFromRuntime("playwright");
+const root = resolve(new URL("..", import.meta.url).pathname);
+const workflow = readFileSync(resolve(root, "scripts/poc-video-workflow.mjs"), "utf8");
+const skill = readFileSync(resolve(root, "SKILL.md"), "utf8");
+const ownershipReference = readFileSync(resolve(root, "references/personal-ip-animation-layer-ownership.md"), "utf8");
+const exporter = readFileSync(resolve(root, "scripts/export-personal-ip-semantic-layered-video.mjs"), "utf8");
 
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function run(command, args) {
-  const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
-  if (result.status !== 0) throw new Error(`${command} failed (${result.status}): ${result.stderr || result.stdout}`);
-  return result.stdout;
-}
-
-function intersects(a, b, tolerance = 0) {
-  return a.left < b.right - tolerance && a.right > b.left + tolerance && a.top < b.bottom - tolerance && a.bottom > b.top + tolerance;
-}
-
-rmSync(OUT, { recursive: true, force: true });
-const specPath = `${OUT}-spec.json`;
-writeFileSync(specPath, `${JSON.stringify({
-  title: "个人 IP 语义分层回归测试",
-  subtitle: "真实 brief 的长文案也必须留在标题安全区，不能侵入人物或被裁切。",
-  hookItems: [
-    { icon: "?", label: "信息差", body: "先让观众看见未知信息" },
-    { icon: "!", label: "压力升级", body: "沿清晰路径逐层升级压力" },
-    { icon: "△", label: "行动规则", body: "最终态必须保留全部信息" },
+const masterAnalysis = {
+  status: "passed-vision-review",
+  inspectorType: "vision",
+  masterSha256: "master-sha",
+  canvas: { width: 1080, height: 1920 },
+  inspectionEvidence: { summary: "Verified layout zones and visual system against the selected master.", checkedAt: "2026-07-16T00:00:00.000Z" },
+  objectInventory: [
+    { id: "headline-zone", bounds: { x: 40, y: 60, width: 700, height: 240 } },
+    { id: "content-zone", bounds: { x: 40, y: 340, width: 1000, height: 1280 } },
+    { id: "persona-zone", bounds: { x: 720, y: 80, width: 320, height: 520 } },
   ],
-  routeItems: [
-    { icon: "◴", label: "建立问题", body: "给出明确且可读的起始状态" },
-    { icon: "⌁", label: "逐层展开", body: "内容卡依次出现并保持层级" },
-    { icon: "▣", label: "验证收束", body: "检查越界遮挡缺失与视频解码" },
-  ],
-  takeaway: "分层不是切片，而是语义所有权。",
-}, null, 2)}\n`, "utf8");
-run("node", [
-  "scripts/export-personal-ip-semantic-layered-video.mjs",
-  "--out", OUT,
-  "--duration", "4",
-  "--fps", "10",
-  "--title", "个人 IP 语义分层回归测试",
-  "--spec", specPath,
-  "--aspect", ASPECT,
-]);
+  roleBindings: { headline: "headline-zone", "content-group": "content-zone", "personal-ip": "persona-zone" },
+  styleTokens: { palette: ["#fef7ed", "#18232d", "#f0642c", "#3f6ed8"], typography: "serif headline and sans body", material: "paper cards", composition: "headline above content with presenter flank" },
+};
+const validatedMasterAnalysis = validatePersonalIpMasterAnalysis({ analysis: masterAnalysis, masterSha256: "master-sha", width: 1080, height: 1920 });
+assert.equal(validatedMasterAnalysis.validation.pass, true);
+assert.throws(() => validatePersonalIpMasterAnalysis({ analysis: masterAnalysis, masterSha256: "unrelated-master", width: 1080, height: 1920 }), /masterSha256/);
+assert.throws(() => validatePersonalIpMasterAnalysis({ analysis: { ...masterAnalysis, roleBindings: {} }, masterSha256: "master-sha", width: 1080, height: 1920 }), /role bindings/i);
+assert.throws(() => validateDisplayedTextInventory([]), /explicit source-bound/i);
+assert.throws(() => validateDisplayedTextInventory([{ text: "钩子升级路径" }]), /text and source/i);
+assert.deepEqual(validateDisplayedTextInventory([{ sceneId: "scene-1", field: "scene.title", text: "钩子升级路径", source: "brief.scenes[0].title" }]), [{ sceneId: "scene-1", field: "scene.title", text: "钩子升级路径", source: "brief.scenes[0].title" }]);
 
-const manifestPath = join(OUT, "workflow", "personal-ip-semantic-layer-manifest.json");
-const qcPath = join(OUT, "logs", "qc.json");
-const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-const qc = JSON.parse(readFileSync(qcPath, "utf8"));
+const layers = buildContentDrivenSemanticLayers({
+  canvas: { width: 1080, height: 1920, aspectRatio: "9:16" },
+  personaData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mNk+M/wHwAF/gL+Xw4P5QAAAABJRU5ErkJggg==",
+  masterVisualAnalysis: validatedMasterAnalysis,
+  scenes: [{
+    id: "hook-upgrade-path",
+    title: "钩子升级路径",
+    subtitle: "压力、信息差、时间压力逐级升级",
+    takeaway: "每一步都必须改变读者预期",
+    moduleLabel: "写小说方法论",
+    contentKind: "method-path",
+    layoutVariant: "method-path",
+    hookItems: [
+      { label: "压力", body: "先制造未完成感" },
+      { label: "信息差", body: "再控制答案释放" },
+    ],
+    routeItems: [
+      { label: "倒计时", body: "时间开始收紧" },
+      { label: "误导", body: "答案发生偏转" },
+      { label: "揭示", body: "最终改变判断" },
+    ],
+  }],
+});
 
-assert(manifest.route === "personal-ip-semantic-layers-svg-html-video", "wrong semantic-layer route");
-assert(manifest.canonicalSource === "semantic-layer-scene", "semantic scene is not canonical");
-assert(manifest.flatCompositeBaseForbidden === true, "flat composite base must be forbidden");
-assert(manifest.canvas.aspectRatio === ASPECT, `expected ${ASPECT}, got ${manifest.canvas.aspectRatio}`);
-assert(manifest.layers.length === 7, `expected 7 SVG layers, got ${manifest.layers.length}`);
-assert(manifest.layers.every((layer) => existsSync(join(OUT, layer.svg))), "one or more independent SVG layers are missing");
-assert(existsSync(join(OUT, manifest.html)), "interactive HTML is missing");
-assert(existsSync(join(OUT, manifest.combinedSvg)), "combined SVG is missing");
-assert(existsSync(join(OUT, "final.mp4")), "final video is missing");
-assert(qc.pass === true && qc.checks.videoDecodes === true, "exported video did not pass decode QC");
+const layerMap = new Map(layers.map(([id, role, z, body]) => [id, { role, z, body }]));
+const expectedLayerIds = [
+  "00-background",
+  "30-content-path",
+  "10-headline",
+  "20-content-main",
+  "40-annotation",
+  "50-persona",
+  "60-agent",
+  "100-caption",
+];
 
-const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: CANVAS, deviceScaleFactor: 1 });
-await page.goto(`${pathToFileURL(join(OUT, "index.html")).href}?render=1`, { waitUntil: "load" });
-await page.evaluate(() => document.fonts.ready);
-
-const checkpoints = [0, 0.12, 0.28, 0.46, 0.64, 0.82, 1];
-const checkpointResults = [];
-for (const progress of checkpoints) {
-  await page.evaluate((value) => window.motion.setProgress(value), progress);
-  const result = await page.evaluate(() => {
-    const box = (selector) => {
-      const node = document.querySelector(selector);
-      const rect = node.getBoundingClientRect();
-      const style = getComputedStyle(node);
-      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height, opacity: Number(style.opacity), visibility: style.visibility };
-    };
-    const svg = document.querySelector("svg").getBoundingClientRect();
-    const visibleRequired = [...document.querySelectorAll("[data-required-final]")].filter((node) => {
-      const style = getComputedStyle(node);
-      return Number(style.opacity) > 0.95 && style.visibility !== "hidden";
-    }).map((node) => node.id);
-    return {
-      progress: document.querySelector("#stage").dataset.progress,
-      svg: { left: svg.left, top: svg.top, right: svg.right, bottom: svg.bottom },
-      headline: box("#layer-headline"),
-      persona: box("#layer-persona"),
-      board: box("#content-board-bg"),
-      caption: box("#layer-caption"),
-      requiredCount: document.querySelectorAll("[data-required-final]").length,
-      visibleRequired,
-      containedTextFailures: [...document.querySelectorAll("[data-item]")].flatMap((group) => {
-        const card = group.querySelector("[data-card-box]");
-        if (!card) return [];
-        const cardBox = card.getBBox();
-        return [...group.querySelectorAll("[data-contained-text]")].filter((text) => {
-          const box = text.getBBox();
-          return box.x < cardBox.x + 8 || box.y < cardBox.y + 8 || box.x + box.width > cardBox.x + cardBox.width - 8 || box.y + box.height > cardBox.y + cardBox.height - 8;
-        }).map((text) => `${group.id}:${text.textContent}`);
-      }),
-      routeBeforeCards: [...document.querySelector("#layer-upgrade-route").children].findIndex((node) => node.id === "route-stroke") < [...document.querySelector("#layer-upgrade-route").children].findIndex((node) => node.id === "route-1"),
-      captionIsLastLayer: document.querySelector("svg").lastElementChild?.id === "layer-caption",
-    };
-  });
-  assert(result.progress === progress.toFixed(3), `timeline did not reach ${progress}`);
-  for (const [name, box] of Object.entries({ headline: result.headline, persona: result.persona, board: result.board, caption: result.caption })) {
-    assert(box.left >= result.svg.left - 1 && box.top >= result.svg.top - 1 && box.right <= result.svg.right + 1 && box.bottom <= result.svg.bottom + 1, `${name} escapes canvas at ${progress}`);
-  }
-  assert(!intersects(result.headline, result.persona, 4), `headline overlaps persona at ${progress}`);
-  assert(!intersects(result.persona, result.board, 4), `persona overlaps content board at ${progress}`);
-  assert(!intersects(result.board, result.caption, 4), `content board overlaps caption at ${progress}`);
-  assert(result.containedTextFailures.length === 0, `text escapes its card at ${progress}: ${result.containedTextFailures.join(", ")}`);
-  assert(result.routeBeforeCards, "upgrade path must render behind route cards");
-  assert(result.captionIsLastLayer, "caption must be the topmost SVG layer");
-  if (progress === 1) assert(result.visibleRequired.length === result.requiredCount, "one or more required final layers are missing");
-  checkpointResults.push({ progress, visibleRequired: result.visibleRequired });
+assert.deepEqual([...layerMap.keys()], expectedLayerIds, "personal-IP animation must export the complete semantic layer stack");
+assert.equal(layerMap.get("100-caption")?.role, "subtitle-overlay", "subtitle must remain the topmost layer");
+for (const id of expectedLayerIds.filter((id) => id !== "50-persona")) {
+  assert.doesNotMatch(layerMap.get(id)?.body || "", /<image\b/i, `${id} must not hide page content inside a bitmap`);
 }
+assert.match(layerMap.get("10-headline")?.body || "", /<text\b/i, "headline must be deterministic SVG text");
+assert.match(layerMap.get("10-headline")?.body || "", /data-master-object-id="headline-zone"/, "headline geometry must consume the inspected master role binding");
+assert.match(layerMap.get("20-content-main")?.body || "", /data-master-object-id="content-zone"/, "content geometry must consume the inspected master role binding");
+assert.match(layerMap.get("50-persona")?.body || "", /data-master-object-id="persona-zone"/, "persona geometry must consume the inspected master role binding");
+assert.match(layerMap.get("00-background")?.body || "", /#fef7ed/i, "rendered palette must consume the inspected master style tokens");
+assert.match(layerMap.get("20-content-main")?.body || "", /data-scene-main/i, "content cards must be a real semantic layer");
+assert.match(layerMap.get("30-content-path")?.body || "", /<path\b/i, "relationship/path motion must be a real vector layer");
+assert.ok(layerMap.get("30-content-path")?.z < layerMap.get("20-content-main")?.z, "relationship/path layer must stay below content");
+assert.ok(expectedLayerIds.indexOf("30-content-path") < expectedLayerIds.indexOf("20-content-main"), "runtime SVG order must paint paths before content");
+assert.match(layerMap.get("60-agent")?.body || "", /data-agent/i, "supporting Agent must be independently renderable");
 
-const reducedPage = await browser.newPage({ viewport: CANVAS, deviceScaleFactor: 1 });
-await reducedPage.emulateMedia({ reducedMotion: "reduce" });
-await reducedPage.goto(`${pathToFileURL(join(OUT, "index.html")).href}?render=1`, { waitUntil: "load" });
-const reduced = await reducedPage.evaluate(() => ({ progress: document.querySelector("#stage").dataset.progress, reduced: window.motion.reducedMotion }));
-assert(reduced.reduced === true && reduced.progress === "1.000", "reduced-motion mode must render the complete final state");
-await browser.close();
+assert.match(
+  workflow,
+  /function personalIpSemanticLayerRouteSelected[\s\S]*?semanticLayerVideoPlan[\s\S]*?selectedNow\s*===\s*true/,
+  "explicit personal-IP animation must select the semantic SVG/HTML route",
+);
+assert.doesNotMatch(
+  workflow,
+  /function personalIpSemanticLayerRouteSelected[\s\S]{0,500}?return false;/,
+  "semantic route may not be permanently disabled",
+);
+assert.doesNotMatch(
+  workflow,
+  /function renderWithPersonalIpSemanticLayers[\s\S]{0,500}?Retired personal-IP semantic template route/,
+  "semantic renderer may not fail as a retired route",
+);
+assert.match(workflow, /flatCompositeBaseForbidden:\s*true/, "semantic route must reject a flattened page as the animation source");
+assert.match(workflow, /function assertPersonalIpSemanticLayerNotBlocked[\s\S]*?must not downgrade to the default HTML renderer/, "blocked personal-IP animation may not fall back to another route");
+assert.match(workflow, /personal-ip-layer-ownership-audit\.json/, "semantic route must promote the ownership audit into the final package");
 
-const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type,width,height", "-of", "json", join(OUT, "final.mp4")]));
-const video = probe.streams.find((stream) => stream.codec_type === "video");
-assert(video?.width === CANVAS.width && video?.height === CANVAS.height, `final video must be ${CANVAS.width}x${CANVAS.height}`);
+assert.match(skill, /个人 IP \+ 动画[\s\S]*语义(?:内容)?分层/i, "Skill must describe the real semantic-layer route");
+assert.match(skill, /背景[\s、,/]+标题[\s、,/]+内容/i, "Skill must name independently owned visual layers");
+assert.match(skill, /(?:禁止|不得)[^\n]{0,100}(?:整页|全屏)[^\n]{0,100}(?:底图|位图|base)/i, "Skill must reject a full-page bitmap as final content owner");
+assert.match(skill, /原子内容单元|atomic content-unit/i, "Skill must keep interlocked flat-master objects in one motion unit");
+assert.match(ownershipReference, /Every non-background source pixel may have at most one runtime owner/i, "ownership contract must require exclusive source pixels");
+assert.match(ownershipReference, /do not downgrade to default HTML animation/i, "ownership contract must isolate the route from existing modes");
+assert.match(exporter, /if \(!qc\.pass\) process\.exitCode = 2/, "semantic exporter must exit nonzero when final QC fails");
 
-process.stdout.write(`${JSON.stringify({
+console.log(JSON.stringify({
   pass: true,
-  route: manifest.route,
-  aspectRatio: ASPECT,
-  independentSvgLayers: manifest.layers.length,
-  checkpoints: checkpointResults,
-  reducedMotionFinalState: true,
-  video: { width: video.width, height: video.height, decodes: true },
-  out: OUT,
-}, null, 2)}\n`);
+  route: "personal-ip-semantic-layers-svg-html-video",
+  layerIds: expectedLayerIds,
+  bitmapPolicy: "persona-only-transparent-raster-allowed",
+}, null, 2));

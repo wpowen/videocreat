@@ -5,6 +5,14 @@ import { dirname, extname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { buildAdaptiveCountPlan, partitionContentText } from "./lib/adaptive-content-scene-planner.mjs";
+import {
+  VISUAL_SERIES_PROMPT_METHOD,
+  buildVisualSeriesBlueprint,
+  formatVisualSeriesProductionPrompt,
+  lintVisualSeriesProductionPrompt,
+  loadVisualSeriesLeafContract,
+} from "./lib/visual-series-prompt-method.mjs";
 
 const VERTICAL_WIDTH = 1080;
 const VERTICAL_HEIGHT = 1920;
@@ -27,8 +35,10 @@ function parseArgs(argv) {
     contentFile: "",
     requiredText: "",
     minImageCount: "4",
-    maxImageCount: "12",
+    maxImageCount: "",
     targetImageCount: "",
+    durationSeconds: "",
+    subtitleCueCount: "",
     imageGrowthStepChars: "160",
     allowSingleImage: "false",
     sourceImages: "",
@@ -57,7 +67,8 @@ function usage() {
     "    --series <seriesId> --out <dir> --topic <text> [--title <text>] \\",
     "    [--aspect 9:16|16:9] [--text-policy integrated-chinese|text-safe] [--tone <variant>] \\",
     "    [--style-notes <text>] [--content-file <script.txt>] [--content <text>] \\",
-    "    [--required-text <a;b;c>] [--min-image-count 4] [--max-image-count 12] \\",
+    "    [--required-text <a;b;c>] [--min-image-count 4] [--max-image-count <optional>] \\",
+    "    [--duration-seconds n] [--subtitle-cue-count n] \\",
     "    [--target-image-count n] [--source-images <page1.png;page2.png;...>]",
     "",
     "Plans a native full-screen GPT Image 2 page set for one visual series from",
@@ -274,42 +285,46 @@ function buildImageQuantityPlan(args = {}, series, promptDirRelative) {
   const allowSingleImage = isEnabled(args.allowSingleImage);
   const requestedMin = toPositiveInt(args.minImageCount, 4);
   const minImageCount = Math.max(allowSingleImage ? 1 : 4, requestedMin);
-  const maxImageCount = Math.max(minImageCount, toPositiveInt(args.maxImageCount, 12));
+  const requestedMaxImageCount = args.maxImageCount ? Math.max(minImageCount, toPositiveInt(args.maxImageCount, minImageCount)) : null;
   const growthStepChars = Math.max(80, toPositiveInt(args.imageGrowthStepChars, 160));
   const content = collectPlanningContent(args);
   const contentUnits = splitContentUnits(content);
   const charCount = Array.from(content.replace(/\s/g, "")).length;
   const unitCount = contentUnits.length;
-  const charGrowthBucket = Math.max(0, Math.ceil(charCount / growthStepChars) - 1);
-  const unitGrowthBucket = Math.max(0, Math.ceil(unitCount / 4) - 1);
-  const exponentialByChars = minImageCount * (2 ** charGrowthBucket);
-  const exponentialByUnits = minImageCount * (2 ** unitGrowthBucket);
-  const semanticFloor = Math.ceil(unitCount / 1.5);
-  const explicitTarget = args.targetImageCount
-    ? clamp(toPositiveInt(args.targetImageCount, minImageCount), minImageCount, maxImageCount)
-    : null;
-  const resolvedImageCount = explicitTarget || clamp(
-    Math.max(minImageCount, semanticFloor, exponentialByChars, exponentialByUnits),
-    minImageCount,
-    maxImageCount,
-  );
+  const adaptiveCount = buildAdaptiveCountPlan({
+    sourceCount: minImageCount,
+    durationSeconds: Number(args.durationSeconds || 0),
+    subtitleCueCount: Number(args.subtitleCueCount || 0),
+    charCount,
+    contentUnitCount: unitCount,
+    minCount: minImageCount,
+    requestedTarget: args.targetImageCount,
+    requestedMaximum: requestedMaxImageCount || 0,
+    secondsPerPage: 30,
+    subtitleCuesPerPage: 4,
+    charsPerPage: 220,
+    contentUnitsPerPage: 4,
+  });
+  const charGrowthBucket = null;
+  const unitGrowthBucket = null;
+  const exponentialByChars = null;
+  const exponentialByUnits = null;
+  const semanticFloor = adaptiveCount.semanticUnitTarget;
+  const explicitTarget = adaptiveCount.requestedTarget;
+  const maxImageCount = adaptiveCount.effectiveMaximum || adaptiveCount.resolvedCount;
+  const resolvedImageCount = adaptiveCount.resolvedCount;
   const requiredText = splitList(args.requiredText);
   const roles = Array.isArray(series.pageRoles) && series.pageRoles.length > 0
     ? series.pageRoles
     : ["overview", "detail", "evidence", "summary"];
   const outputStem = safeStem(args.outputName || `${series.seriesId}-page`).replace(/\.[^.]+$/, "");
+  const contentBeats = partitionContentText(content, resolvedImageCount, { label: "Image2 series source content" });
   const slots = Array.from({ length: resolvedImageCount }, (_, index) => {
-    const unitStart = Math.floor(index * contentUnits.length / resolvedImageCount);
-    const unitEnd = Math.floor((index + 1) * contentUnits.length / resolvedImageCount);
-    const matchedUnits = contentUnits.slice(unitStart, Math.max(unitStart + 1, unitEnd));
-    const selectedUnits = matchedUnits.length
-      ? matchedUnits
-      : [contentUnits[Math.min(contentUnits.length - 1, index % contentUnits.length)]];
     return {
       id: `page-${String(index + 1).padStart(2, "0")}`,
       order: index + 1,
       role: roles[index % roles.length],
-      contentBeat: selectedUnits.join(" "),
+      contentBeat: contentBeats[index],
       requiredText: distributeList(requiredText, index, resolvedImageCount),
       promptFile: `${promptDirRelative}/page-${String(index + 1).padStart(2, "0")}-prompt.txt`,
       expectedImageName: `${outputStem}-${String(index + 1).padStart(2, "0")}.png`,
@@ -323,14 +338,33 @@ function buildImageQuantityPlan(args = {}, series, promptDirRelative) {
     seriesId: series.seriesId,
     minImageCount,
     maxImageCount,
+    requestedMaxImageCount,
+    maximumPolicy: "adaptive-no-default-cap",
+    maxImageCountUnderAutomaticPolicy: adaptiveCount.requestedMaximumUnderAutomatic,
+    maxImageCountRaisedToAutomaticPolicy: adaptiveCount.requestedMaximumRaisedToAutomatic,
     resolvedImageCount,
     explicitTarget,
     allowSingleImage,
     singleImageRejectedByDefault: !allowSingleImage,
-    contentMetrics: { charCount, unitCount, growthStepChars, charGrowthBucket, unitGrowthBucket, semanticFloor, exponentialByChars, exponentialByUnits },
+    contentMetrics: {
+      charCount,
+      unitCount,
+      growthStepChars,
+      charGrowthBucket,
+      unitGrowthBucket,
+      semanticFloor,
+      exponentialByChars,
+      exponentialByUnits,
+      durationSeconds: Number(args.durationSeconds || 0) || null,
+      subtitleCueCount: Number(args.subtitleCueCount || 0),
+      durationBasedTarget: adaptiveCount.durationBasedTarget,
+      subtitleCueBasedTarget: adaptiveCount.subtitleCueBasedTarget,
+      contentBasedTarget: adaptiveCount.contentBasedTarget,
+      automaticTarget: adaptiveCount.automaticTarget,
+    },
     growthRule: {
-      formula: "clamp(max(minImageCount, ceil(contentUnits/1.5), minImageCount*2^charGrowthBucket, minImageCount*2^unitGrowthBucket), minImageCount, maxImageCount)",
-      reason: "Short content still gets a multi-page visual set; longer scripts grow rapidly until capped by maxImageCount.",
+      formula: "max(minImageCount, durationBasedTarget, subtitleCueBasedTarget, contentBasedTarget, semanticUnitTarget); no default maximum",
+      reason: "Short content keeps the minimum useful series; longer content grows from duration, subtitle cues, semantic units, and text length without a fixed default cap.",
     },
     slots,
   };
@@ -363,58 +397,19 @@ function renderStyleSpec(styleSpec) {
   return keys.map((key) => `- ${key}: ${styleSpec[key]}`);
 }
 
-function buildPagePrompt({ args, series, catalog, canvas, styleLock, textPolicy, imagePlan, slot }) {
-  const shared = catalog.sharedContract || {};
-  const skeleton = series.promptSkeleton || {};
-  const negatives = [
-    ...(Array.isArray(skeleton.negativeConstraints) ? skeleton.negativeConstraints : []),
-    ...(Array.isArray(shared.globalNegativeConstraints) ? shared.globalNegativeConstraints : []),
-  ];
-  const styleSpecLines = renderStyleSpec(styleLock.styleSpec);
-  return [
-    `Create page ${slot.order}/${imagePlan.resolvedImageCount} of a ${canvas.orientation} ${canvas.aspectRatio} "${series.name}" native full-screen video page set, ${canvas.width}x${canvas.height}.`,
-    "This page is a native full-screen base frame for a video, not a cropped insert and not a single all-purpose poster. It must cover only the matched narration beat below so the final video has rich page changes.",
-    "",
-    `Style specification (hard lock, lock id ${styleLock.lockId}) — obey these exactly and identically on every page of the set:`,
-    styleSpecLines.length ? styleSpecLines.join("\n") : "- (no executable style spec provided; hold one consistent rendering medium and palette across every page)",
-    "",
-    "Series positioning:",
-    skeleton.positioning || series.plannerGuidance || "",
-    "",
-    "Series style DNA:",
-    styleLock.styleDna,
-    styleLock.toneDescription ? `Tone variant (${styleLock.tone}): ${styleLock.toneDescription}` : "",
-    styleLock.styleNotes ? `Run-specific style notes: ${styleLock.styleNotes}` : "",
-    "Do not restyle between pages. Every page in this set must read as the same designed series, using the same rendering medium, background, and accent from the style specification above.",
-    "",
-    "Topic:",
-    args.topic || args.title || "",
-    "",
-    "Matched narration beat for this page:",
-    slot.contentBeat,
-    "",
-    "Page role:",
-    slot.role,
-    "",
-    "Compose from these series modules as fits the page role:",
-    (Array.isArray(skeleton.moduleChecklist) ? skeleton.moduleChecklist : []).map((item) => `- ${item}`).join("\n"),
-    "",
-    textPolicyBlock({ textPolicy, slot, catalog }),
-    "",
-    "Composition and layout rules:",
-    `- ${shared.nativeAspectRule || "Generate natively for the requested aspect ratio."}`,
-    `- ${shared.subtitleSafeBand || "Keep the lower 18% of the canvas clean for the subtitle band."}`,
-    `- ${shared.motionReadiness || "The page must survive full-screen hold plus module crop, push-in, and scan."}`,
-    "",
-    "Visual requirements:",
-    skeleton.visualRequirements || "",
-    "",
-    "Avoid:",
-    negatives.map((item) => `- ${item}`).join("\n"),
-    "",
-    "Series continuity:",
-    `This page belongs to a ${imagePlan.resolvedImageCount}-page set. Keep the locked style DNA, palette, and rendering identical across pages, but vary content, structure, and focal emphasis so adjacent video pages are visually distinct.`,
-  ].filter((line) => line !== null && line !== undefined).join("\n").replace(/\n{3,}/g, "\n\n");
+function buildPagePrompt({ args, series, leafContract, canvas, styleLock, textPolicy, imagePlan, slot }) {
+  const blueprint = buildVisualSeriesBlueprint({ args, series, leafContract, canvas, styleLock, textPolicy, imagePlan, slot });
+  const prompt = formatVisualSeriesProductionPrompt({
+    blueprint,
+    canvas,
+    pageOrder: slot.order,
+    pageCount: imagePlan.resolvedImageCount,
+  });
+  const lint = lintVisualSeriesProductionPrompt(prompt);
+  if (lint.status !== "pass") {
+    throw new Error(`Structured prompt lint failed for ${series.seriesId}/${slot.id}: ${JSON.stringify(lint)}`);
+  }
+  return { prompt, blueprint, lint };
 }
 
 function ingestSourceImages({ args, out, imagesDir, imagePlan, canvas }) {
@@ -453,6 +448,8 @@ function main() {
   }
   const { catalog, catalogPath } = loadCatalog(args.catalog);
   const series = resolveSeries(catalog, args.series);
+  const leafContractInfo = loadVisualSeriesLeafContract({ skillRoot: SKILL_ROOT, series });
+  const leafContract = leafContractInfo.contract;
   const textPolicy = resolveTextPolicy(series, args.textPolicy);
   const toneVariant = resolveToneVariant(series, args.tone);
   const canvas = canvasForAspect(args.aspect);
@@ -475,10 +472,10 @@ function main() {
   const { styleLock, reused: styleLockReused, lockPath } = resolveStyleLock({ workflowDir, series, args, toneVariant });
   const imagePlan = buildImageQuantityPlan(args, series, promptDirRelative);
   const pagePrompts = imagePlan.slots.map((slot) => {
-    const prompt = buildPagePrompt({ args, series, catalog, canvas, styleLock, textPolicy, imagePlan, slot });
+    const { prompt, blueprint, lint } = buildPagePrompt({ args, series, leafContract, canvas, styleLock, textPolicy, imagePlan, slot });
     const promptPath = join(out, slot.promptFile);
     writeFileSync(promptPath, `${prompt}\n`, "utf8");
-    return { slot, prompt, promptPath };
+    return { slot, prompt, promptPath, blueprint, lint };
   });
   const promptIndexPath = join(out, "prompts", `${series.seriesId}-prompt-index.md`);
   writeFileSync(promptIndexPath, [
@@ -503,6 +500,13 @@ function main() {
     seriesName: series.name,
     seriesStatus: series.status,
     catalog: catalogPath,
+    promptMethod: VISUAL_SERIES_PROMPT_METHOD,
+    leafSkill: {
+      skillId: leafContract.skillId,
+      contractId: leafContract.contractId,
+      contractPath: leafContractInfo.path,
+      isolationPolicy: "The shared compiler owns structure and lint only; this leaf contract solely owns scene semantics, layout families, physical visual system, reject rules, and QC assertions.",
+    },
     designPhilosophy: catalog.designPhilosophy?.principles || [],
     personalIpBoundary: catalog.designPhilosophy?.personalIpBoundary || "",
     outputCanvas: { width: canvas.width, height: canvas.height, aspectRatio: canvas.aspectRatio, orientation: canvas.orientation },
@@ -524,6 +528,7 @@ function main() {
     promptIndex: `prompts/${series.seriesId}-prompt-index.md`,
     promptDirectory: `${promptDirRelative}/`,
     prompts: imagePlan.slots.map((slot) => slot.promptFile),
+    promptBlueprints: pagePrompts.map(({ slot, blueprint }) => ({ pageId: slot.id, blueprint })),
     requiredEvidence: [
       "workflow/image2-series-contract.json",
       "workflow/image2-series-image-count-plan.json",
@@ -549,6 +554,7 @@ function main() {
     promptIndexPresent: existsSync(promptIndexPath),
     allPagePromptsPresent: pagePrompts.every(({ promptPath }) => existsSync(promptPath)),
     imageCountWithinRange: imagePlan.resolvedImageCount >= imagePlan.minImageCount && imagePlan.resolvedImageCount <= imagePlan.maxImageCount,
+    maxImageCountDoesNotUndercutAutomaticPolicy: imagePlan.maxImageCount >= imagePlan.contentMetrics.automaticTarget,
     singleImageRejectedByDefault: imagePlan.allowSingleImage || imagePlan.resolvedImageCount > 1,
     canvasPlanned1080x1920: canvas.orientation !== "vertical" || (canvas.width === VERTICAL_WIDTH && canvas.height === VERTICAL_HEIGHT),
     canvasPlanned1920x1080: canvas.orientation !== "horizontal" || (canvas.width === HORIZONTAL_WIDTH && canvas.height === HORIZONTAL_HEIGHT),
@@ -559,6 +565,14 @@ function main() {
     promptsIncludeRenderingMediumLock: !styleLock.styleSpec?.renderingMedium
       || pagePrompts.every(({ prompt }) => prompt.includes(styleLock.styleSpec.renderingMedium)),
     promptsMatchPlannedImageCount: pagePrompts.length === imagePlan.resolvedImageCount,
+    leafSkillContractLoaded: Boolean(leafContract.skillId && leafContract.contractId),
+    promptsUseStructuredVisualSeriesMethod: pagePrompts.every(({ prompt }) => prompt.includes(VISUAL_SERIES_PROMPT_METHOD.id)),
+    allStructuredPromptLintsPass: pagePrompts.every(({ lint }) => lint.status === "pass"),
+    promptsIncludeLeafSkill: pagePrompts.every(({ prompt }) => prompt.includes(`Leaf Skill: ${leafContract.skillId}`)),
+    promptsIncludePhysicalVisualSystem: pagePrompts.every(({ prompt }) => prompt.includes("PHYSICAL VISUAL SYSTEM")),
+    promptsIncludeSpatialMap: pagePrompts.every(({ prompt }) => prompt.includes("SPATIAL MAP AND READING ORDER")),
+    promptsIncludeFailureSpecificRejects: pagePrompts.every(({ prompt }) => prompt.includes("REJECT")),
+    promptsIncludeExecutableQc: pagePrompts.every(({ prompt }) => prompt.includes("FINAL QC")),
     integratedTextWhitelistPresent: textPolicy !== "integrated-chinese" || splitList(args.requiredText).length > 0,
     textSafePromptsForbidReadableText: textPolicy !== "text-safe" || pagePrompts.every(({ prompt }) => prompt.includes("No readable text of any language")),
     subtitleSafeBandDeclared: pagePrompts.every(({ prompt }) => prompt.includes("lower 18%")),
@@ -573,6 +587,9 @@ function main() {
     route,
     seriesId: series.seriesId,
     textPolicy,
+    leafSkill: { skillId: leafContract.skillId, contractId: leafContract.contractId, contractPath: leafContractInfo.path },
+    promptMethod: VISUAL_SERIES_PROMPT_METHOD.id,
+    promptLints: pagePrompts.map(({ slot, lint }) => ({ pageId: slot.id, ...lint })),
     integratedTextProofread: textPolicy === "integrated-chinese"
       ? { required: true, status: ingestedImages.length > 0 ? "pending-review" : "not-applicable-no-images", rule: "Every whitelisted string must be verified legible and correct before final use; failures regenerate the page or downgrade it to text-safe." }
       : { required: false },
@@ -614,6 +631,8 @@ function main() {
     seriesId: series.seriesId,
     seriesName: series.name,
     textPolicy,
+    promptMethod: VISUAL_SERIES_PROMPT_METHOD.id,
+    leafSkill: { skillId: leafContract.skillId, contractId: leafContract.contractId, contractPath: leafContractInfo.path },
     source_generated_images: sourceGeneratedImages,
     styleLock: "workflow/image2-series-style-lock.json",
     contract: "workflow/image2-series-contract.json",
@@ -635,6 +654,8 @@ function main() {
     title: contract.title,
     canvas: contract.outputCanvas,
     textPolicy,
+    promptMethod: VISUAL_SERIES_PROMPT_METHOD.id,
+    leafSkill: { skillId: leafContract.skillId, contractId: leafContract.contractId, contractPath: leafContractInfo.path },
     styleLockId: styleLock.lockId,
     parallelGenerationPolicy: {
       allowed: true,

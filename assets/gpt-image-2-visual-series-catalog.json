@@ -102,6 +102,7 @@
   "series": [
     {
       "seriesId": "knowledge-encyclopedia-card-v1",
+      "skillContractPath": "skills/build-knowledge-encyclopedia/references/prompt-contract.json",
       "name": "科普百科卡",
       "status": "candidate",
       "axes": { "useCase": "infographic/education", "style": "modern encyclopedia plate", "subject": "diagram + concrete subject" },
@@ -137,6 +138,7 @@
     },
     {
       "seriesId": "strategy-guide-board-v1",
+      "skillContractPath": "skills/build-strategy-guide/references/prompt-contract.json",
       "name": "步骤攻略板",
       "status": "candidate",
       "axes": { "useCase": "infographic/tutorial", "style": "high-density guide board", "subject": "steps + priorities + checklist" },
@@ -172,6 +174,7 @@
     },
     {
       "seriesId": "relationship-map-poster-v1",
+      "skillContractPath": "skills/build-relationship-map/references/prompt-contract.json",
       "name": "关系图谱页",
       "status": "candidate",
       "axes": { "useCase": "infographic/narrative", "style": "designed relationship map", "subject": "nodes + typed edges" },
@@ -207,6 +210,7 @@
     },
     {
       "seriesId": "collection-atlas-card-v1",
+      "skillContractPath": "skills/build-collection-atlas/references/prompt-contract.json",
       "name": "图鉴收藏卡",
       "status": "candidate",
       "axes": { "useCase": "infographic/collection", "style": "collectible atlas card", "subject": "species, object, or item profile" },
@@ -246,6 +250,7 @@
     },
     {
       "seriesId": "editorial-cover-hook-v1",
+      "skillContractPath": "skills/build-editorial-hook/references/prompt-contract.json",
       "name": "杂志封面式开场页",
       "status": "candidate",
       "axes": { "useCase": "hook/divider", "style": "editorial magazine cover", "subject": "dominant subject + masthead typography" },
@@ -280,6 +285,7 @@
     },
     {
       "seriesId": "surreal-carrier-poster-v1",
+      "skillContractPath": "skills/build-surreal-carrier/references/prompt-contract.json",
       "name": "超现实创意载体页",
       "status": "candidate",
       "axes": { "useCase": "hook/transition", "style": "surreal concept carrier", "subject": "a world inside an object" },
@@ -314,6 +320,7 @@
     },
     {
       "seriesId": "oriental-ink-atmosphere-v1",
+      "skillContractPath": "skills/build-oriental-ink/references/prompt-contract.json",
       "name": "新中式水墨氛围页",
       "status": "candidate",
       "axes": { "useCase": "transition/mood", "style": "new-Chinese ink wash + modern minimal", "subject": "landscape or subject in atmosphere" },
@@ -348,6 +355,7 @@
     },
     {
       "seriesId": "interface-mockup-plate-v1",
+      "skillContractPath": "skills/build-interface-plate/references/prompt-contract.json",
       "name": "界面示意板",
       "status": "candidate",
       "axes": { "useCase": "evidence/product", "style": "original fictional software interface", "subject": "dashboard, panels, flows" },
@@ -356,7 +364,7 @@
       "routing": { "scope": ["scene", "video-dominant"], "kind": "primary-content-series", "intents": ["tool-walkthrough", "saas-explanation", "product-feature", "workflow-state"], "requiredAny": ["tool-or-product", "software-interface-state"], "negativeSignals": ["authorized-real-screenshot-available", "real-brand-ui-reproduction", "generic-tutorial-without-ui"], "priority": 85 },
       "aspects": ["16:9", "9:16"],
       "defaultTextPolicy": "text-safe",
-      "supportedTextPolicies": ["text-safe"],
+      "supportedTextPolicies": ["integrated-chinese", "text-safe"],
       "styleDna": "Original fictional professional software interface: clean light stage, left navigation rhythm, card-based data modules, one chart region, modern minimal SaaS finish. All label positions rendered as blank plaques and abstract strokes.",
       "styleSpec": {
         "renderingMedium": "Render as one consistent clean flat UI mockup of an original fictional product. Never photograph a real screen, never use cartoon illustration, and never change the UI style system between pages.",
@@ -383,6 +391,7 @@
     },
     {
       "seriesId": "photo-collage-grid-v1",
+      "skillContractPath": "skills/build-progression-collage/references/prompt-contract.json",
       "name": "一致性拼贴网格页",
       "status": "candidate",
       "axes": { "useCase": "recap/montage", "style": "consistent grid collage", "subject": "one subject across states" },

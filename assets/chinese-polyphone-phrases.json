@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-11",
+  "version": "2026-07-16",
   "description": "Project-level phrase pronunciations loaded into MeloTTS pypinyin before Chinese TTS generation. Pinyin uses tone numbers.",
   "phrases": [
     { "phrase": "处处", "pinyin": ["chu4", "chu4"], "note": "everywhere" },
@@ -41,6 +41,7 @@
     { "phrase": "凡人修仙传", "pinyin": ["fan2", "ren2", "xiu1", "xian1", "zhuan4"], "note": "work title; 传 means chronicle/biography and is pronounced zhuan4" },
     { "phrase": "转圈", "pinyin": ["zhuan4", "quan1"], "note": "spin in circles" },
     { "phrase": "转场", "pinyin": ["zhuan3", "chang3"], "note": "scene transition" },
-    { "phrase": "一行人", "pinyin": ["yi1", "xing2", "ren2"], "note": "a group of people" }
+    { "phrase": "一行人", "pinyin": ["yi1", "xing2", "ren2"], "note": "a group of people" },
+    { "phrase": "伏地魔", "pinyin": ["fu2", "di4", "mo2"], "note": "character name; keep 地 as fourth tone, not the neutral-tone particle 地/的" }
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "editorial-hook-structured-prompt-v2",
+  "skillId": "build-editorial-hook",
+  "seriesId": "editorial-cover-hook-v1",
+  "outputIntent": "Make one thesis or question readable in two seconds through a single dominant editorial tension and disciplined short copy.",
+  "positioning": "Not a product ad, clickbait thumbnail, or fake magazine cover; it is an original cinematic editorial opener that makes one intellectual promise.",
+  "contentSchema": ["one hook role", "one viewer promise", "one dominant subject", "headline preferably under fourteen Chinese characters", "optional shorter kicker", "one clean handoff into the next beat"],
+  "layoutFamilies": [
+    {"id":"editorial-object-tension","roles":["opening-hook","subject-feature"],"topology":"one physical metaphor occupies 58% of the frame; a quiet type field counters it; one tiny evidence accent links the two","readingPath":"dominant metaphor -> headline -> evidence accent","cameraAndScale":"cinematic medium-wide object portrait with controlled three-quarter depth","moduleCount":"one subject, one headline zone, optional one kicker, one evidence accent"},
+    {"id":"threshold-reveal","roles":["chapter-divider","closing-issue"],"closing":true,"topology":"a material threshold or aperture reveals one resolved symbol; title sits inside deliberately empty architecture rather than on a card","readingPath":"threshold -> revealed symbol -> concise thesis","cameraAndScale":"quiet wide editorial frame with large negative space and restrained depth falloff","moduleCount":"one threshold, one symbol, one title zone, optional one kicker"}
+  ],
+  "physicalVisualSystem": {"material":"tactile editorial still-life materials chosen from paper, glass, stone, fabric, or metal; one dominant material family per frame","lighting":"large directional studio source with soft shadow transition, controlled highlight roll-off, and one deliberate signal reflection","color":"two or three dominant colors total with one restrained semantic signal color","typography":"oversized Chinese editorial headline with generous tracking and margin discipline; no masthead clutter"},
+  "allowedVariations":["topic-specific physical metaphor","subject side","signal color placement","question or reveal composition"],
+  "forbiddenElements":["fake masthead","barcode","issue lines","sales badge","device mockup unless the topic requires it","black-stage red-line repetition without topic justification"],
+  "qcAssertions":["one message is readable in two seconds","subject does not block the title zone","copy matches the whitelist exactly","frame reads as editorial thought rather than advertising","subject and type remain outside the subtitle-safe band"]
+}

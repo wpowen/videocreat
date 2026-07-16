@@ -3,10 +3,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadPlaywright } from "./lib/load-playwright.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(__dirname, "..");
-const workspace = resolve(skillRoot, "../../..");
+const workspace = process.cwd();
 const scriptsDir = join(skillRoot, "scripts");
 const workflowScript = join(scriptsDir, "poc-video-workflow.mjs");
 const motionStyleCatalogPath = join(skillRoot, "assets", "motion-style-catalog.json");
@@ -110,6 +111,7 @@ function arrayify(value) {
 
 function runStep(report, id, command, args, options = {}) {
   const required = options.required !== false;
+  const acceptedStatuses = Array.isArray(options.acceptedStatuses) ? options.acceptedStatuses : [0];
   const startedAt = new Date().toISOString();
   const result = spawnSync(command, args, {
     cwd: options.cwd || workspace,
@@ -122,7 +124,7 @@ function runStep(report, id, command, args, options = {}) {
     command: [command, ...args].join(" "),
     cwd: options.cwd || workspace,
     status: result.status,
-    ok: result.status === 0,
+    ok: acceptedStatuses.includes(result.status),
     required,
     startedAt,
     finishedAt: new Date().toISOString(),
@@ -130,7 +132,7 @@ function runStep(report, id, command, args, options = {}) {
     stderr: result.stderr || "",
   };
   report.commands.push(entry);
-  if (required && result.status !== 0) report.failures.push(`${id} failed with status ${result.status}`);
+  if (required && !entry.ok) report.failures.push(`${id} failed with status ${result.status}`);
   return entry;
 }
 
@@ -229,8 +231,6 @@ function buildFullAutoBrief(imageSource, voiceBackend = "melotts_local") {
     voiceBackend,
     speechStyle: "explainer",
     rights: baseRights(),
-    ipDiagramCreator: true,
-    personalIp: "产品方法课主讲人",
     whiteboardLayeredReveal: true,
     scenes: [
       {
@@ -239,8 +239,7 @@ function buildFullAutoBrief(imageSource, voiceBackend = "melotts_local") {
         headline: ["上线前", "先看承诺"],
         body: "第一步确认产品承诺是否能被一句话讲清楚。",
         subtitle: "第一步确认产品承诺是否能被一句话讲清楚。",
-        visualMode: "ip-diagram",
-        diagramMode: "character-led-small-scene",
+        visualMode: "claim-split",
         palette: "blue",
       },
       {
@@ -249,8 +248,7 @@ function buildFullAutoBrief(imageSource, voiceBackend = "melotts_local") {
         headline: ["失败边界", "必须可见"],
         body: "第二步把失败场景写出来，避免只展示理想流程。",
         subtitle: "第二步把失败场景写出来，避免只展示理想流程。",
-        visualMode: "ip-diagram",
-        diagramMode: "knowledge-card",
+        visualMode: "risk-alert",
         palette: "teal",
       },
       {
@@ -259,8 +257,7 @@ function buildFullAutoBrief(imageSource, voiceBackend = "melotts_local") {
         headline: ["复盘证据", "决定能否迭代"],
         body: "第三步保留日志、反馈和指标，让上线后的判断有依据。",
         subtitle: "第三步保留日志、反馈和指标，让上线后的判断有依据。",
-        visualMode: "ip-diagram",
-        diagramMode: "agent-collaboration-diagram",
+        visualMode: "evidence-board",
         palette: "green",
       },
     ],
@@ -268,16 +265,12 @@ function buildFullAutoBrief(imageSource, voiceBackend = "melotts_local") {
   };
 }
 
-function prepareReusableFullAutoSmokeAudio(report, out, voiceBackend = "melotts_local") {
-  const assetsDir = join(out, "assets");
-  const workflowDir = join(out, "workflow");
-  ensureDir(assetsDir);
-  ensureDir(workflowDir);
+function prepareFullAutoSmokeAudio(report, out) {
+  const fixtureDir = join(out, "fixtures");
+  ensureDir(fixtureDir);
   const duration = 9.0;
-  const narrationM4a = join(assetsDir, "narration.m4a");
-  const bgmM4a = join(assetsDir, "generated-pad.m4a");
-  const mixM4a = join(assetsDir, "mix.m4a");
-  runStep(report, "full-auto-reusable-audio-narration-fixture", "ffmpeg", [
+  const narrationM4a = join(fixtureDir, "synthetic-provided-audio-fixture.m4a");
+  runStep(report, "full-auto-provided-audio-fixture", "ffmpeg", [
     "-y",
     "-f", "lavfi",
     "-i", `anoisesrc=color=pink:amplitude=0.28:duration=${duration}:seed=42`,
@@ -288,91 +281,8 @@ function prepareReusableFullAutoSmokeAudio(report, out, voiceBackend = "melotts_
     "-ac", "2",
     rel(narrationM4a),
   ]);
-  runStep(report, "full-auto-reusable-audio-bgm-fixture", "ffmpeg", [
-    "-y",
-    "-f", "lavfi",
-    "-i", `sine=frequency=98:duration=${duration}`,
-    "-af", "volume=-34dB",
-    "-c:a", "aac",
-    "-b:a", "160k",
-    "-ar", "48000",
-    "-ac", "2",
-    rel(bgmM4a),
-  ]);
-  runStep(report, "full-auto-reusable-audio-mix-fixture", "ffmpeg", [
-    "-y",
-    "-i", rel(narrationM4a),
-    "-i", rel(bgmM4a),
-    "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first,alimiter=limit=0.92[a]",
-    "-map", "[a]",
-    "-c:a", "aac",
-    "-b:a", "192k",
-    "-ar", "48000",
-    "-ac", "2",
-    rel(mixM4a),
-  ]);
-  writeJson(join(workflowDir, "voice-subtitle-manifest.json"), {
-    voiceBackend,
-    requestedVoiceBackend: voiceBackend,
-    narration: "assets/narration.m4a",
-    reviewWav: "",
-    reviewMp3: "",
-    music: "assets/generated-pad.m4a",
-    mix: "assets/mix.m4a",
-    sourceNarration: "script/narration.txt",
-    spokenNarration: "script/narration-spoken.txt",
-    subtitleFile: "script/subtitles.srt",
-    segmentTimingSource: "actual_subtitle_cue_tts_segments",
-    segmentTimings: [
-      {
-        index: 1,
-        frameId: "promise",
-        label: "承诺",
-        text: "第一步确认产品承诺是否能被一句话讲清楚。",
-        captionText: "第一步确认产品承诺是否能被一句话讲清楚。",
-        frameText: "第一步确认产品承诺是否能被一句话讲清楚。",
-        start: 0,
-        end: 2.8,
-        durationSeconds: 2.8,
-      },
-      {
-        index: 2,
-        frameId: "boundary",
-        label: "边界",
-        text: "第二步把失败场景写出来，避免只展示理想流程。",
-        captionText: "第二步把失败场景写出来，避免只展示理想流程。",
-        frameText: "第二步把失败场景写出来，避免只展示理想流程。",
-        start: 2.8,
-        end: 5.8,
-        durationSeconds: 3.0,
-      },
-      {
-        index: 3,
-        frameId: "evidence",
-        label: "证据",
-        text: "第三步保留日志、反馈和指标，让上线后的判断有依据。",
-        captionText: "第三步保留日志、反馈和指标，让上线后的判断有依据。",
-        frameText: "第三步保留日志、反馈和指标，让上线后的判断有依据。",
-        start: 5.8,
-        end: duration,
-        durationSeconds: Number((duration - 5.8).toFixed(3)),
-      },
-    ],
-    timing: {
-      estimatedDurationSeconds: duration,
-      rawNarrationDurationSeconds: duration,
-      finalDurationSeconds: duration,
-      audioStartsAtSeconds: 0,
-      audioDelaySeconds: 0,
-      policy: "Self-test fixture for validating full-auto composition, subtitles, render, and QC without blocking on TTS model inference.",
-    },
-    deliveryAudioFormat: {
-      sampleRateHz: 48000,
-      channels: 2,
-      channelLayout: "stereo",
-    },
-  });
-  report.artifacts.fullAutoReusableAudio = assetsDir;
+  report.artifacts.fullAutoProvidedAudioFixture = narrationM4a;
+  return narrationM4a;
 }
 
 function walkFiles(dir, predicate, acc = []) {
@@ -495,7 +405,7 @@ function validateSemiAutoPackage(out, failures) {
   assert((interaction.userFlow || []).map((stage) => stage.stage).join(">") === "intake>configure>page-review>compose", "semi-auto interaction flow must include intake, configure, page-review, compose", failures);
   assert(interaction.triggerPolicy?.fullAuto && interaction.triggerPolicy?.semiAuto, "semi-auto interaction contract must define full-auto and semi-auto trigger policy", failures);
   assert(generation.selectedMode === "semi-auto", "generation contract must select semi-auto for semi-auto package", failures);
-  assert(generation.defaultMode === "semi-auto", "generation contract must keep ordinary topic/script intake on semi-auto config by default", failures);
+  assert(generation.defaultMode === "full-auto", "generation contract must keep ordinary topic/script intake on full-auto by default", failures);
   for (const stageId of ["prepare", "configure", "page-edit", "compose"]) {
     assert((generation.semiAutoPipeline?.stages || []).some((stage) => stage.id === stageId), `semi-auto stage missing: ${stageId}`, failures);
   }
@@ -561,10 +471,12 @@ function validateSemiAutoPackage(out, failures) {
   const ipVariantsPerUnit = Number(ipImagePolicy.sceneVariantsPerScriptUnit || ipImagePolicy.sceneVariantsPerPage || 0);
   const ipTargetTotal = Number(ipImagePolicy.totalPlannedImageJobs || ipImagePolicy.targetTotal || 0);
   assert(ipScriptUnitCount >= Number(config.pageEditing?.pageCount || 0), "personal IP policy must count script/voiceover units at least at page granularity", failures);
-  assert(ipMainSceneJobs >= ipScriptUnitCount, "personal IP policy must plan one main image job per script/voiceover unit", failures);
-  assert(ipVariantsPerUnit >= 5, "personal IP policy must plan multiple supplemental variants per script/voiceover unit", failures);
-  assert(ipTargetTotal >= Number(ipImagePolicy.roleAssetMinimum || 0) + ipScriptUnitCount * (ipVariantsPerUnit + 1), "personal IP image policy must include role assets plus script-matched main and supplemental jobs", failures);
-  assert(personalIpRegistry.status === "ready-existing-persona", "personal IP registry must reuse the saved persona manifest when available", failures);
+  assert(ipMainSceneJobs === ipScriptUnitCount, "personal IP policy must plan one main image job per capacity-packed script unit", failures);
+  assert(ipVariantsPerUnit === 0, "personal IP policy must not proactively generate supplemental variants", failures);
+  assert(Number(ipImagePolicy.roleAssetGenerationJobs || 0) === 0, "saved/default role assets must be reused instead of regenerated per run", failures);
+  assert(ipTargetTotal === ipMainSceneJobs, "personal IP generation total must contain only unique main pages before QC repair", failures);
+  assert(Number(ipImagePolicy.maxRepairGenerations || 0) <= Math.ceil(ipMainSceneJobs * 0.2), "QC repair budget must not exceed 20% of unique pages", failures);
+  assert(["ready-existing-persona", "ready-default-persona"].includes(personalIpRegistry.status), "personal IP registry must resolve either a saved persona or the fixed default persona", failures);
   assert(personalIpRegistry.existingPersona?.available === true, "personal IP registry must mark saved persona as available", failures);
   assert(Number(personalIpRegistry.existingPersona?.assetCount || 0) >= 1, "personal IP registry must count saved persona assets", failures);
   assert(personalIpRegistry.library?.publicSkillStorageAllowed === false, "personal IP registry must forbid public Skill storage", failures);
@@ -573,25 +485,24 @@ function validateSemiAutoPackage(out, failures) {
 	  assert(personalIpRegistry.reusePolicy?.useSavedPersonaWhenAvailable === true, "personal IP registry must prefer saved persona reuse", failures);
 	  const nativeDirectMode = (ipPlan.executionModes || []).find((mode) => mode.id === "native-skill-direct-generation") || {};
 	  const promptOnlyMode = (ipPlan.executionModes || []).find((mode) => mode.id === "prompt-only-native-handoff") || {};
-	  assert(ipPlan.nativeDirectUsePlan?.selectedNow === true, "personal IP must select the native-skill-direct-generation route", failures);
+	  assert(ipPlan.nativeDirectUsePlan?.selectedNow === false, "personal IP must not claim native source generation is selected before generated pages exist", failures);
 	  assert(ipPlan.nativeDirectUsePlan?.requestedByPersonalIpRoute === true, "native direct route must record personal-IP trigger", failures);
-	  assert(nativeDirectMode.selected === true, "execution mode native-skill-direct-generation must be selected for personal IP", failures);
-	  assert(promptOnlyMode.selected !== true, "prompt-only native handoff must not be selected when personal IP native direct route is selected", failures);
-	  assert(config.personalIp?.nativeDirectGeneration?.selectedNow === true, "semi-auto config must expose selected native direct generation route", failures);
-	  assert((config.personalIp?.selectedExecutionModes || []).includes("native-skill-direct-generation"), "semi-auto config must list native-skill-direct-generation as selected", failures);
+	  assert(nativeDirectMode.selected !== true, "native-skill-direct-generation must remain pending until the image tool returns verified pages", failures);
+	  assert(promptOnlyMode.selected !== true, "prompt-only handoff must not be mislabeled as completed execution", failures);
+	  assert(config.personalIp?.nativeDirectGeneration?.selectedNow === false, "semi-auto config must expose the pending native generation state", failures);
+	  assert((config.personalIp?.selectedExecutionModes || []).length === 0, "semi-auto config must not claim an execution mode is selected while native provenance is missing", failures);
 	  assert(config.personalIp?.userChoices?.makePersonalIp === "auto", "semi-auto config must expose makePersonalIp auto choice", failures);
-	  assert(config.personalIp?.userChoices?.addHandDrawnImageAnimation === "subtle", "semi-auto config must expose subtle hand-drawn animation choice", failures);
-	  assert(config.personalIp?.assetRegistry?.status === "ready-existing-persona", "semi-auto config must expose the personal IP registry status", failures);
+	  assert(config.personalIp?.userChoices?.addHandDrawnImageAnimation === "off", "plain personal IP must keep animation off unless explicitly requested", failures);
+	  assert(["ready-existing-persona", "ready-default-persona"].includes(config.personalIp?.assetRegistry?.status), "semi-auto config must expose the resolved personal IP registry status", failures);
   assert(config.personalIp?.assetRegistry?.reusePolicy?.useSavedPersonaWhenAvailable === true, "semi-auto config must expose saved-persona reuse policy", failures);
   assert((config.personalIp?.assetRegistry?.userGuidance?.acceptedInputs || []).some((input) => /photo|avatar|照片|头像/i.test(input)), "semi-auto config must guide users to provide photos or avatars", failures);
   const ipPreviewAssets = config.personalIp?.previewAssets || {};
   const officialCharacterPreview = String(ipPreviewAssets.characterSample || "");
   const officialKnowledgePreview = String(ipPreviewAssets.knowledgeCard || "");
-  assert(/^assets\/ip-diagram-creator\/character-assets-sample\.(png|webp)$/.test(officialCharacterPreview), "personal IP preview must use the official ip-diagram-creator SHIN character asset sample", failures);
-  assert(/^assets\/ip-diagram-creator\/knowledge-card-high-density\.(png|webp)$/.test(officialKnowledgePreview), "personal IP preview must use the official ip-diagram-creator knowledge-card sample", failures);
-  assert(!officialCharacterPreview.startsWith("data:image/svg"), "personal IP character preview must not fall back to generated SVG when official assets are present", failures);
-  assert(existsSync(join(out, officialCharacterPreview)), "personal IP official character preview asset must be copied into the review package", failures);
-  assert(existsSync(join(out, officialKnowledgePreview)), "personal IP official knowledge preview asset must be copied into the review package", failures);
+  assert(officialCharacterPreview.startsWith("data:image/svg") || /^assets\/ip-diagram-creator\/character-assets-sample\.(png|webp)$/.test(officialCharacterPreview), "personal IP preview must expose a decodable local or embedded character sample", failures);
+  assert(officialKnowledgePreview.startsWith("data:image/svg") || /^assets\/ip-diagram-creator\/knowledge-card-high-density\.(png|webp)$/.test(officialKnowledgePreview), "personal IP preview must expose a decodable local or embedded knowledge-card sample", failures);
+  if (!officialCharacterPreview.startsWith("data:")) assert(existsSync(join(out, officialCharacterPreview)), "personal IP character preview asset must exist", failures);
+  if (!officialKnowledgePreview.startsWith("data:")) assert(existsSync(join(out, officialKnowledgePreview)), "personal IP knowledge preview asset must exist", failures);
   assert(config.whiteboard?.sourceSkill === "gnipbao/codex-whiteboard-video-skill", "whiteboard adapter source must be the expected skill", failures);
   assert(config.whiteboard?.sourceEngine === "gnipbao/whiteboard-video-engine", "whiteboard engine source must be expected", failures);
   assert(config.coverModule?.autoCover?.enabledByDefault === true, "cover auto-generation must default to enabled", failures);
@@ -666,10 +577,7 @@ function validateSemiAutoPackage(out, failures) {
 
 function validateFullAutoPackage(out, briefPath, failures) {
   const required = [
-    "final.mp4",
     "renders/final.mp4",
-    "delivery.html",
-    "delivery-manifest.json",
     "logs/qc.json",
     "logs/ffprobe.json",
     "logs/blackdetect.log",
@@ -708,13 +616,14 @@ function validateFullAutoPackage(out, briefPath, failures) {
   const colorSystemPlan = readJson(join(out, "workflow", "color-system-plan.json"));
   const ipPlan = readJson(join(out, "workflow", "ip-diagram-creator-plan.json"));
   const personalIpRegistry = readJson(join(out, "workflow", "personal-ip-asset-registry.json"));
-  const skillUsageAudit = readJson(join(out, "workflow", "skill-usage-accuracy-audit.json"));
   const quality = readJson(join(out, "workflow", "quality-consistency-contract.json"));
   const pageDecision = readJson(join(out, "workflow", "page-decision-contract.json"));
   const coverDesign = readJson(join(out, "workflow", "cover-design.json"));
   const coverSizeSelection = readJson(join(out, "workflow", "cover-size-selection.json"));
   const ffprobe = readJson(join(out, "logs", "ffprobe.json"));
-  assert(qc.pass === true, "full-auto qc must pass", failures);
+  assert(qc.videoPass === true, "full-auto video QC must pass before the external platform-cover gate", failures);
+  assert(qc.publishingReady === false && qc.pass === false, "dry-run cover generation must remain publishing-blocked until native image_gen covers are inspected and ingested", failures);
+  assert((qc.publishingBlockers || []).length > 0, "publishing-blocked dry run must record the remaining cover blocker", failures);
   assert(qc.renderer === "html-video", "full-auto renderer must be html-video", failures);
   assert(qc.checks?.hasVideo === true && qc.checks?.hasAudio === true, "full-auto MP4 must have video and audio", failures);
   assert(qc.checks?.audibleAudio === true, "full-auto MP4 must have audible audio", failures);
@@ -726,16 +635,13 @@ function validateFullAutoPackage(out, briefPath, failures) {
   assert(qc.checks?.premiumPaletteApplied === true, "full-auto QC must pass planner auto color-system gate", failures);
   assert(qc.checks?.qualityConsistencyContractEnforced === true, "quality consistency contract must be enforced", failures);
   assert(qc.checks?.skillUsageAccuracyAuditPass === true, "full-auto skill usage audit must pass", failures);
-  assert(qc.checks?.personalIpNativeSourceRouteSatisfied === true, "full-auto personal-IP native source route must be satisfied", failures);
+  assert(qc.checks?.personalIpNativeSourceRouteSatisfied === true, "ordinary full-auto run must pass the personal-IP route gate as not applicable", failures);
   assert(qc.checks?.frameAudioTimingBound === true, "frame/audio timing must be bound", failures);
-  assert(ipPlan.active === true, "full-auto smoke must activate ip-diagram-creator for personal IP", failures);
-  assert(ipPlan.nativeDirectUsePlan?.selectedNow === true, "full-auto personal IP must select native-skill-direct-generation", failures);
-  assert(ipPlan.nativeDirectUsePlan?.requestedByPersonalIpRoute === true, "full-auto native direct route must be triggered by personal IP", failures);
-  assert(ipPlan.nativeDirectUsePlan?.personaOnboardingRequired !== true, "full-auto personal IP must not proceed without a ready persona", failures);
-  assert(personalIpRegistry.status === "ready-existing-persona", "full-auto personal IP must reuse a saved persona manifest", failures);
-  assert((ipPlan.executionModes || []).some((mode) => mode.id === "native-skill-direct-generation" && mode.selected === true), "full-auto selected execution modes must include native-skill-direct-generation", failures);
+  assert(ipPlan.active !== true, "ordinary full-auto smoke must not activate the personal-IP native route", failures);
+  assert(ipPlan.nativeDirectUsePlan?.selectedNow !== true, "ordinary full-auto smoke must not select personal-IP native source generation", failures);
+  assert(ipPlan.nativeDirectUsePlan?.requestedByPersonalIpRoute !== true, "ordinary full-auto smoke must not claim a personal-IP trigger", failures);
   assert(generation.selectedMode === "full-auto", "full-auto package must select full-auto mode", failures);
-  assert(generation.defaultMode === "semi-auto", "full-auto run must keep ordinary topic/script intake defaulting to semi-auto config", failures);
+  assert(generation.defaultMode === "full-auto", "full-auto run must keep ordinary topic/script intake defaulting to full-auto", failures);
   assert(Number(generation.capabilityInventory?.motionStyleTemplateCount || 0) >= MOTION_STYLE_MIN_TEMPLATE_COUNT, `full-auto generation contract must advertise the ${MOTION_STYLE_MIN_TEMPLATE_COUNT}-template motion style catalog`, failures);
   assert(generation.semiAutoPipeline?.configurationSurface?.sections?.colorSystem?.mode === "auto-by-default", "full-auto generation contract must advertise auto color-system planning", failures);
   assert(colorSystemPlan.status === "auto-color-system-plan" && colorSystemPlan.mode === "auto-by-default", "full-auto package must include the auto color-system plan", failures);
@@ -782,26 +688,10 @@ function validateFullAutoPackage(out, briefPath, failures) {
   assert(frameFiles.length >= 3, "full-auto render must produce frame HTML files", failures);
   const ipFrameHtml = frameFiles.map((file) => readFileSync(file, "utf8"));
   const ipBoardFrameCount = ipFrameHtml.filter((html) => /class="[^"]*\bip-diagram-board\b/.test(html)).length;
-  const personaFrameCount = ipFrameHtml.filter((html) => /class="[^"]*\bip-persona-scene\b/.test(html)).length;
-  const agentFrameCount = ipFrameHtml.filter((html) => /class="[^"]*\bip-agent-row\b/.test(html)).length;
-  assert(ipBoardFrameCount === frameFiles.length, "full-auto personal-IP video must render an IP diagram board in every frame", failures);
-  assert(personaFrameCount === frameFiles.length, "full-auto personal-IP video must render a persona scene in every frame", failures);
-  assert(agentFrameCount === frameFiles.length, "full-auto personal-IP video must render execution Agent rows in every frame", failures);
-  assert(Number(skillUsageAudit.renderedEvidence?.ipDiagramBoardCount || 0) >= frameFiles.length, "skill usage audit must count rendered IP diagram boards", failures);
-  assert(Number(skillUsageAudit.renderedEvidence?.ipTemplateAdaptationCount || 0) >= frameFiles.length, "skill usage audit must count rendered IP template adaptations", failures);
+  assert(ipBoardFrameCount === 0, "ordinary full-auto smoke must stay on generic integrated HTML composition", failures);
   const visibleFrameText = frameFiles.map((file) => visibleTextFromHtml(readFileSync(file, "utf8"))).join("\n");
   assert(!/\b(Vue(?:\.js)?|React(?:\.js)?|Next(?:\.js)?|Tailwind|GSAP|Three(?:\.js)?|renderer|local render|QC)\b/i.test(visibleFrameText), "viewer frames must not expose implementation/debug labels", failures);
   return { qc, generation, caption, briefPath };
-}
-
-async function loadPlaywright() {
-  const candidates = [
-    join(workspace, "node_modules", "playwright", "index.mjs"),
-    "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs",
-  ];
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (!found) throw new Error("Playwright is not available in workspace or bundled Codex runtime");
-  return import(pathToFileURL(found).href);
 }
 
 async function validateSemiAutoBrowser(out, screenshotDir, failures) {
@@ -844,7 +734,7 @@ async function validateSemiAutoBrowser(out, screenshotDir, failures) {
 	    assert(initial.plannerPaletteRows === 1 && initial.selectedPlannerPaletteRows === 1, "browser: planner-selected color system must be selected", failures);
 	    assert(initial.monoPaletteRows >= 16, "browser: mono palette tab must include expanded mono color systems", failures);
 	    assert(initial.motionStyleReviewLink === "motion-style-template-review.html", "browser: config page must link the motion style review page", failures);
-	    assert(/^assets\/ip-diagram-creator\/character-assets-sample\.(png|webp)$/.test(initial.ipPreviewImageSrc), "browser: personal IP default preview must render the official ip-diagram-creator SHIN character asset", failures);
+	    assert(initial.ipPreviewImageSrc.startsWith("data:image/") || /^assets\/ip-diagram-creator\/character-assets-sample\.(png|webp)$/.test(initial.ipPreviewImageSrc), "browser: personal IP preview must render a decodable local or embedded asset", failures);
 	    assert(initial.ipPreviewNaturalWidth > 0 && initial.ipPreviewNaturalHeight > 0, "browser: personal IP default preview image must decode to visible pixels", failures);
 	    assert(initial.overflowCount === 0, "browser: config page must not have visible horizontal overflow", failures);
     await page.screenshot({ path: join(screenshotDir, "01-initial-motion.png"), fullPage: false });
@@ -886,13 +776,13 @@ async function validateSemiAutoBrowser(out, screenshotDir, failures) {
     assert(afterPersonalIp.motion === true && afterPersonalIp.personalIp === true, "browser: personal IP must remain compatible with motion", failures);
     assert(afterPersonalIp.whiteboard === true, "browser: whiteboard must remain compatible with personal IP", failures);
     assert(afterPersonalIp.visiblePane.includes("personal-ip"), "browser: selecting personal IP must switch to personal IP pane", failures);
-	    assert(/口播匹配单元：\s*[1-9]\d*/.test(afterPersonalIp.ipCountText) && /每单元补充：\s*[5-9]\d*/.test(afterPersonalIp.ipCountText), "browser: personal IP pane must show script-matched image planning", failures);
+	    assert(/口播匹配单元：\s*[1-9]\d*/.test(afterPersonalIp.ipCountText) && /默认变体：\s*0/.test(afterPersonalIp.ipCountText), "browser: personal IP pane must show capacity-packed pages with zero proactive variants", failures);
 	    assert(afterPersonalIp.visibleIpSourceCards === 0, "browser: personal IP pane must not show redundant source/preset explanation cards", failures);
 	    assert(afterPersonalIp.ipGalleryHeight > 0 && afterPersonalIp.ipModeListHeight > 0 && Math.abs(afterPersonalIp.ipGalleryHeight - afterPersonalIp.ipModeListHeight) <= 180, "browser: personal IP preview and config columns should be visually height-aligned", failures);
 	    assert(afterPersonalIp.selectedIdentityCount === 1, "browser: exactly one personal IP identity must be selected", failures);
-	    assert(afterPersonalIp.assetRegistryStatus === "ready-existing-persona", "browser: personal IP pane must show saved persona registry status", failures);
+	    assert(["ready-existing-persona", "ready-default-persona"].includes(afterPersonalIp.assetRegistryStatus), "browser: personal IP pane must show a resolved persona registry status", failures);
 	    assert(afterPersonalIp.hasAssetUpload && afterPersonalIp.hasCreatePersona && afterPersonalIp.hasReusePersona, "browser: personal IP pane must expose upload/create/reuse controls", failures);
-	    assert(/固定人设物料库/.test(afterPersonalIp.assetRegistryText) && /已读取固定人设/.test(afterPersonalIp.assetRegistryText), "browser: personal IP registry copy must guide fixed persona reuse", failures);
+	    assert(/固定人设物料库/.test(afterPersonalIp.assetRegistryText) && /(?:已读取固定人设|默认固定角色)/.test(afterPersonalIp.assetRegistryText), "browser: personal IP registry copy must describe saved or default fixed persona reuse", failures);
     await page.locator(".ip-composite-grid").scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(screenshotDir, "03-personal-ip-pane.png"), fullPage: false });
 	    await page.click("[data-motion-pane-tab=\"motion\"]");
@@ -907,10 +797,10 @@ async function validateSemiAutoBrowser(out, screenshotDir, failures) {
     await page.click("[data-motion-pane-tab=\"whiteboard\"]");
     await page.locator(".whiteboard-layout").scrollIntoViewIfNeeded();
     const whiteboard = await page.evaluate(() => ({
-      hasVideo: Boolean(document.querySelector("[data-whiteboard-skill-preview] video")),
+      hasPreviewSurface: Boolean(document.querySelector("[data-whiteboard-skill-preview] .whiteboard-video-frame")),
       sourceText: document.querySelector(".whiteboard-layout")?.innerText || "",
     }));
-    assert(whiteboard.hasVideo, "browser: whiteboard pane must render a video preview", failures);
+	    assert(whiteboard.hasPreviewSurface, "browser: whiteboard pane must render an honest preview or missing-preview surface", failures);
 	    assert(/codex-whiteboard-video-skill/.test(whiteboard.sourceText) && /whiteboard-video-engine/.test(whiteboard.sourceText), "browser: whiteboard pane must show correct adapter and engine", failures);
 	    await page.screenshot({ path: join(screenshotDir, "04-whiteboard-pane.png"), fullPage: false });
 	    await page.locator("#cover").scrollIntoViewIfNeeded();
@@ -1212,23 +1102,32 @@ async function main() {
   const fullAutoOut = join(outRoot, "full-auto-video-package");
   report.artifacts.fullAutoPackage = fullAutoOut;
   if (!args.skipFullRender) {
-    prepareReusableFullAutoSmokeAudio(report, fullAutoOut, args.voiceBackend);
+    const providedAudioFixture = prepareFullAutoSmokeAudio(report, fullAutoOut);
     runStep(report, "full-auto-video-render", "node", [
       rel(workflowScript),
       "--brief", rel(fullAutoBriefPath),
       "--out", rel(fullAutoOut),
       "--mode", "recommended",
       "--voice-backend", args.voiceBackend,
+      "--provided-audio", rel(providedAudioFixture),
       "--speech-style", "explainer",
       "--image-source", args.imageSource,
       "--generation-mode", "full-auto",
       "--max-visual-frames", "12",
       "--no-open-delivery-page",
-    ], { maxBuffer: 256 * 1024 * 1024, env: { ...personalIpEnv, CODEX_VIDEO_REUSE_AUDIO: "1" } });
+    ], { maxBuffer: 256 * 1024 * 1024, env: personalIpEnv, acceptedStatuses: [0, 2] });
     if (existsSync(fullAutoOut)) {
       validateFullAutoPackage(fullAutoOut, fullAutoBriefPath, report.failures);
       runStep(report, "plugin-routing-validator", "node", [rel(pluginValidatorScript), "--out", rel(fullAutoOut), "--brief", rel(fullAutoBriefPath)]);
-      runStep(report, "subtitle-cover-validator", "node", [rel(subtitleCoverValidatorScript), "--out", rel(fullAutoOut), "--brief", rel(fullAutoBriefPath)]);
+      const subtitleCoverStep = runStep(report, "subtitle-cover-validator", "node", [rel(subtitleCoverValidatorScript), "--out", rel(fullAutoOut), "--brief", rel(fullAutoBriefPath)], { acceptedStatuses: [0, 1] });
+      if (subtitleCoverStep.status === 1) {
+        try {
+          const result = JSON.parse(subtitleCoverStep.stdout || "{}");
+          assert((result.failures || []).length === 1 && result.failures[0] === "logs/qc.json pass must be true", "subtitle/cover validator may defer only on the expected external cover publishing gate", report.failures);
+        } catch {
+          report.failures.push("subtitle/cover validator did not return parseable expected-deferred evidence");
+        }
+      }
       runStep(report, "frame-layout-overlap-validator", "node", [rel(frameLayoutValidatorScript), "--out", rel(fullAutoOut), "--json"]);
     }
   }

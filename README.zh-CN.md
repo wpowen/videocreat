@@ -56,35 +56,35 @@ Demo 的验证证据包含 [`media/qc/codex-video-workflow-zh-qc.json`](media/qc
 - `这是数据趋势页，请用曲线追踪、拐点高亮和来源脚注。`
 - `这是代码演示，请展示输入、运行状态和输出，不要只放装饰代码卡。`
 
-对话流程会优先推荐与当前题材相关的 2-3 项能力，例如“分层路径动画、个人 IP 固定底图、字幕顶层”，不会要求用户先学习完整能力清单。默认半自动流程会生成配置页供审阅；明确说“全自动生成”时才直接进入最终合成。
+对话流程会优先推荐与当前题材相关的 2-3 项能力，例如“分层路径动画、个人 IP 语义分层、字幕顶层”，不会要求用户先学习完整能力清单。默认全自动流程会持续完成规划、生成、渲染、QC 和打包；只有用户明确要求半自动、自定义配置或逐页审阅时，才生成配置页并在最终合成前停下。
 
 推荐使用四个稳定信号：
 
 - 不指定：默认 HTML 动画与新的分层语义动画流程；按内容决定是否绘制路径，并继承个人 IP 的暖纸、墨线、自然留白、橙蓝标记、偏移阴影和单一文字所有权，但不会自动启用具体人物身份。
 - `个人 IP`：个人 IP 原生页面，默认不增加手绘动画。
-- `个人 IP + 动画`：先把个人 IP 页面拆成独立语义层（人物、标题、内容组、关系路径、结论/Agent、字幕），分别导出 SVG，再由一个 HTML 主时间轴合成和逐帧渲染视频。整张个人 IP 图片作为动画底图、白底切片互相覆盖、通用进度轨、整页框选、跨区域连接线或“每条字幕一张静帧”都会被拒绝。
+- `个人 IP + 动画`：先按原始 `ip-diagram-creator` 提示词生成与内容匹配的个人 IP 视觉母版，再建立绑定母版路径、SHA、尺寸和精确文字的语义分层合同。每个母版像素只能归属于一个运行时图层；卡片与 Agent 等在扁平母版中互相穿插时，合并为一个原子内容单元并共享同一次入场，避免重影、撕裂和重复信息。路径保持在内容下方，字幕始终置顶。母版只用于审美/布局参照和最终 QC，运行时不得作为整页 `<img>`/`<image>` 底图；白底切片、重叠裁片、整页位图兜底、漏字、遮挡、越界或只画额外进度线都会被拒绝。该路线与默认动画、普通个人 IP、白板路线隔离，阻塞时不会静默降级。
 - `白板`：默认动画框架加白板语义前景，字幕永远最高。
 
-显式 brief 可用 `personalIpAnimation: "semantic-layers"`；兼容值 `subtle` / `draw-reveal` 也会升级到同一语义分层路线。只设置 `personalIp` 时动画值固定为 `off`，继续保留原生个人 IP 图片流程。
+显式 brief 使用 `personalIpAnimation: "semantic-layers"`。历史值 `"subtle"` 和 `"draw-reveal"` 保持原来的“原生页面 + 前景动效”语义，不会被静默迁移到新的母版语义分层路线；只设置 `personalIp` 时动画值固定为 `off`，继续保留原生个人 IP 页面流程。
 
-完整执行与验证：
+触发优先级固定为：显式 `off`/否定表达 > 显式 `semantic-layers` > 非否定的“个人 IP + 动画”自然语言 > 历史 `subtle`/`draw-reveal` > 纯“个人 IP” > 白板 > 默认动画。`不要动画`、`不做动画`、`不用动画`、`别做动画`、`不需要动画`、`取消动画`都不会误入语义分层路线。分层路线缺少已验证母版或独占图层审计时直接阻塞，不会改走默认 HTML、普通个人 IP、白板或 FFmpeg 卡片路线。
+
+语义分层路线的完整执行与验证：
 
 ```bash
 node scripts/export-personal-ip-semantic-layered-video.mjs \
-  --out research/personal-ip-semantic-layered-review \
+  --master-reference path/to/verified-master.png \
+  --persona path/to/fixed-persona.png \
+  --spec path/to/personal-ip-semantic-layer-spec.json \
   --audio path/to/narration.m4a \
-  --title "写小说的方法论"
+  --out research/personal-ip-semantic-layered-review
 
-node scripts/self-test-personal-ip-semantic-layered-export.mjs \
-  research/personal-ip-semantic-layered-self-test-vertical 9:16
-
-node scripts/self-test-personal-ip-semantic-layered-export.mjs \
-  research/personal-ip-semantic-layered-self-test-horizontal 16:9
+node scripts/self-test-personal-ip-semantic-layered-export.mjs
 ```
 
-交付包必须同时包含 `layers/*.svg`、`personal-ip-layered.svg`、`index.html`、`workflow/personal-ip-semantic-layer-manifest.json`、`logs/qc.json` 和 `final.mp4`。缺少任一项都不能把路线标记为完成。
+交付包必须同时包含母版视觉检查/来源证明、`workflow/personal-ip-semantic-decomposition.json`、`workflow/personal-ip-semantic-layer-spec.json`、`workflow/personal-ip-semantic-layer-manifest.json`、`workflow/personal-ip-layer-ownership-audit.json`、`layers/*.svg`、`personal-ip-layered.svg`、`personal-ip-layered.html`、`logs/qc.json` 和 `final.mp4`。缺少任一项都不能把路线标记为完成。历史 `subtle` / `draw-reveal` 原生页面前景路线继续由 `render-ip-diagram-native-pages.mjs` 和 `self-test-native-page-adaptive-policy.mjs` 验证，不能与语义分层路线混用。
 
-该路线同时支持两套原生布局：`9:16` 为 1080×1920 纵向堆叠，`16:9` 为 1920×1080 横向双模块。横屏必须重新排版，禁止由竖屏缩放、裁切、挤压或加黑边得到。显式设置 `aspectRatio: "16:9"`，或使用默认横屏 `local-review` brief，即会选择横屏语义布局。
+原生页面必须按目标画布生成：`9:16` 为 1080×1920，`16:9` 为 1920×1080；禁止把另一画幅裁切、挤压、缩放或加黑边后冒充原生页面。视频渲染只允许在原生页面之上叠加前景路径、节点强调和字幕。
 
 ### 分层动画线的显式触发
 
@@ -116,6 +116,8 @@ node scripts/poc-video-workflow.mjs \
 流程会输出 `workflow/layered-motion-plan.json`，并在 `semi-auto-config.html` 中提供真实动画预览。动画线固定在内容卡片下方；个人 IP 原生页面不会被替换。
 
 ## 快速开始
+
+每次执行都会写入 `workflow/skill-runtime-provenance.json`。如果仓库副本与 `~/.codex/skills/codex-video-workflow` 的活动全局副本在 `SKILL.md` 或主 runner 上不一致，流程会在生成前直接失败，避免“对话理解了新规则、实际却调用旧脚本”。
 
 安装到 Codex 的全局 skill 文件夹：
 
@@ -402,7 +404,7 @@ node .agents/skills/codex-video-workflow/scripts/validate-raw-footage-editing-co
 
 `--image-source codex-builtin` 消费 Codex/Cos X 内置 `image_gen` 生成并保存到项目内的图片，不需要 `OPENAI_API_KEY`。封面图建议命名为 `horizontal-16x9-integrated-cover.png`、`horizontal-4x3-integrated-cover.png`、`vertical-9x16-integrated-cover.png`、`vertical-3x4-integrated-cover.png`、`square-1x1-integrated-cover.png`、`封面-完整.png` 或 `海报-带字.png` 并放入 `--codex-image-assets-dir`。`--image-source image2` 会调用 OpenAI Images API，需要 `OPENAI_API_KEY`；它不是默认封面路径。场景字幕、声明和 logo 应保持为确定性的 HTML/SVG overlay；封面主标题、副标题和 badge 则应一体化生成在 Image 2/Codex 封面位图里。
 
-补齐缺失的封面目标比例时，不允许用本地绘制图冒充最终成品。`4:3`、`3:4`、`1:1`、Reels、B 站 1146x717 等缺失项应保持 `needs-native-target-ratio-image2`，直到拿到真实 Codex/Image2 原生目标比例位图。Codex App 默认路线是先用内置 Image 2 / `image_gen` 生成缺失比例，再执行 `scripts/ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>` 写入目标尺寸、更新 `fulfilledNativeTargetRatioExports` 并标记 `uploadReady: true`。显式 API 备选才是 `scripts/generate-cover-targets-image2.mjs --root <batch-root-or-topic-root>`，需要 `OPENAI_API_KEY`；没有真实 Image2/Codex 图时必须继续 pending，避免生成假最终图。
+补齐缺失的封面目标比例时，不允许用本地绘制图冒充最终成品。`4:3`、`3:4`、`1:1`、Reels、B 站 1146x717 等缺失项应保持 `needs-native-target-ratio-image2`，直到拿到真实 Codex/Image2 原生目标比例位图。Codex App 默认路线由独立 `codex-video-cover-generation` Skill 先生成包含全部 pending 目标的调度计划，再通过内置 Image 2 / `image_gen` 工作池生成、逐目标记录结果和检查证据，最后只运行一次带锁批量导入。默认并发宽度为 pending 数量且最多 9；并发只控制吞吐，绝不能减少目标数量。封面 QC 完成后，再由父视频工作流单独运行全片 QC。显式 API 备选是 `scripts/generate-cover-targets-image2.mjs --root <batch-root-or-topic-root> --concurrency 9`，需要 `OPENAI_API_KEY`，且禁止 `--limit`；没有真实 Image2/Codex 图时必须继续 pending，避免生成假最终图。
 
 免费素材：
 

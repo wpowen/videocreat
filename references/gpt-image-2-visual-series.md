@@ -32,6 +32,8 @@ The style lock (and its `lockId` hash) incorporates the `styleSpec`, so editing 
 
 The machine-readable series library is `assets/gpt-image-2-visual-series-catalog.json`. Validate it with `scripts/validate-image2-series-catalog.mjs` after any edit.
 
+Each catalog entry points to one independently maintained leaf Skill contract under `skills/build-*/references/prompt-contract.json`. The catalog owns discovery and routing. The leaf contract owns content schema, spatial topology, material, lighting, color, typography, failure-specific negatives, and QC. `scripts/lib/visual-series-prompt-method.mjs` only provides the shared structured compiler and lint; it must not flatten the nine leaf contracts into one house layout.
+
 | seriesId | Name | Best for | Default text policy |
 | --- | --- | --- | --- |
 | `knowledge-encyclopedia-card-v1` | 科普百科卡 | subject profiles, roundups, ratings, structured facts | text-safe |

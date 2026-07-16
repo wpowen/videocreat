@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "contractId": "strategy-guide-structured-prompt-v2",
+  "skillId": "build-strategy-guide",
+  "seriesId": "strategy-guide-board-v1",
+  "outputIntent": "Translate one method into an executable visual route with ordered actions, observable completion checks, and failure prevention.",
+  "positioning": "Not a generic checklist slide, game UI, or card wall; it is a premium field guide whose reading order and decisions are physically obvious.",
+  "contentSchema": ["one concrete outcome", "three to seven ordered action steps", "observable completion checklist", "one to three pitfalls paired with corrections", "one visible success signal"],
+  "layoutFamilies": [
+    {"id":"stepped-route-bench","roles":["goal-overview","step-sequence","top-tips-recap"],"topology":"a diagonal route crosses four unequal workstations; each station contains one action-specific object; checklist docks near the destination","readingPath":"goal -> numbered station sequence -> checklist -> success state","cameraAndScale":"wide orthographic editorial view with matched station scale and clear route turns","moduleCount":"one goal marker, three to seven stations, one checklist, one success signal"},
+    {"id":"decision-gate-board","roles":["priority-matrix","checklist","pitfall-alerts"],"topology":"one central decision gate divides correct and risky paths; corrections visibly return the risky path to the main route","readingPath":"input -> decision -> risk/correction -> verified output","cameraAndScale":"flat editorial board with one dominant gate and secondary warning modules","moduleCount":"one decision gate, two route branches, one to three warning/correction pairs, one result"}
+  ],
+  "physicalVisualSystem": {"material":"crisp flat-vector shapes printed on lightly textured planning paper, precise route lines, restrained embossed step markers","lighting":"nearly flat studio light with subtle upper-left relief on markers; no glossy UI glow","color":"warm neutral ground, electric blue only for progress, vermilion only for risks, charcoal for structure","typography":"large countable step numerals, concise action labels, compact checklist text, consistent baseline grid"},
+  "allowedVariations":["action-specific objects","route bend geometry","number of supplied steps","warning placement"],
+  "forbiddenElements":["skipped or repeated step numbers","backward route direction","red outside warnings","empty checklist rows","generic icons unrelated to the action","decorative UI headings outside the whitelist"],
+  "qcAssertions":["step count and order match the method exactly","every checklist row is observable","every pitfall has a correction","route direction is readable at phone size","all modules remain above the subtitle-safe band"]
+}
