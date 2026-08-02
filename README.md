@@ -6,11 +6,9 @@ Produce reviewable narrated videos from a brief: script first, render second, ev
 
 `codex-video-workflow` is a local Codex skill for planning, rendering, and validating rights-safe explainer, product, tutorial, and oral-series videos. It does not treat video generation as a single black-box render. It creates the narration material, voice direction, visual system, motion plan, cover package, subtitles, screenshots, and QC report as inspectable artifacts.
 
+> This is an independent, community-maintained project. It is not affiliated with, sponsored by, or endorsed by OpenAI. OpenAI and Codex are trademarks of their respective owner.
+
 ## Demo
-
-Open the bilingual player:
-
-[Launch the Chinese / English demo page](media/demo.html)
 
 Open the visual-effects showcase:
 
@@ -18,12 +16,10 @@ Open the visual-effects showcase:
 
 | Chinese oral-series cut | English oral-series cut |
 | --- | --- |
-| [![Chinese demo cover](media/codex-video-workflow-zh-cover.svg)](media/codex-video-workflow-zh.mp4) | [![English demo cover](media/codex-video-workflow-en-cover.svg)](media/codex-video-workflow-en.mp4) |
-| Local authorized Chinese voice workflow, 74s, 1080p. | Same local voice workflow with English CosyVoice speaker, 86s, 1080p. |
+| ![Chinese demo cover](media/codex-video-workflow-zh-cover.svg) | ![English demo cover](media/codex-video-workflow-en-cover.svg) |
+| Chinese workflow cover fixture. | English workflow cover fixture. |
 
-GitHub README pages can render committed MP4 files differently across contexts. The cover images above link directly to the MP4 files, while `media/demo.html` provides the language switcher and player for local or hosted viewing.
-
-Demo evidence is included as [`media/qc/codex-video-workflow-zh-qc.json`](media/qc/codex-video-workflow-zh-qc.json) and [`media/qc/codex-video-workflow-en-qc.json`](media/qc/codex-video-workflow-en-qc.json).
+Rendered voice and video binaries are intentionally excluded from the public source repository. Generate them locally with assets you are authorized to use; the resulting package contains its own QC and provenance evidence.
 
 ## What It Does
 
@@ -367,20 +363,14 @@ codex-video-workflow/
 ├── assets/examples/free-stock-material-demo-brief.json
 ├── assets/galacean-effects-capability-catalog.json
 ├── media/
-│   ├── demo.html
 │   ├── galacean-vfx-showcase.html
-│   ├── codex-video-workflow-zh.mp4
 │   ├── codex-video-workflow-zh-cover.svg
-│   ├── codex-video-workflow-en.mp4
 │   ├── codex-video-workflow-en-cover.svg
 │   ├── oral-materials/
 │   │   ├── skill-capability-brief-zh.json
 │   │   ├── skill-capability-oral-series-zh.md
 │   │   ├── skill-capability-brief-en.json
 │   │   └── skill-capability-oral-series-en.md
-│   └── qc/
-│       ├── codex-video-workflow-zh-qc.json
-│       └── codex-video-workflow-en-qc.json
 ├── references/
 │   ├── aesthetic-system.md
 │   ├── candidate-matrix.md

@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { loadPlaywright } from "./lib/load-playwright.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const output = resolve(process.argv[2] || join(root, "research", "layered-motion-flow-self-test"));
-const runtimeModules = "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
-const requireFromRuntime = createRequire(resolve(runtimeModules, "playwright/package.json"));
-const { chromium } = requireFromRuntime("playwright");
+const { chromium } = loadPlaywright();
 
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });

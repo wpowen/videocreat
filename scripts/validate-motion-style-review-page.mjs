@@ -3,12 +3,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadPlaywright } from "./lib/load-playwright.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = resolve(SCRIPT_DIR, "..");
 const WORKSPACE_ROOT = resolve(SKILL_ROOT, "../../..");
-const DEFAULT_PLAYWRIGHT = join(WORKSPACE_ROOT, "node_modules", "playwright", "index.mjs");
-const BUNDLED_PLAYWRIGHT = "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs";
 const MIN_FAMILY_COUNT = 32;
 const MIN_TEMPLATE_COUNT = 160;
 const REQUIRED_CONTENT_KINDS = [
@@ -91,12 +90,6 @@ function assert(condition, message, failures) {
 
 function rel(path) {
   return relative(WORKSPACE_ROOT, path).split("\\").join("/");
-}
-
-async function loadPlaywright() {
-  const found = [DEFAULT_PLAYWRIGHT, BUNDLED_PLAYWRIGHT].find((candidate) => existsSync(candidate));
-  if (!found) throw new Error("Playwright is not available in workspace or bundled Codex runtime");
-  return import(pathToFileURL(found).href);
 }
 
 function htmlPathFor(args) {

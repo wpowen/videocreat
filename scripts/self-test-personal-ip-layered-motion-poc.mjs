@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadPlaywright } from "./lib/load-playwright.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -10,7 +11,6 @@ const poc = resolve(process.argv[2] || join(root, "research", "personal-ip-layer
 const html = join(poc, "index.html");
 const routePath = join(poc, "workflow", "presentation-route.json");
 const imagePath = join(poc, "assets", "personal-ip-native-page.png");
-const playwrightRoot = "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright";
 
 assert.ok(existsSync(html), "interactive HTML is missing");
 assert.ok(existsSync(routePath), "presentation route artifact is missing");
@@ -21,7 +21,7 @@ assert.equal(route.personalIpImmutableBase, true);
 assert.equal(route.subtitleTopmost, true);
 assert.equal(route.motionPolicy, "semantic-foreground-only");
 
-const { chromium } = await import(pathToFileURL(join(playwrightRoot, "index.mjs")).href);
+const { chromium } = loadPlaywright();
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1080 }, deviceScaleFactor: 1 });
 await page.goto(pathToFileURL(html).href, { waitUntil: "load" });

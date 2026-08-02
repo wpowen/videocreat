@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { loadPlaywright } from "./lib/load-playwright.mjs";
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -215,24 +215,6 @@ function svgForTarget({ title, targetId, width, height }) {
     <rect x="${leftX}" y="${h * .78}" width="${w * .32}" height="${h * .09}" rx="${h * .026}" fill="${palette.hot}"/>
     <text x="${leftX + w * .16}" y="${h * .84}" text-anchor="middle" font-size="${Math.round(min * .046)}" font-weight="950" fill="#fff" font-family="PingFang SC,sans-serif">从想法到连载</text>
   </svg>`;
-}
-
-async function loadPlaywright() {
-  const candidates = [
-    "node_modules/playwright/index.mjs",
-    "/Users/example/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs",
-    "research/html-video-research/html-video/node_modules/.pnpm/playwright@1.61.0/node_modules/playwright/index.mjs",
-  ];
-  for (const candidate of candidates) {
-    const resolved = resolve(candidate);
-    if (!existsSync(resolved)) continue;
-    try {
-      return await import(pathToFileURL(resolved).href);
-    } catch {
-      // Try the next candidate.
-    }
-  }
-  throw new Error("Playwright is required to rasterize target-ratio covers");
 }
 
 function convertJpg(png, jpg, width, height) {

@@ -22,6 +22,7 @@ coverage/
 
 # Local Codex/OMX session state
 /.omx/
+/.playwright-cli/
 
 # One-off local personal-IP assembly helpers with private project inputs
 /scripts/build-personal-ip-native-brief.mjs

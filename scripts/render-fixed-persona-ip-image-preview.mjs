@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 
 function parseArgs(argv) {
   const args = {};
@@ -73,7 +74,7 @@ function agentFigure(x, y, label, color) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const out = resolve(args.out || "personal-ip-preview.svg");
-  const manifestPath = resolve(args.manifest || "/Users/example/.codex/video-workflow/user-assets/personal-ip/个人ip主讲人/manifest.json");
+  const manifestPath = resolve(args.manifest || join(homedir(), ".codex", "video-workflow", "user-assets", "personal-ip", "个人ip主讲人", "manifest.json"));
   const manifest = readJson(manifestPath);
   const personaAssetPath = firstPersonaAsset(manifest, manifestPath);
   const personaSvg = readFileSync(personaAssetPath, "utf8");

@@ -6,11 +6,9 @@
 
 `codex-video-workflow` 是一个本地 Codex Skill，用于规划、渲染并验证版权安全的讲解、产品、教程和口播系列视频。它不把视频生成当作一次黑盒渲染，而是把口播材料、声音方向、视觉系统、动效计划、封面包、字幕、截图和 QC 报告都产出为可检查的文件。
 
+> 这是由社区独立维护的项目，与 OpenAI 不存在隶属、赞助或官方背书关系。OpenAI 与 Codex 为其各自权利人的商标。
+
 ## Demo
-
-打开中英文播放器：
-
-[启动中文 / 英文 Demo 页面](media/demo.html)
 
 打开视觉特效能力展示：
 
@@ -18,12 +16,10 @@
 
 | 中文口播版 | 英文口播版 |
 | --- | --- |
-| [![中文 Demo 封面](media/codex-video-workflow-zh-cover.svg)](media/codex-video-workflow-zh.mp4) | [![英文 Demo 封面](media/codex-video-workflow-en-cover.svg)](media/codex-video-workflow-en.mp4) |
-| 本地授权中文语音工作流，74 秒，1080p。 | 同一套本地语音工作流，使用英文 CosyVoice speaker，86 秒，1080p。 |
+| ![中文 Demo 封面](media/codex-video-workflow-zh-cover.svg) | ![英文 Demo 封面](media/codex-video-workflow-en-cover.svg) |
+| 中文工作流封面 fixture。 | 英文工作流封面 fixture。 |
 
-GitHub README 在不同上下文中对已提交 MP4 的渲染方式可能不同。上方封面图会直接链接到 MP4 文件；`media/demo.html` 提供本地或托管浏览时可用的语言切换播放器。
-
-Demo 的验证证据包含 [`media/qc/codex-video-workflow-zh-qc.json`](media/qc/codex-video-workflow-zh-qc.json) 和 [`media/qc/codex-video-workflow-en-qc.json`](media/qc/codex-video-workflow-en-qc.json)。
+公开源码仓库刻意不包含已渲染的语音和视频二进制文件。请只使用你有权使用的资产在本地生成；生成包会携带自己的 QC 与来源证据。
 
 ## 能做什么
 
@@ -428,20 +424,14 @@ codex-video-workflow/
 ├── assets/examples/free-stock-material-demo-brief.json
 ├── assets/galacean-effects-capability-catalog.json
 ├── media/
-│   ├── demo.html
 │   ├── galacean-vfx-showcase.html
-│   ├── codex-video-workflow-zh.mp4
 │   ├── codex-video-workflow-zh-cover.svg
-│   ├── codex-video-workflow-en.mp4
 │   ├── codex-video-workflow-en-cover.svg
 │   ├── oral-materials/
 │   │   ├── skill-capability-brief-zh.json
 │   │   ├── skill-capability-oral-series-zh.md
 │   │   ├── skill-capability-brief-en.json
 │   │   └── skill-capability-oral-series-en.md
-│   └── qc/
-│       ├── codex-video-workflow-zh-qc.json
-│       └── codex-video-workflow-en-qc.json
 ├── references/
 │   ├── aesthetic-system.md
 │   ├── candidate-matrix.md

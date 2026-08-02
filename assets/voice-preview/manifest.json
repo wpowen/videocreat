@@ -19,7 +19,7 @@
       "speed": 1.0,
       "text": "这是一段普通中文口播。我们测试它的节奏、咬字、情绪起伏，以及能不能适合知识类视频。",
       "purpose": "Mandarin female narrator baseline",
-      "mp3": "mp3/01_zh_female_mandarin_creator.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 7.129,
       "mp3Bytes": 64535
@@ -30,7 +30,7 @@
       "speed": 1.0,
       "text": "男声口播测试。",
       "purpose": "Mandarin male short",
-      "mp3": "mp3/02_zh_male_short.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 1.335,
       "mp3Bytes": 14138
@@ -41,7 +41,7 @@
       "speed": 1.0,
       "text": "今日试下广东话。",
       "purpose": "Cantonese female short",
-      "mp3": "mp3/03_yue_female_short.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 1.474,
       "mp3Bytes": 13848
@@ -52,7 +52,7 @@
       "speed": 1.0,
       "text": "普通话口播测试。",
       "purpose": "Cantonese speaker reading Mandarin text",
-      "mp3": "mp3/04_yue_female_mandarin_short.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 1.533,
       "mp3Bytes": 13865
@@ -63,7 +63,7 @@
       "speed": 1.0,
       "text": "English voice test.",
       "purpose": "English female short",
-      "mp3": "mp3/05_en_female_short.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 1.637,
       "mp3Bytes": 15674
@@ -74,20 +74,20 @@
       "speed": 1.18,
       "text": "快速口播测试。",
       "purpose": "Mandarin female fast speed",
-      "mp3": "mp3/06_zh_female_fast_short.mp3",
+      "mp3": "",
       "sampleRate": 22050,
       "durationSeconds": 0.848,
       "mp3Bytes": 8899
     }
   ],
   "limits": [
-    "Bundled MP3 files are short generated preview samples for local configuration UI audition.",
+    "Generated preview audio is intentionally not bundled in the public repository.",
     "Installed source model was CosyVoice-300M-SFT fixed-speaker path.",
     "Sichuan/Dongbei/Shanghai-style instruction dialects require CosyVoice2/3 or Instruct model not currently installed.",
     "No real-person cloning or reference audio was used."
   ],
   "verification": {
-    "mp3Bundled": true,
+    "mp3Bundled": false,
     "sourceManifest": "research/voice-quality-poc/cosyvoice-accent-dialect-20260630/manifest.json"
   }
 }
