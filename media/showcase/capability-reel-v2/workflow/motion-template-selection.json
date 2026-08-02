@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "examples": [
+    {
+      "scene": "process",
+      "family": "checkpoint-timeline",
+      "core": "semantic-timeline-reveal",
+      "verbs": [
+        "trace",
+        "step",
+        "resolve"
+      ],
+      "meaning": "node progression represents stage completion"
+    },
+    {
+      "scene": "data",
+      "family": "data-curve-proof",
+      "core": "data-curve-trace",
+      "verbs": [
+        "trace",
+        "highlight",
+        "compare"
+      ],
+      "meaning": "trend and inflection explain the metric"
+    },
+    {
+      "scene": "proof",
+      "family": "proof-thread-board",
+      "core": "interactive-proof-board",
+      "verbs": [
+        "connect",
+        "inspect",
+        "pressure"
+      ],
+      "meaning": "connections appear only when causality is stated"
+    },
+    {
+      "scene": "product",
+      "family": "screenflow-demo-path",
+      "core": "dark-saas-magic-ui",
+      "verbs": [
+        "tap",
+        "switch",
+        "complete"
+      ],
+      "meaning": "input changes state before an output is claimed"
+    },
+    {
+      "scene": "compare",
+      "family": "before-after-craft",
+      "core": "kinetic-editorial-explainer",
+      "verbs": [
+        "compare",
+        "transform",
+        "resolve"
+      ],
+      "meaning": "structural deltas remain visible"
+    },
+    {
+      "scene": "matrix",
+      "family": "matrix-choice-map",
+      "core": "interactive-proof-board",
+      "verbs": [
+        "choose",
+        "inspect",
+        "lock"
+      ],
+      "meaning": "template routing uses explicit decision axes"
+    },
+    {
+      "scene": "lanes",
+      "family": "agent-simulation-lane",
+      "core": "semantic-timeline-reveal",
+      "verbs": [
+        "handoff",
+        "parallelize",
+        "merge"
+      ],
+      "meaning": "responsibility and artifacts cross visible handoffs"
+    },
+    {
+      "scene": "covers",
+      "family": "comparison-gallery-wall",
+      "core": "kinetic-editorial-explainer",
+      "verbs": [
+        "compare",
+        "select",
+        "magnify"
+      ],
+      "meaning": "cover structure is selected before cosmetic styling"
+    },
+    {
+      "scene": "whiteboard",
+      "family": "whiteboard-overlay-step",
+      "core": "semantic-timeline-reveal",
+      "verbs": [
+        "trace",
+        "circle",
+        "fill"
+      ],
+      "meaning": "foreground marks explain one critical path"
+    }
+  ]
+}

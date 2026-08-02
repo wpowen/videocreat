@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "status": "vertical-motion-style-template-ready",
+  "surfaceName": "竖屏风格模板",
+  "previewMode": "vertical-short-form-video-frame-simulation",
+  "html": "vertical-motion-style-template-review.html",
+  "templateCount": 160,
+  "skeletonCount": 32,
+  "variantsPerSkeleton": 5,
+  "aspectRatio": "9:16",
+  "resolution": "1080x1920",
+  "defaultFps": 60,
+  "platformProfile": "douyin-tiktok-shorts-reels",
+  "shortFormRules": [
+    "first-frame promise",
+    "0-3s hook",
+    "one-line subtitle safe band",
+    "right action rail clear",
+    "effect layer avoids captions"
+  ],
+  "groupingMode": "content-skeleton-with-style-buttons",
+  "source": "assets/motion-style-catalog.json",
+  "generatedAt": "2026-08-02T15:56:11.676Z"
+}

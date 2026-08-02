@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "status": "pass",
+  "output": "media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+  "outputSha256": "51b8adac71407b5643aba5d5f56089f253a025be6e4499186e2df0f74e849ae4",
+  "outputProbe": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "profile": "High",
+        "codec_type": "video",
+        "codec_tag_string": "avc1",
+        "codec_tag": "0x31637661",
+        "width": 1920,
+        "height": 1080,
+        "coded_width": 1920,
+        "coded_height": 1080,
+        "has_b_frames": 2,
+        "pix_fmt": "yuv420p",
+        "level": 40,
+        "chroma_location": "left",
+        "field_order": "progressive",
+        "refs": 1,
+        "is_avc": "true",
+        "nal_length_size": "4",
+        "id": "0x1",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "time_base": "1/15360",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "duration_ts": 106496,
+        "duration": "6.933333",
+        "bit_rate": "6340446",
+        "bits_per_raw_sample": "8",
+        "nb_frames": "208",
+        "extradata_size": 47,
+        "disposition": {
+          "default": 1,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        },
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "vendor_id": "[0][0][0][0]",
+          "encoder": "Lavc62.11.100 libx264"
+        }
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "profile": "LC",
+        "codec_type": "audio",
+        "codec_tag_string": "mp4a",
+        "codec_tag": "0x6134706d",
+        "sample_fmt": "fltp",
+        "sample_rate": "48000",
+        "channels": 2,
+        "channel_layout": "stereo",
+        "bits_per_sample": 0,
+        "initial_padding": 0,
+        "id": "0x2",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0",
+        "time_base": "1/48000",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "duration_ts": 338400,
+        "duration": "7.050000",
+        "bit_rate": "190915",
+        "nb_frames": "332",
+        "extradata_size": 5,
+        "disposition": {
+          "default": 1,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        },
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler",
+          "vendor_id": "[0][0][0][0]"
+        }
+      }
+    ],
+    "format": {
+      "nb_streams": 2,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "7.050000",
+      "size": "5672823",
+      "bit_rate": "6437245",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2avc1mp41",
+        "encoder": "Lavf62.3.100"
+      }
+    }
+  },
+  "outputQc": {
+    "passed": true,
+    "checks": {
+      "outputExists": true,
+      "duration": true,
+      "resolution": true,
+      "frameRate": true,
+      "videoCodec": true,
+      "audioCodec": true,
+      "noDetectedBlackSegments": true,
+      "audibleMeanLevel": true,
+      "unclippedPeak": true,
+      "subtitleOverlaysPresent": true,
+      "sourceQcPassed": true,
+      "sourcePublishingReady": true
+    },
+    "meanVolumeDb": -17.4,
+    "maxVolumeDb": -2
+  },
+  "source": {
+    "route": "ip-diagram-native-final-pages",
+    "video": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/renders/final.mp4",
+    "videoSha256": "c17b99b4de193470cd5718642c2c530e87e9dbe07c630a96b9eefe93a3b69ef9",
+    "qc": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/logs/qc.json",
+    "qcStatus": "pass",
+    "publishingReady": true,
+    "pages": [
+      {
+        "page": "ip-page-01",
+        "file": "media/showcase/personal-ip/demo-v2/source-page-01.png",
+        "sourceProjectPath": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/assets/native-pages/001-page-01.png",
+        "sha256": "299b42a06ed00e269cf0f147c0b910c1d4a0688cfaf327e72179dc6d92f00e2a",
+        "semanticRole": "hook and story spine"
+      },
+      {
+        "page": "ip-page-02",
+        "file": "media/showcase/personal-ip/demo-v2/source-page-02.png",
+        "sourceProjectPath": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/assets/native-pages/002-page-02.png",
+        "sha256": "94a8fce0219676e8c30fce9696450395f553b59fe094346273857140cadc2a41",
+        "semanticRole": "central question and eight-node framework"
+      }
+    ]
+  },
+  "edit": {
+    "durationSeconds": 7.05,
+    "resolution": "1920x1080",
+    "pageCount": 2,
+    "transition": "0.35s crossfade",
+    "subtitleMode": "deterministic bottom band; one semantic line per page",
+    "personaPolicy": "Uses the verified generic-host native pages; this is not a claim of user likeness.",
+    "audioPolicy": "Trimmed from the verified native-final source audio; no new voice identity is asserted."
+  }
+}

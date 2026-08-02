@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(__dirname, "..");
-const workspace = resolve(skillRoot, "../../..");
+const workspace = skillRoot;
 const outDir = join(workspace, "research/codex-video-workflow-poc/cover-target-validation");
 
 function read(relativePath) {
@@ -22,6 +23,9 @@ function main() {
   const batchSizeIndexScript = read("scripts/build-cover-size-selection-index.mjs");
   const targetImage2Script = read("scripts/generate-cover-targets-image2.mjs");
   const codexImage2IngestScript = read("scripts/ingest-codex-image2-cover-target.mjs");
+  const coverEvidenceScript = read("scripts/record-cover-generation-evidence.mjs");
+  const coverSkillRuntime = read("scripts/lib/cover-skill-runtime.mjs");
+  const coverQcRerun = read("scripts/lib/cover-qc-rerun.mjs");
   const standaloneDispatchScript = read("skills/codex-video-cover-generation/scripts/lib/cover-image2-dispatch.mjs");
   const standalonePrepareScript = read("skills/codex-video-cover-generation/scripts/prepare-cover-image2-dispatch.mjs");
   const standaloneBatchIngestScript = read("skills/codex-video-cover-generation/scripts/ingest-codex-image2-cover-batch.mjs");
@@ -29,8 +33,14 @@ function main() {
   const nativeFinalRendererScript = read("scripts/render-ip-diagram-native-pages.mjs");
   const personalIpImagePlannerScript = read("scripts/plan-vertical-personal-ip-image.mjs");
   const semiAutoConfigBuilder = read("scripts/build-semi-auto-config-html.mjs");
+  const coverColorRoutingSelfTest = read("scripts/self-test-cover-color-routing.mjs");
   const skill = read("SKILL.md");
   const coverDesign = read("references/cover-design.md");
+	  const coverArtDirectionPath = [
+	    join(skillRoot, "skills/codex-video-cover-generation/references/cover-art-direction-system.md"),
+	    join(process.env.CODEX_HOME || join(homedir(), ".codex"), "skills/codex-video-cover-generation/references/cover-art-direction-system.md"),
+	  ].find((candidate) => existsSync(candidate));
+	  const coverArtDirection = coverArtDirectionPath ? readFileSync(coverArtDirectionPath, "utf8") : "";
   const imageGenerationRouting = read("references/image-generation-routing.md");
   const qualityGates = read("references/quality-gates.md");
   const readme = read("README.md");
@@ -50,7 +60,9 @@ function main() {
     ["platform-specific strategy contract", /sharedContentPromiseMultiPlatformVariants[\s\S]*?platformSpecificDesignsGenerated:\s*true[\s\S]*?contentCategoryStrategy[\s\S]*?platformCoverStrategies[\s\S]*?masterCoverConcept/],
     ["cover creative methodology strategy", /function coverCreativeStrategy[\s\S]*?methodologyVersion:\s*"cover-gpt-methodology-v1"[\s\S]*?contentAssets[\s\S]*?clickMotivation[\s\S]*?visualHierarchy[\s\S]*?qaChecklist/],
     ["cover content asset extraction", /function coverContentAssets[\s\S]*?coreViewpoint[\s\S]*?userPain[\s\S]*?resultPromise[\s\S]*?contrarianPoint[\s\S]*?visualMetaphor[\s\S]*?credibleEvidence/],
-    ["cover content category strategy", /function coverContentCategoryStrategy[\s\S]*?knowledge-tutorial[\s\S]*?story-entertainment[\s\S]*?review-product[\s\S]*?news-analysis[\s\S]*?vlog-lifestyle/],
+	    ["cover content category strategy", /function coverContentCategoryStrategy[\s\S]*?knowledge-tutorial[\s\S]*?story-entertainment[\s\S]*?review-product[\s\S]*?news-analysis[\s\S]*?vlog-lifestyle/],
+	    ["single-style cover art-direction selector", /COVER_ART_DIRECTION_STYLES[\s\S]*?function resolveCoverArtDirection[\s\S]*?cover-art-direction-system-v1[\s\S]*?selectedStyleCount:\s*1/],
+	    ["content-aware semantic color selector", /COVER_SEMANTIC_COLOR_FAMILIES[\s\S]*?function coverColorSystem[\s\S]*?cover-semantic-color-system-v1[\s\S]*?semanticFamilyId/],
     ["cover platform strategy selector", /function coverPlatformStrategy[\s\S]*?youtube-horizontal[\s\S]*?bilibili-horizontal[\s\S]*?instagram-grid[\s\S]*?short-video-vertical[\s\S]*?square-feed/],
     ["target-specific native cover brief selector", /function coverTargetImage2DesignBrief[\s\S]*?native 1146x717[\s\S]*?native 1600x1200[\s\S]*?native 1080x1440[\s\S]*?native 1200x1200/],
     ["Bilibili 1146x717 native prompt guard", /bilibili-common-1146x717[\s\S]*?native 1146x717[\s\S]*?central 1020x620 safe area[\s\S]*?no stacked duplicate cover/],
@@ -81,7 +93,12 @@ function main() {
 
   expect(!/YouTube \/ Bilibili 16:9/.test(script), "visible platform/spec labels must not be rendered into cover SVG", failures);
   expect(/adapt the cover strategy per platform/.test(skill), "SKILL.md must require platform-specific cover strategy variants", failures);
-  expect(/high-click-knowledge-cover-v1/.test(skill), "SKILL.md must require the high-click knowledge cover prompt contract for knowledge/tutorial and creator-methodology covers", failures);
+	  expect(/high-click-knowledge-cover-v1/.test(skill), "SKILL.md must require the high-click knowledge cover prompt contract for knowledge/tutorial and creator-methodology covers", failures);
+	  expect(/cover-art-direction-system-v1/.test(skill) && /exactly one compatible style atom/.test(skill), "SKILL.md must require one integrated cover art-direction style atom", failures);
+	  expect(/cover-semantic-color-system-v1/.test(skill) && /yellow\/cream paper/.test(skill), "SKILL.md must require content-aware semantic color and reject generic warm-paper backgrounds", failures);
+	  expect(/presenterPolicy/.test(script) && /textPolicy/.test(script) && /Do not add any presenter, portrait, face, human figure/.test(script), "non-presenter style atoms must own subject and copy density instead of inheriting the generic presenter contract", failures);
+	  expect(/personalIpIntent\.active !== true && !personalIpRouteSelected/.test(script), "cover input images must be gated by explicit personal-IP intent or an actually selected personal-IP route", failures);
+	  expect(/civic-blueprint/.test(coverColorRoutingSelfTest) && /digital-violet/.test(coverColorRoutingSelfTest) && /living-earth/.test(coverColorRoutingSelfTest) && /backgrounds collapsed to one repeated color/.test(coverColorRoutingSelfTest), "cover color routing self-test must prove topic-distinct semantic families and backgrounds", failures);
   expect(/platformSpecificDesignsGenerated:\s*true/.test(script), "script must record platform-specific design strategy state as enabled", failures);
   expect(/cover\.highClickCoverPromptContract\?\.methodologyVersion\s*===\s*"high-click-knowledge-cover-v1"/.test(script), "script QC must require generated cover-design.json to carry high-click-knowledge-cover-v1", failures);
   expect(/data-cover-supported-resolution-gallery/.test(semiAutoConfigBuilder) && /data-cover-supported-resolution-count/.test(semiAutoConfigBuilder), "semi-auto config page must expose a cover supported-resolution preview gallery", failures);
@@ -108,7 +125,10 @@ function main() {
   expect(/Platform Logic/.test(coverDesign) && /YouTube horizontal/.test(coverDesign) && /Bilibili horizontal/.test(coverDesign), "cover-design.md must document platform-specific cover logic", failures);
   expect(/High-Click Knowledge Cover Prompt Contract/.test(coverDesign) && /high-click-knowledge-cover-v1/.test(coverDesign) && /改前/.test(coverDesign) && /改后/.test(coverDesign), "cover-design.md must document the high-click knowledge cover prompt contract", failures);
   expect(/Layout Template Library/.test(coverDesign), "cover-design.md must document the layout template library", failures);
-  expect(/Methodology Execution Contract/.test(coverDesign), "cover-design.md must document the methodology execution contract", failures);
+	  expect(/Methodology Execution Contract/.test(coverDesign), "cover-design.md must document the methodology execution contract", failures);
+	  expect(/Art-Direction Style System/.test(coverDesign) && /cover-art-direction-system-v1/.test(coverDesign), "cover-design.md must document the single-style art-direction system", failures);
+	  expect(/exactly one style atom/.test(coverArtDirection) && /selectionReason/.test(coverArtDirection) && /Provenance boundary/.test(coverArtDirection), "standalone cover Skill must document style selection, audit reason, and provenance boundary", failures);
+	  expect(/Semantic color system/.test(coverArtDirection) && /civic-blueprint/.test(coverArtDirection) && /Warm yellow, cream, parchment/.test(coverArtDirection), "standalone cover Skill must document semantic color families and the warm-paper anti-sameness gate", failures);
   expect(/coverCreativeStrategy\.contentAssets\.coreViewpoint/.test(coverDesign), "cover-design.md must require content asset evidence", failures);
   expect(/not the universal default/.test(coverDesign), "cover-design.md must state the reference template is not universal", failures);
   expect(/Image 2-first/.test(coverDesign), "cover-design.md must make Image 2-first the main cover engine", failures);
@@ -186,6 +206,8 @@ function main() {
   expect(/DEFAULT_MAX_CONCURRENCY = 9/.test(standaloneDispatchScript)
     && /pendingRequests\.map/.test(standaloneDispatchScript)
     && /Promise\.allSettled/.test(standaloneDispatchScript)
+    && /Promise\.resolve\(\)\.then\(\(\) => generate\(job\)\)/.test(standaloneDispatchScript)
+    && /preservedGeneratedTargetIds/.test(standaloneDispatchScript)
     && /retryTargetIds:\s*failedTargetIds/.test(standaloneDispatchScript),
   "standalone cover dispatcher must enqueue all pending targets and isolate retries to failed target ids", failures);
   expect(/cover-image2-dispatch-plan\.json/.test(standalonePrepareScript)
@@ -197,6 +219,25 @@ function main() {
     && /--defer-package-finalization/.test(standaloneBatchIngestScript)
     && /fullVideoQcTriggered:\s*false/.test(standaloneBatchIngestScript),
   "standalone cover batch ingest must preflight, lock shared state, defer per-target finalization, and skip full-video QC", failures);
+  expect(/--require-all-platform-covers/.test(standaloneBatchIngestScript), "standalone cover batch ingest must require the complete requested platform-cover QC scope before coversVerified", failures);
+  const coverEvidenceContract = read("scripts/lib/cover-evidence-contract.mjs");
+  expect(/art-direction-style-match/.test(coverEvidenceContract)
+    && /semantic-background-policy-match/.test(coverEvidenceContract)
+    && /first-glance-topic-promise-clear/.test(coverEvidenceContract)
+    && /second-glance-proof-or-metaphor-clear/.test(coverEvidenceContract)
+    && /no-unapproved-full-canvas-warm-paper/.test(coverEvidenceContract)
+    && /check\?\.passed\s*!==\s*true/.test(coverEvidenceScript)
+    && /attestationChecks/.test(coverEvidenceScript), "cover inspection evidence must bind externally attested art direction, semantic color, glance hierarchy, and warm-paper rejection checks", failures);
+  expect(/REQUIRED_COVER_INSPECTION_CHECKS/.test(codexImage2IngestScript)
+    && /result\?\.passed\s*!==\s*true/.test(codexImage2IngestScript)
+    && /Inspection record art direction does not match/.test(codexImage2IngestScript)
+    && /Inspection record semantic color does not match/.test(codexImage2IngestScript), "cover ingest must reject stale or incomplete art-direction and semantic-color inspection evidence", failures);
+  expect(/--inspection-attestation/.test(coverEvidenceScript)
+    && /Independent inspection attestation does not match/.test(coverEvidenceScript)
+    && /independentAttestationPath/.test(coverEvidenceScript), "cover evidence recorder must validate an external human/vision attestation instead of self-asserting inspection results", failures);
+  expect(/classifyCoverQcRerun/.test(codexImage2IngestScript)
+    && /Number\(exitCode\) === 0 && result\?\.ok === true/.test(coverQcRerun), "cover-triggered QC reruns must require zero exit and ok=true before completion", failures);
+  expect(/references\/cover-art-direction-system\.md/.test(coverSkillRuntime), "cover Skill runtime parity must include the art-direction reference required by SKILL.md", failures);
   expect(/function targetPromptSuffix/.test(targetImage2Script) && /Target-ratio completion guard/.test(targetImage2Script), "native target-ratio generator must append target-specific native composition guards when reusing a master prompt", failures);
   expect(/pendingNativeTargetRatioPrompts/.test(targetImage2Script) && /fulfilledNativeTargetRatioExports/.test(targetImage2Script), "native target-ratio cover generator must move prompts from pending to fulfilled only after real Image2 output", failures);
   expect(/upload-ready-native-target-ratio/.test(targetImage2Script) && /image2NativeTargetRatioReady\s*=\s*true/.test(targetImage2Script) && /localTargetRatioRecomposition\s*=\s*false/.test(targetImage2Script), "native target-ratio cover generator must mark upload readiness only for real target-ratio Image2 output", failures);
@@ -230,10 +271,13 @@ function main() {
   expect(/request\?\.status === "completed"/.test(nativeFinalRendererScript) && /request\?\.purpose === "platform-submission-cover"/.test(nativeFinalRendererScript) && /request\?\.videoInternalCover === false/.test(nativeFinalRendererScript), "native-final renderer must only accept a completed standalone platform submission cover request", failures);
   expect(/sourceImageCountPlanRequiredCount/.test(nativeFinalRendererScript) && /nativePageCountSatisfiesSourceImageCountPlan/.test(nativeFinalRendererScript), "native-final renderer must enforce the source personal-IP automatic image-count policy", failures);
   expect(/explicitTargetRaisedToAutomatic/.test(personalIpImagePlannerScript) && /allowUnderCount/.test(personalIpImagePlannerScript) && /automaticResolvedTarget/.test(personalIpImagePlannerScript), "personal-IP image planner must not let target-image-count undercut the automatic duration/content/cue policy by default", failures);
-  expect(/requestedMaxImageCount/.test(personalIpImagePlannerScript) && /maxImageCountRaisedToAutomaticPolicy/.test(personalIpImagePlannerScript), "personal-IP image planner must not let max-image-count undercut the automatic duration/content/cue policy by default", failures);
+  expect(/requestedMaxImageCount/.test(personalIpImagePlannerScript)
+    && /maxImageCountRaisedToAutomaticPolicy:\s*false/.test(personalIpImagePlannerScript)
+    && /explicitMaximumNeverRaised/.test(personalIpImagePlannerScript), "personal-IP image planner must preserve an explicit max-image-count as a hard cap", failures);
   expect(/provider:\s*"codex-context-image2"[\s\S]*tool:\s*"image_gen"/.test(personalIpImagePlannerScript) && /canonicalImageProvider:\s*"codex-context-image2"[\s\S]*canonicalImageTool:\s*"image_gen"/.test(personalIpImagePlannerScript), "personal-IP image planner must record Codex Context Image2/image_gen as the canonical generated-page provider", failures);
   expect(/if \(!qc\.videoPass && !allowUnverifiedNativePages/.test(nativeFinalRendererScript) && /process\.exitCode = 2/.test(nativeFinalRendererScript), "native-final renderer must exit nonzero when video QC fails while allowing a cover-pending review video to return to the parent workflow", failures);
-  expect(/maxImageCountRaisedToAutomaticPolicy/.test(skill) && /maxImageCountRaisedToAutomaticPolicy/.test(qualityGates), "skill/docs must require max-image-count undercut detection and automatic raising for personal-IP image plans", failures);
+  expect(/literal `maxImageCount` is a hard cap/.test(skill)
+    && /literal maximum must be a hard cap; raising it is a failure/.test(qualityGates), "skill/docs must keep explicit personal-IP max-image-count as a non-raised hard cap", failures);
   expect(/allow-draft-output true/.test(skill) && /allow-draft-output true/.test(qualityGates), "skill/docs must keep unbound ingested personal-IP pages draft-only unless explicitly allowed", failures);
   expect(/coverNativeImage2Ready/.test(skill) && /coverNativeImage2Ready/.test(qualityGates), "skill/docs must require native-final coverNativeImage2Ready before claiming final personal-IP delivery", failures);
   expect(/const coverArtifactsPromise = writeCoverArtifacts[\s\S]*const finalRenderRequested =/.test(script), "core cover design lane must start before personal-IP native-final pre-render blocking checks", failures);

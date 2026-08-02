@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "typography": {
+    "display": "system Chinese sans, black weight",
+    "body": "system Chinese sans",
+    "technicalEvidence": "system monospace",
+    "minimumCaptionPx": 29
+  },
+  "motionLimits": {
+    "permitted": [
+      "opacity",
+      "y-rise",
+      "scale<=1.08",
+      "mask",
+      "underline",
+      "trace",
+      "scan",
+      "progress fill"
+    ],
+    "forbidden": [
+      "jitter",
+      "rapid flashing",
+      "caption rotation",
+      "whole-page whiteboard redraw"
+    ]
+  }
+}

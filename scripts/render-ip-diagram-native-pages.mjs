@@ -9,6 +9,7 @@ import {
   formatContextImage2CoverPromptDocument,
   sha256Text,
 } from "./lib/cover-generation-workflow.mjs";
+import { cleanupIntermediateVideoArtifacts } from "./lib/intermediate-video-cleanup.mjs";
 
 const SOURCE_REPO = "https://github.com/haloshin/ip-diagram-creator";
 const SOURCE_COMMIT = "dd64ab5d972893f7ca271d9c560362d7788eb2d6";
@@ -2715,6 +2716,11 @@ function main() {
   writeJson(join(out, "logs", "qc.json"), qc);
   writeJson(join(out, "workflow", "commands.json"), commands);
   createDeliveryPage(out, args.title, finalPath, qc, canvas);
+  cleanupIntermediateVideoArtifacts({
+    out,
+    finalPath,
+    reason: qc.videoPass ? "post-qc-video-pass" : "post-qc-review-artifact",
+  });
 
   console.log(JSON.stringify({
     pass: qc.pass,

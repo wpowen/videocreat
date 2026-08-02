@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -86,6 +86,20 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function portableDisplayPath(value) {
+  const raw = String(value || "").trim();
+  if (!raw || !isAbsolute(raw)) return raw;
+  const normalized = raw.split(sep).join("/");
+  const codexMarker = "/.codex/";
+  const codexIndex = normalized.indexOf(codexMarker);
+  if (codexIndex >= 0) return `$CODEX_HOME/${normalized.slice(codexIndex + codexMarker.length)}`;
+  const workspaceRelation = relative(WORKSPACE_ROOT, raw);
+  if (workspaceRelation && workspaceRelation !== ".." && !workspaceRelation.startsWith(`..${sep}`) && !isAbsolute(workspaceRelation)) {
+    return `./${workspaceRelation.split(sep).join("/")}`;
+  }
+  return `<local-path>/${basename(raw)}`;
 }
 
 function compactText(value, max = 130) {
@@ -3455,6 +3469,8 @@ function renderIpAssetRegistryCard(personalIp) {
     "not-applicable": "当前未启用",
   }[status] || "等待配置";
   const acceptedInputs = arrayify(guidance.acceptedInputs).slice(0, 5);
+  const displayLibraryRoot = portableDisplayPath(library.root || "");
+  const displayManifestPath = portableDisplayPath(library.manifestPath || "");
   return `<div class="ip-asset-registry-card" data-ip-asset-registry data-ip-registry-status="${escapeHtml(status)}">
     <div class="ip-asset-registry-head">
       <span>
@@ -3464,12 +3480,12 @@ function renderIpAssetRegistryCard(personalIp) {
       <strong>${escapeHtml(Number(existing.assetCount || 0))} 个素材</strong>
     </div>
     <p>${escapeHtml(guidance.prompt || "首次创建固定形象后，后续视频默认读取同一个人设 manifest，避免每次重新设计。")}</p>
-    <details class="ip-asset-library" data-ip-asset-library="${escapeHtml(library.root || "")}">
+    <details class="ip-asset-library" data-ip-asset-library="${escapeHtml(displayLibraryRoot)}">
       <summary>查看物料库路径与 manifest</summary>
       <span>物料库</span>
-      <code>${escapeHtml(library.root || "未配置")}</code>
+      <code>${escapeHtml(displayLibraryRoot || "未配置")}</code>
       <span>当前 manifest</span>
-      <code>${escapeHtml(library.manifestPath || "等待创建")}</code>
+      <code>${escapeHtml(displayManifestPath || "等待创建")}</code>
     </details>
     <div class="ip-onboarding-grid">
       <label class="ip-upload-drop">
@@ -3479,7 +3495,7 @@ function renderIpAssetRegistryCard(personalIp) {
       </label>
       <label class="ip-manifest-input">
         <span>已有 manifest 或素材目录</span>
-        <input type="text" value="${escapeHtml(library.manifestPath || "")}" placeholder="选择或粘贴已保存的人设 manifest 路径" data-ip-manifest-path />
+        <input type="text" value="${escapeHtml(displayManifestPath)}" placeholder="选择或粘贴已保存的人设 manifest 路径" data-ip-manifest-path />
       </label>
     </div>
     <div class="ip-onboarding-actions">
@@ -5264,6 +5280,10 @@ function renderHeader(model) {
 	      <a href="#voice">语音</a>
       <a href="#page-edit">页面</a>
     </nav>
+    <div class="locale-switch" role="group" aria-label="界面语言">
+      <button type="button" class="active" data-config-locale="zh-CN" aria-pressed="true">中文</button>
+      <button type="button" data-config-locale="en" aria-pressed="false">EN</button>
+    </div>
   </header>`;
 }
 
@@ -5816,6 +5836,27 @@ function renderCoverAutoOption(cover) {
   </label>`;
 }
 
+function renderCoverLogicGallery(cover) {
+  const presets = arrayify(cover.stylePresets);
+  return `<details class="cover-logic-catalog" data-cover-logic-catalog open>
+    <summary>
+      <span>设计逻辑</span>
+      <strong>${escapeHtml(presets.length)} 类可审核方向</strong>
+    </summary>
+    <div class="cover-logic-grid">
+      ${presets.map((style, index) => `
+        <label class="cover-logic-card ${style.selected ? "selected" : ""}" data-cover-logic-card="${index}">
+          <input type="radio" name="cover-logic" value="${escapeHtml(style.id || `cover-logic-${index + 1}`)}" ${style.selected ? "checked" : ""}/>
+          ${renderCoverMiniPreview(style)}
+          <span>
+            <b>${escapeHtml(style.label)}</b>
+            <em>${escapeHtml(style.logic || style.description)}</em>
+          </span>
+        </label>`).join("")}
+    </div>
+  </details>`;
+}
+
 function renderCoverRatioCompact(cover) {
   const options = arrayify(cover.resolutionSlides).length ? arrayify(cover.resolutionSlides) : arrayify(cover.resolutionOptions);
   const defaultPreviewActive = Boolean(cover.finalPreview?.html);
@@ -5848,6 +5889,7 @@ function renderCoverOptionsPanel(cover) {
       <strong>默认选中</strong>
     </div>
     ${renderCoverAutoOption(cover)}
+    ${renderCoverLogicGallery(cover)}
     ${renderCoverRatioCompact(cover)}
   </aside>`;
 }
@@ -5883,14 +5925,16 @@ function renderCoverSection(model) {
   return `<section class="panel" id="cover">
     <div class="section-head">
       <span>06</span>
-      <div><h2>封面设计</h2><p>默认生成上传封面；左侧审核最终封面，右侧收窄平台尺寸。</p></div>
+      <div><h2>封面设计</h2><p>审核点击逻辑、模板方向与平台尺寸；参考预览不等于已通过 QC 的上传终版。</p></div>
     </div>
+    ${renderCoverEngineStatus(cover)}
     <div class="cover-review-board cover-review-board-simple">
       <div class="cover-review-main">
         ${renderCoverResolutionCarousel(cover)}
       </div>
       ${renderCoverOptionsPanel(cover)}
     </div>
+    ${renderCoverArtifactList(cover)}
     ${renderCoverPreviewDialog()}
   </section>`;
 }
@@ -6176,6 +6220,9 @@ function renderStyles() {
     .topbar nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .topbar a { color: var(--ink); text-decoration: none; font-size: 13px; border: 1px solid transparent; padding: 8px 10px; border-radius: 7px; }
     .topbar a:hover { border-color: var(--line); background: rgba(255,255,255,.58); }
+    .locale-switch { display: inline-flex !important; align-items: center !important; gap: 3px !important; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.68); }
+    .locale-switch button { min-width: 42px; border: 0; border-radius: 6px; padding: 6px 8px; color: var(--muted); background: transparent; cursor: pointer; font-size: 12px; font-weight: 850; }
+    .locale-switch button.active { color: #fff; background: var(--ink); }
     .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px; margin: 18px 0; box-shadow: 0 18px 50px rgba(42, 54, 62, .08); }
     .section-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
     .section-head > span { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--ink); font-weight: 900; }
@@ -7533,14 +7580,26 @@ function renderStyles() {
 	    .cover-review-board .cover-carousel-image-button img { max-height: 560px; max-width: 94%; border-radius: 8px; background: #111512; box-shadow: 0 18px 48px rgba(0,0,0,.28); }
 	    .cover-review-board .cover-carousel-meta { grid-template-columns: auto minmax(0, .82fr) minmax(0, 1.18fr); padding: 0 2px; }
 	    .cover-review-aside { display: grid; gap: 10px; align-content: start; }
-	    .cover-options-panel { grid-template-rows: auto auto minmax(0, 1fr); height: 100%; }
+	    .cover-options-panel { grid-template-rows: auto auto auto minmax(0, 1fr); height: 100%; }
 	    .cover-options-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 0 2px; }
 	    .cover-options-head span { color: var(--accent); font-size: 13px; font-weight: 950; }
 	    .cover-options-head strong { color: var(--ink); font-size: 14px; line-height: 1.2; }
 	    .cover-default-option { border-color: rgba(49,95,125,.36); background: rgba(238,246,244,.82); }
 	    .cover-options-panel .cover-ratio-compact { display: grid; grid-template-rows: auto minmax(0, 1fr); }
 	    .cover-options-panel .cover-ratio-chip-grid { max-height: none; overflow: visible; padding-right: 0; align-content: start; }
-	    .cover-template-switcher, .cover-ratio-compact, .cover-final-note { border: 1px solid var(--line); border-radius: 8px; background: rgba(255,253,247,.82); padding: 11px; }
+	    .cover-template-switcher, .cover-logic-catalog, .cover-ratio-compact, .cover-final-note { border: 1px solid var(--line); border-radius: 8px; background: rgba(255,253,247,.82); padding: 11px; }
+	    .cover-logic-catalog summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+	    .cover-logic-catalog summary::-webkit-details-marker { display: none; }
+	    .cover-logic-catalog summary span { color: var(--accent); font-size: 12px; font-weight: 950; }
+	    .cover-logic-catalog summary strong { color: var(--ink); font-size: 14px; line-height: 1.2; }
+	    .cover-logic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+	    .cover-logic-card { display: grid; grid-template-columns: auto 52px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; padding: 6px; border: 1px solid rgba(20,24,23,.09); border-radius: 7px; background: rgba(255,255,255,.58); cursor: pointer; }
+	    .cover-logic-card.selected { border-color: rgba(49,95,125,.42); background: rgba(238,246,244,.9); }
+	    .cover-logic-card input { width: 14px; height: 14px; margin: 0; }
+	    .cover-logic-card .cover-mini-preview { width: 52px; height: 34px; }
+	    .cover-logic-card > span { display: grid; gap: 2px; min-width: 0; }
+	    .cover-logic-card b { font-size: 10px; line-height: 1.15; }
+	    .cover-logic-card em { color: var(--muted); font-style: normal; font-size: 8px; line-height: 1.2; overflow-wrap: anywhere; }
 	    .cover-aside-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
 	    .cover-aside-head span { color: var(--accent); font-size: 12px; font-weight: 950; }
 	    .cover-aside-head strong { color: var(--ink); font-size: 14px; line-height: 1.2; text-align: right; }
@@ -8403,9 +8462,214 @@ function renderScripts() {
   </script>`;
 }
 
+function renderLocaleScript() {
+  const english = {
+    "视频生成配置台": "Video Production Console",
+    "界面语言": "Interface language",
+    "中文": "中文",
+    "基础": "Basics",
+    "动效": "Motion",
+    "颜色": "Color",
+    "字幕": "Captions",
+    "素材": "Media",
+    "封面": "Covers",
+    "语音": "Voice",
+    "页面": "Pages",
+    "基础参数": "Base settings",
+    "先选视频类型，再按需要调整画幅、分辨率和帧率；不再静默套用默认流程。": "Choose a video type first, then adjust orientation, resolution, and frame rate. The workflow will not silently force a default route.",
+    "分辨率": "Resolution",
+    "帧率": "Frame rate",
+    "横屏": "Horizontal",
+    "竖屏": "Vertical",
+    "创作方法课": "Creator methodology",
+    "个人 IP 讲解": "Personal-IP explainer",
+    "手绘白板": "Hand-drawn whiteboard",
+    "短视频": "Short-form video",
+    "自定义组合": "Custom composition",
+    "视觉动效": "Visual motion",
+    "动态规划": "Dynamic planning",
+    "个人 IP": "Personal IP",
+    "白板绘制": "Whiteboard",
+    "封面并行": "Parallel cover lane",
+    "颜色体系": "Color systems",
+    "自动选择色系": "Auto-select color system",
+    "多色体系": "Multi-color",
+    "单色体系": "Monochrome",
+    "纯黑/深色": "Black / dark",
+    "无黑色": "No black",
+    "全部": "All",
+    "字幕样式": "Caption styles",
+    "自动字幕": "Automatic captions",
+    "关键词高亮": "Keyword emphasis",
+    "素材来源": "Media sources",
+    "素材入口独立配置，避免生成阶段能力混用。": "Configure each media source independently so generation capabilities do not become mixed or ambiguous.",
+    "本地素材路径": "Local media path",
+    "选择素材目录或文件": "Choose a media folder or files",
+    "封面设计": "Cover design",
+    "默认生成上传封面；左侧审核最终封面，右侧收窄平台尺寸。": "Generate upload covers by default. Review the final cover on the left and narrow platform targets on the right.",
+    "审核点击逻辑、模板方向与平台尺寸；参考预览不等于已通过 QC 的上传终版。": "Review click logic, creative direction, and platform targets. A reference preview is not an upload-ready cover that has passed QC.",
+    "设计逻辑": "Design logic",
+    "12 类可审核方向": "12 reviewable directions",
+    "模板": "Templates",
+    "选择封面设计方向": "Choose a cover design direction",
+    "比例": "Ratios",
+    "默认全部生成，可收窄选择": "Generate all by default; narrow the selection when needed",
+    "封面选项": "Cover options",
+    "默认选中": "Selected by default",
+    "示例封面": "Example cover",
+    "当前为封面审核预览": "Cover review preview",
+    "当前包用于审核封面样式、模板方向和平台比例；上传终版需要原生比例 bitmap 通过封面 QC 后进入最终成品。": "This package reviews cover styles, creative direction, and platform ratios. Upload-ready delivery requires native-ratio bitmaps that pass cover QC.",
+    "个人 IP / 手绘融合": "Personal IP / hand-drawn composition",
+    "启用个人 IP 模式": "Enable Personal-IP mode",
+    "白板描线": "Whiteboard line reveal",
+    "彩色组件": "Color components",
+    "字幕顶层": "Topmost caption layer",
+    "启用白板绘制": "Enable whiteboard",
+    "已验证 POC": "Validated POC",
+    "字幕最后合成": "Captions composite last",
+    "语音模块": "Voice module",
+    "默认生成口播/旁白音频；语言、性别、音色和方言选项旁可直接试听。": "Generate narration audio by default. Preview available language, gender, tone, and dialect options in place.",
+    "中文普通话": "Mandarin Chinese",
+    "英文口播": "English narration",
+    "中英双语": "Chinese + English",
+    "方言 / 口音": "Dialect / accent",
+    "女声": "Female voice",
+    "男声": "Male voice",
+    "自然口播": "Conversational",
+    "课程讲解": "Tutorial",
+    "知识解释": "Explainer",
+    "故事叙事": "Story",
+    "新闻分析": "News analysis",
+    "产品演示": "Product demo",
+    "纪录片感": "Documentary",
+    "自动匹配": "Auto match",
+    "可试听方言": "Previewable dialects",
+    "具体方言": "Dialect",
+    "暂无": "Unavailable",
+    "页面级编辑": "Page-level editing",
+    "内容": "Content",
+    "设计": "Design",
+    "主信息、支撑信息、口播节拍、屏幕文字。": "Primary message, supporting detail, narration beat, and on-screen copy.",
+    "版式、颜色、视觉隐喻、图片/图表/白板构图。": "Layout, color, visual metaphor, image/chart/whiteboard composition.",
+    "68 种字幕样式、安全区、关键词强调、时间绑定。": "68 caption styles, safe areas, keyword emphasis, and timing binding.",
+    "确认配置与页面批注后进入最终合成。": "Enter final composition after confirming settings and page annotations.",
+    "生成页面审核包": "Generate page review package",
+    "确认并合成": "Confirm and compose",
+    "大图": "Large preview",
+    "关闭": "Close",
+    "待生成": "Pending",
+    "尚无页面风格绑定": "No page style is bound yet",
+    "分层动画线与路径揭示": "Layered paths and progressive reveal",
+    "视频级动效风格库": "Video-level motion catalog",
+    "打开横屏模板": "Open horizontal templates",
+    "打开竖屏模板": "Open vertical templates",
+    "示例题材": "Example topic",
+    "内容类别": "Content category",
+    "目标观众": "Target audience",
+    "封面承诺": "Cover promise",
+    "点击动机": "Click motivation",
+    "模板响应": "Template response",
+    "成片证据": "Output evidence",
+    "自动按封面设计规范生成": "Generate from the cover design contract",
+    "本地示例资产可用": "Local example assets available",
+    "未找到本地示例资产": "No local example assets found"
+  };
+  return `<script>
+    (() => {
+      const english = ${JSON.stringify(english)};
+      const originals = new WeakMap();
+      const attributeOriginals = new WeakMap();
+      const textWalker = () => document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          const parent = node.parentElement;
+          if (!parent || parent.closest('script, style')) return NodeFilter.FILTER_REJECT;
+          return node.nodeValue && node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      });
+      const translateDynamic = (value) => {
+        if (english[value]) return english[value];
+        const rules = [
+          [/^(\\d+) 个已审核风格模板$/, '$1 reviewed style templates'],
+          [/^(\\d+) 个页面模板 \\+ (\\d+) 个场景级能力；.*$/, '$1 page templates + $2 scene-level capabilities; motion, dynamic planning, Personal IP, whiteboard, and covers can be combined.'],
+          [/^(\\d+) 套色彩系统，.*$/, '$1 color systems. Auto planning selects from the topic, narration, and page content; manual override remains available.'],
+          [/^当前目录共 (\\d+) 种，默认按分类展示，右侧为真实样式预览。$/, '$1 styles in the current catalog, grouped by category with deterministic previews.'],
+          [/^支持 (\\d+) 个封面输出尺寸$/, 'Supports $1 cover output sizes'],
+          [/^(\\d+) 个页面可按内容、设计、字幕三类批注。$/, '$1 pages support Content / Design / Caption annotations.'],
+          [/^检测到 (\\d+) 个候选$/, '$1 candidates detected'],
+          [/^策略：(.*)$/, 'Policy: $1'],
+          [/^适配层：(.*)$/, 'Adapter: $1'],
+          [/^描线引擎：(.*)$/, 'Line engine: $1'],
+          [/^女声：(.*)$/, 'Female: $1'],
+          [/^男声：(.*)$/, 'Male: $1']
+        ];
+        for (const [pattern, replacement] of rules) {
+          if (pattern.test(value)) return value.replace(pattern, replacement);
+        }
+        return value;
+      };
+      const localizeTextNode = (node, locale) => {
+        if (!originals.has(node)) originals.set(node, node.nodeValue);
+        const original = originals.get(node);
+        if (locale !== 'en') {
+          node.nodeValue = original;
+          return;
+        }
+        const leading = original.match(/^\\s*/)?.[0] || '';
+        const trailing = original.match(/\\s*$/)?.[0] || '';
+        const core = original.trim();
+        node.nodeValue = leading + translateDynamic(core) + trailing;
+      };
+      const localizeAttributes = (locale) => {
+        document.querySelectorAll('[aria-label], [title], [placeholder]').forEach((element) => {
+          if (!attributeOriginals.has(element)) {
+            attributeOriginals.set(element, {
+              ariaLabel: element.getAttribute('aria-label'),
+              title: element.getAttribute('title'),
+              placeholder: element.getAttribute('placeholder')
+            });
+          }
+          const original = attributeOriginals.get(element);
+          for (const [attribute, value] of [['aria-label', original.ariaLabel], ['title', original.title], ['placeholder', original.placeholder]]) {
+            if (value == null) continue;
+            element.setAttribute(attribute, locale === 'en' ? translateDynamic(value) : value);
+          }
+        });
+      };
+      const applyLocale = (locale) => {
+        const normalized = locale === 'en' ? 'en' : 'zh-CN';
+        const walker = textWalker();
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach((node) => localizeTextNode(node, normalized));
+        localizeAttributes(normalized);
+        document.documentElement.lang = normalized;
+        document.title = normalized === 'en' ? 'Video Production Console' : '视频生成配置台';
+        document.querySelectorAll('[data-config-locale]').forEach((button) => {
+          const active = button.dataset.configLocale === normalized;
+          button.classList.toggle('active', active);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', normalized === 'en' ? 'en' : 'zh');
+        history.replaceState(null, '', url);
+        try { localStorage.setItem('codex-video-config-locale', normalized); } catch {}
+        window.dispatchEvent(new CustomEvent('codex-config-locale-change', { detail: { locale: normalized } }));
+      };
+      document.querySelectorAll('[data-config-locale]').forEach((button) => {
+        button.addEventListener('click', () => applyLocale(button.dataset.configLocale));
+      });
+      const requested = new URL(window.location.href).searchParams.get('lang');
+      let saved = '';
+      try { saved = localStorage.getItem('codex-video-config-locale') || ''; } catch {}
+      applyLocale(requested === 'en' || (!requested && saved === 'en') ? 'en' : 'zh-CN');
+      window.codexVideoConfigI18n = { applyLocale, supportedLocales: ['zh-CN', 'en'] };
+    })();
+  </script>`;
+}
+
 function renderHtml(model) {
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-config-locales="zh-CN en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8425,6 +8689,7 @@ function renderHtml(model) {
     ${renderPageEditSection(model)}
   </main>
   ${renderScripts()}
+  ${renderLocaleScript()}
 </body>
 </html>
 `;

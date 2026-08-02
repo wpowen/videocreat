@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { buildCoverGenerationWorkflowContract } from "./lib/cover-generation-workflow-contract.mjs";
 
 function argValue(name, fallback = "") {
@@ -18,6 +19,23 @@ function writeJsonAtomic(path, value) {
   const temporary = `${path}.tmp-${process.pid}`;
   writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`);
   renameSync(temporary, path);
+}
+
+function sha256File(path) {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function generatedSourcePath(path) {
+  const rootArgument = resolve(process.env.CODEX_VIDEO_COVER_GENERATED_ROOT
+    || join(process.env.CODEX_HOME || join(process.env.HOME || "", ".codex"), "generated_images"));
+  if (!existsSync(rootArgument)) throw new Error(`Generated image root not found: ${rootArgument}`);
+  const canonicalRoot = realpathSync(rootArgument);
+  const canonicalSource = realpathSync(path);
+  const relation = relative(canonicalRoot, canonicalSource);
+  if (relation === ".." || relation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(relation)) {
+    throw new Error(`Generated source must stay under ${canonicalRoot}: ${canonicalSource}`);
+  }
+  return canonicalSource;
 }
 
 function earliest(values) {
@@ -66,16 +84,18 @@ try {
   const job = (plan.jobs || []).find((item) => item.targetId === targetId);
   if (!job) throw new Error(`Target ${targetId} is not part of the prepared pending dispatch set`);
   const sourceArg = argValue("--source");
-  const sourcePath = sourceArg ? resolve(sourceArg) : "";
+  let sourcePath = sourceArg ? resolve(sourceArg) : "";
   if (status === "generated" && (!sourcePath || !existsSync(sourcePath))) {
     throw new Error(`Generated source is missing for ${targetId}: ${sourcePath || "not provided"}`);
   }
+  if (status === "generated") sourcePath = generatedSourcePath(sourcePath);
   const submittedAt = argValue("--submitted-at", new Date().toISOString());
   const completedAt = argValue("--completed-at", new Date().toISOString());
   const result = {
     targetId,
     status,
     sourcePath: status === "generated" ? sourcePath : null,
+    sourceSha256: status === "generated" ? sha256File(sourcePath) : null,
     submittedAt,
     completedAt,
     error: status === "failed" ? argValue("--error", "unknown Image2 failure") : null,
@@ -84,15 +104,27 @@ try {
   run.targetResults = [
     ...(run.targetResults || []).filter((item) => item.targetId !== targetId),
     result,
-  ].sort((left, right) => (plan.pendingTargetIds || []).indexOf(left.targetId) - (plan.pendingTargetIds || []).indexOf(right.targetId));
+  ];
+  const manifest = readJson(requestPath);
+  const generationTargetIds = (manifest.requests || [])
+    .map((request) => String(request.targetId || request.id || "").replace(/-image2-integrated-cover$/, ""));
+  run.targetResults.sort((left, right) => generationTargetIds.indexOf(left.targetId) - generationTargetIds.indexOf(right.targetId));
   const byTarget = new Map(run.targetResults.map((item) => [item.targetId, item]));
-  const pendingTargetIds = plan.pendingTargetIds || [];
-  const generatedTargetIds = pendingTargetIds.filter((id) => byTarget.get(id)?.status === "generated");
-  const failedTargetIds = pendingTargetIds.filter((id) => byTarget.get(id)?.status === "failed");
+  const completedTargetIds = (manifest.requests || [])
+    .filter((request) => request.status === "completed")
+    .map((request) => String(request.targetId || request.id || "").replace(/-image2-integrated-cover$/, ""));
+  const completedTargetSet = new Set(completedTargetIds);
+  const generatedTargetIds = generationTargetIds.filter((id) => completedTargetSet.has(id) || byTarget.get(id)?.status === "generated");
+  const failedTargetIds = generationTargetIds.filter((id) => !completedTargetSet.has(id) && byTarget.get(id)?.status === "failed");
+  const pendingTargetIds = generationTargetIds.filter((id) => !generatedTargetIds.includes(id));
+  run.generationTargetIds = generationTargetIds;
   run.generatedTargetIds = generatedTargetIds;
   run.failedTargetIds = failedTargetIds;
   run.retryTargetIds = failedTargetIds;
-  run.coversGenerated = generatedTargetIds.length === pendingTargetIds.length && failedTargetIds.length === 0;
+  run.completedTargetIds = completedTargetIds;
+  run.pendingTargetIds = pendingTargetIds;
+  run.pendingTargetCount = pendingTargetIds.length;
+  run.coversGenerated = generatedTargetIds.length === generationTargetIds.length && failedTargetIds.length === 0;
   run.coversVerified = false;
   run.status = run.coversGenerated ? "covers_generated" : failedTargetIds.length ? "generation_failed" : "dispatching";
   run.timing = {
@@ -103,7 +135,7 @@ try {
   };
   writeJsonAtomic(runPath, run);
   writeJsonAtomic(workflowPath, buildCoverGenerationWorkflowContract({
-    requestManifest: readJson(requestPath),
+    requestManifest: manifest,
     generationRun: run,
   }));
   console.log(JSON.stringify({

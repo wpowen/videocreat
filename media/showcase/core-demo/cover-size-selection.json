@@ -1,0 +1,667 @@
+{
+  "titleStem": "一份 Brief,两种视频生产模式",
+  "selectionDirectory": "最终成品",
+  "finalDeliveryDirectory": "最终成品",
+  "reviewOnlyPreviewDirectory": "封面预览-非上传终版",
+  "singleUserFacingDeliveryDirectory": true,
+  "contentPreservingAspectFit": true,
+  "hardCropIntegratedTypographyRejected": true,
+  "targetRatioNativeImage2Required": true,
+  "uploadReadyOnlyWhenNativeTargetRatio": true,
+  "allEntriesUploadReady": false,
+  "humanSelectionContainsOnlyUploadReady": true,
+  "nonUploadReadyVisualFilesCopied": false,
+  "reviewGradeCoverDirectory": "最终成品/评审级封面-非上传终版",
+  "reviewGradeCoversInFinalDeliveryDirectory": true,
+  "reviewGradeCoversPolicy": "When no native upload-ready target-ratio Image 2 cover exists, review-grade draft covers are placed under 最终成品/评审级封面-非上传终版/ so the deliverable always contains a usable cover image. The aspect-named upload group folders remain native-only.",
+  "nonNativeTargetRatioReviewDraftsSuppressed": true,
+  "nonNativeTargetRatioReviewDraftPolicy": "For 4:3, 3:4, square, Reels, Bilibili common, and other non-16:9 target-ratio gaps, do not write target-size review-grade drafts. Keep them pending for Context Image2/Image2 native generation to avoid cropped or locally recomposed files being mistaken for final covers.",
+  "reviewGradeCoverFiles": [
+    {
+      "format": "png",
+      "file": "最终成品/评审级封面-非上传终版/视频内封面/00-视频内封面-同视频画布-评审级(非上传终版).png"
+    },
+    {
+      "format": "jpg",
+      "file": "最终成品/评审级封面-非上传终版/视频内封面/00-视频内封面-同视频画布-评审级(非上传终版).jpg"
+    },
+    {
+      "format": "png",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/01-横版16比9-4K母版-3840x2160-评审级(非上传终版).png"
+    },
+    {
+      "format": "jpg",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/01-横版16比9-4K母版-3840x2160-评审级(非上传终版).jpg"
+    },
+    {
+      "format": "png",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/03-横版16比9-YouTube常用-1280x720-评审级(非上传终版).png"
+    },
+    {
+      "format": "jpg",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/03-横版16比9-YouTube常用-1280x720-评审级(非上传终版).jpg"
+    },
+    {
+      "format": "png",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/02-横版16比9-B站HD-1920x1080-评审级(非上传终版).png"
+    },
+    {
+      "format": "jpg",
+      "file": "最终成品/评审级封面-非上传终版/横版16比9/02-横版16比9-B站HD-1920x1080-评审级(非上传终版).jpg"
+    }
+  ],
+  "topicScopedFinalDeliveryDirectory": true,
+  "groupedByChineseAspectRatio": true,
+  "localTargetRatioRecompositionPreviewOnly": true,
+  "needsRegenerationManifest": "最终成品/需原生重生成清单.md",
+  "needsRegeneration": [
+    {
+      "targetId": "video-opening",
+      "label": "00-视频内封面-同视频画布",
+      "group": "视频内封面",
+      "width": 1920,
+      "height": 1080,
+      "ratio": "16:9",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-video-opening-16x9.png",
+        "cover/cover-video-opening-16x9.jpg"
+      ]
+    },
+    {
+      "targetId": "master-16x9-4k",
+      "label": "01-横版16比9-4K母版-3840x2160",
+      "group": "横版16比9",
+      "width": 3840,
+      "height": 2160,
+      "ratio": "16:9",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-master-16x9-3840x2160.png",
+        "cover/cover-master-16x9-3840x2160.jpg"
+      ]
+    },
+    {
+      "targetId": "youtube-1280x720",
+      "label": "03-横版16比9-YouTube常用-1280x720",
+      "group": "横版16比9",
+      "width": 1280,
+      "height": 720,
+      "ratio": "16:9",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-16x9-1280x720.png",
+        "cover/cover-16x9-1280x720.jpg"
+      ]
+    },
+    {
+      "targetId": "horizontal-4x3-1600x1200",
+      "label": "04-横版4比3-通用封面-1600x1200",
+      "group": "横版4比3",
+      "width": 1600,
+      "height": 1200,
+      "ratio": "4:3",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.3333333333333333,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-horizontal-4x3-1600x1200.png",
+        "cover/cover-horizontal-4x3-1600x1200.jpg"
+      ]
+    },
+    {
+      "targetId": "bilibili-common-1146x717",
+      "label": "05-B站常用-1146x717",
+      "group": "B站常用1146x717",
+      "width": 1146,
+      "height": 717,
+      "ratio": "382:239",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.598326359832636,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-bilibili-1146x717.png",
+        "cover/cover-bilibili-1146x717.jpg"
+      ]
+    },
+    {
+      "targetId": "bilibili-1920x1080",
+      "label": "02-横版16比9-B站HD-1920x1080",
+      "group": "横版16比9",
+      "width": 1920,
+      "height": 1080,
+      "ratio": "16:9",
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-16x9-1920x1080.png",
+        "cover/cover-16x9-1920x1080.jpg"
+      ]
+    },
+    {
+      "targetId": "vertical-1080x1920",
+      "label": "06-竖版9比16-短视频-1080x1920",
+      "group": "竖版9比16",
+      "width": 1080,
+      "height": 1920,
+      "ratio": "9:16",
+      "sourceAssetRatio": null,
+      "targetRatio": 0.5625,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-vertical-1080x1920.png",
+        "cover/cover-vertical-1080x1920.jpg"
+      ]
+    },
+    {
+      "targetId": "vertical-profile-1080x1440",
+      "label": "07-竖版3比4-首页封面-1080x1440",
+      "group": "竖版3比4",
+      "width": 1080,
+      "height": 1440,
+      "ratio": "3:4",
+      "sourceAssetRatio": null,
+      "targetRatio": 0.75,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-vertical-profile-1080x1440.png",
+        "cover/cover-vertical-profile-1080x1440.jpg"
+      ]
+    },
+    {
+      "targetId": "instagram-reels-cover",
+      "label": "08-Reels封面-420x654",
+      "group": "Reels封面420x654",
+      "width": 420,
+      "height": 654,
+      "ratio": "70:109",
+      "sourceAssetRatio": null,
+      "targetRatio": 0.6422018348623854,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-instagram-reels-420x654.png",
+        "cover/cover-instagram-reels-420x654.jpg"
+      ]
+    },
+    {
+      "targetId": "square-1200x1200",
+      "label": "09-方形1比1-社交卡片-1200x1200",
+      "group": "方形1比1",
+      "width": 1200,
+      "height": 1200,
+      "ratio": "1:1",
+      "sourceAssetRatio": null,
+      "targetRatio": 1,
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-square-1200x1200.png",
+        "cover/cover-square-1200x1200.jpg"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "targetId": "video-opening",
+      "label": "00-视频内封面-同视频画布",
+      "group": "视频内封面",
+      "width": 1920,
+      "height": 1080,
+      "ratio": "16:9",
+      "note": "跟最终 MP4 画布一致，用于片头/连续性检查，不一定是上传封面。 当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入同画布评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": true,
+      "reviewGradeSuppressedUntilNativeImage2": false,
+      "reviewGradeSuppressionReason": null,
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-video-opening-16x9.png",
+        "cover/cover-video-opening-16x9.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [
+        {
+          "format": "png",
+          "file": "最终成品/评审级封面-非上传终版/视频内封面/00-视频内封面-同视频画布-评审级(非上传终版).png"
+        },
+        {
+          "format": "jpg",
+          "file": "最终成品/评审级封面-非上传终版/视频内封面/00-视频内封面-同视频画布-评审级(非上传终版).jpg"
+        }
+      ],
+      "files": []
+    },
+    {
+      "targetId": "master-16x9-4k",
+      "label": "01-横版16比9-4K母版-3840x2160",
+      "group": "横版16比9",
+      "width": 3840,
+      "height": 2160,
+      "ratio": "16:9",
+      "note": "YouTube-style entry cover: title plus thumbnail must make the click reason obvious, with one strong promise and low clutter. 当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入同画布评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": true,
+      "reviewGradeSuppressedUntilNativeImage2": false,
+      "reviewGradeSuppressionReason": null,
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-master-16x9-3840x2160.png",
+        "cover/cover-master-16x9-3840x2160.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [
+        {
+          "format": "png",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/01-横版16比9-4K母版-3840x2160-评审级(非上传终版).png"
+        },
+        {
+          "format": "jpg",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/01-横版16比9-4K母版-3840x2160-评审级(非上传终版).jpg"
+        }
+      ],
+      "files": []
+    },
+    {
+      "targetId": "youtube-1280x720",
+      "label": "03-横版16比9-YouTube常用-1280x720",
+      "group": "横版16比9",
+      "width": 1280,
+      "height": 720,
+      "ratio": "16:9",
+      "note": "Common YouTube thumbnail export; fewer words, stronger contrast, one visual proof object. 当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入同画布评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": true,
+      "reviewGradeSuppressedUntilNativeImage2": false,
+      "reviewGradeSuppressionReason": null,
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-16x9-1280x720.png",
+        "cover/cover-16x9-1280x720.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [
+        {
+          "format": "png",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/03-横版16比9-YouTube常用-1280x720-评审级(非上传终版).png"
+        },
+        {
+          "format": "jpg",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/03-横版16比9-YouTube常用-1280x720-评审级(非上传终版).jpg"
+        }
+      ],
+      "files": []
+    },
+    {
+      "targetId": "horizontal-4x3-1600x1200",
+      "label": "04-横版4比3-通用封面-1600x1200",
+      "group": "横版4比3",
+      "width": 1600,
+      "height": 1200,
+      "ratio": "4:3",
+      "note": "通用 4:3 横版封面；必须使用原生 4:3 Image 2 构图，不允许由 16:9 裁切、补边或层叠适配。 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.3333333333333333,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-horizontal-4x3-1600x1200.png",
+        "cover/cover-horizontal-4x3-1600x1200.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    },
+    {
+      "targetId": "bilibili-common-1146x717",
+      "label": "05-B站常用-1146x717",
+      "group": "B站常用1146x717",
+      "width": 1146,
+      "height": 717,
+      "ratio": "382:239",
+      "note": "B站常见创作者封面尺寸；必须使用原生 1146x717 Image 2 构图，不允许由 16:9 裁切、补边或层叠适配。 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.598326359832636,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-bilibili-1146x717.png",
+        "cover/cover-bilibili-1146x717.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    },
+    {
+      "targetId": "bilibili-1920x1080",
+      "label": "02-横版16比9-B站HD-1920x1080",
+      "group": "横版16比9",
+      "width": 1920,
+      "height": 1080,
+      "ratio": "16:9",
+      "note": "HD Bilibili-style cover: readable Chinese hook, method proof, and enough context for list scanning. 当前没有原生目标比例 Image 2 一体化封面；已在 `最终成品/评审级封面-非上传终版/` 放入同画布评审级草稿封面供预览，但它不是上传终版，必须按该尺寸重新生成 Image 2 封面后才能上传。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": true,
+      "reviewGradeSuppressedUntilNativeImage2": false,
+      "reviewGradeSuppressionReason": null,
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1.7777777777777777,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-16x9-1920x1080.png",
+        "cover/cover-16x9-1920x1080.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [
+        {
+          "format": "png",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/02-横版16比9-B站HD-1920x1080-评审级(非上传终版).png"
+        },
+        {
+          "format": "jpg",
+          "file": "最终成品/评审级封面-非上传终版/横版16比9/02-横版16比9-B站HD-1920x1080-评审级(非上传终版).jpg"
+        }
+      ],
+      "files": []
+    },
+    {
+      "targetId": "vertical-1080x1920",
+      "label": "06-竖版9比16-短视频-1080x1920",
+      "group": "竖版9比16",
+      "width": 1080,
+      "height": 1920,
+      "ratio": "9:16",
+      "note": "Vertical recommendation/profile cover: search/profile-readable hook, first-frame continuity, and critical text inside the center safe area. 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 0.5625,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-vertical-1080x1920.png",
+        "cover/cover-vertical-1080x1920.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    },
+    {
+      "targetId": "vertical-profile-1080x1440",
+      "label": "07-竖版3比4-首页封面-1080x1440",
+      "group": "竖版3比4",
+      "width": 1080,
+      "height": 1440,
+      "ratio": "3:4",
+      "note": "短视频主页/个人页网格；必须使用原生 3:4 Image 2 构图，不允许由 9:16 裁切、补边或层叠适配。 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 0.75,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-vertical-profile-1080x1440.png",
+        "cover/cover-vertical-profile-1080x1440.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    },
+    {
+      "targetId": "instagram-reels-cover",
+      "label": "08-Reels封面-420x654",
+      "group": "Reels封面420x654",
+      "width": 420,
+      "height": 654,
+      "ratio": "70:109",
+      "note": "Instagram Reels 个人主页封面；必须使用原生 420x654 Image 2 构图，不允许由 9:16 裁切、补边或层叠适配。 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 0.6422018348623854,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-instagram-reels-420x654.png",
+        "cover/cover-instagram-reels-420x654.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    },
+    {
+      "targetId": "square-1200x1200",
+      "label": "09-方形1比1-社交卡片-1200x1200",
+      "group": "方形1比1",
+      "width": 1200,
+      "height": 1200,
+      "ratio": "1:1",
+      "note": "Square social card: centered hook and proof object for feed/share scanning. 当前没有原生目标比例 Image 2 一体化封面；为避免生成看似 4:3/3:4/方图成品但实际被截断或本地重排的假终版，此尺寸不写出评审级目标尺寸图片，只进入 `需原生重生成清单.md` 和 Context Image2/Image2 生成请求。",
+      "qualityStatus": "needs-native-target-ratio-image2",
+      "uploadReady": false,
+      "needsRegeneration": true,
+      "requiresNativeImage2TargetRatio": true,
+      "image2NativeTargetRatioReady": false,
+      "localTargetRatioRecomposition": false,
+      "reviewGradeDraftAllowed": false,
+      "reviewGradeSuppressedUntilNativeImage2": true,
+      "reviewGradeSuppressionReason": "Non-16:9 target-ratio cover gaps must not output target-size local/review drafts; generate a native Context Image2/Image2 cover for this target instead.",
+      "targetRatioNativeMatch": false,
+      "sourceAssetRatio": null,
+      "targetRatio": 1,
+      "selectedAsset": {
+        "status": "missing",
+        "provider": "image2-dryrun",
+        "mode": "professional-overlay-with-generated-prompt-pending",
+        "note": "No project-bound Image 2 bitmap was available. The cover engine used the same high-click layout and prompt contract with a deterministic visual-subject fallback, not the legacy title-card cover."
+      },
+      "rootFiles": [],
+      "internalReviewFiles": [
+        "cover/cover-square-1200x1200.png",
+        "cover/cover-square-1200x1200.jpg"
+      ],
+      "previewFiles": [],
+      "reviewGradeFiles": [],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "globalSafeArea": "bottom-caption-band",
+  "displayMode": "single-line-sequential",
+  "museum": {
+    "onePage": true,
+    "styleCount": 68,
+    "groupCount": 8,
+    "groups": [
+      {
+        "id": "glass",
+        "count": 9,
+        "styleIds": [
+          "prism-glass",
+          "aurora-strip",
+          "caption-card",
+          "liquid-blur",
+          "crystal-plate",
+          "frosted-index",
+          "lens-flare-tag",
+          "radial-glow-plate",
+          "quote-glass-seal"
+        ]
+      },
+      {
+        "id": "editorial",
+        "count": 14,
+        "styleIds": [
+          "editorial-rule",
+          "ink-capsule",
+          "film-subtitle",
+          "paper-ribbon",
+          "minimal-luxe",
+          "source-label",
+          "warm-editorial",
+          "proof-highlight",
+          "split-quote-frame",
+          "annotated-bracket",
+          "duotone-lower-third",
+          "ribbon-cutout",
+          "book-margin-note",
+          "elegant-parentheses"
+        ]
+      },
+      {
+        "id": "kinetic",
+        "count": 14,
+        "styleIds": [
+          "marker-swipe",
+          "kinetic-slab",
+          "karaoke-line",
+          "neon-outline",
+          "stamp-pop",
+          "gradient-type",
+          "manga-burst",
+          "alert-ribbon",
+          "slash-title",
+          "premium-karaoke-tokens",
+          "liquid-highlighter",
+          "magnetic-label",
+          "caption-spotlight",
+          "cutscene-title"
+        ]
+      },
+      {
+        "id": "ui",
+        "count": 16,
+        "styleIds": [
+          "holo-hud",
+          "terminal-chip",
+          "bento-token",
+          "glass-console",
+          "floating-orbital",
+          "blueprint-caption",
+          "data-pill",
+          "soft-ui-dock",
+          "command-palette",
+          "timeline-tick",
+          "floating-tooltip",
+          "stat-counter-lockup",
+          "mono-debug-overlay",
+          "multicolor-word-chips",
+          "product-toast",
+          "neon-terminal-bar"
+        ]
+      },
+      {
+        "id": "bilingual",
+        "count": 3,
+        "styleIds": [
+          "split-bilingual",
+          "caption-stack",
+          "interview-lower-third"
+        ]
+      },
+      {
+        "id": "audio",
+        "count": 3,
+        "styleIds": [
+          "waveform-base",
+          "voice-note",
+          "capsule-transcript"
+        ]
+      },
+      {
+        "id": "minimal",
+        "count": 6,
+        "styleIds": [
+          "soft-shadow",
+          "quiet-caption",
+          "edge-caption-rail",
+          "minimal-borderless",
+          "depth-shadow-type",
+          "dimmer-band"
+        ]
+      },
+      {
+        "id": "mobile",
+        "count": 3,
+        "styleIds": [
+          "vertical-live",
+          "vertical-thumb-guard",
+          "social-sticker"
+        ]
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "sceneId": "opening",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "process",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "data",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "proof",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "product",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "compare",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "matrix",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "lanes",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "covers",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "personal",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "whiteboard",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "captions",
+      "selectedStyleId": "museum-active-group",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    },
+    {
+      "sceneId": "closing",
+      "selectedStyleId": "ink-capsule",
+      "fallbackStyleId": "film-subtitle",
+      "semanticCueType": "explanation",
+      "emphasisPlan": "one semantic clause",
+      "motion": "opacity+y-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential"
+    }
+  ]
+}

@@ -82,6 +82,20 @@ Use this sequence before creating the image:
 10. Remove platform/spec labels, workflow labels, captions, file paths, renderer names, and any production evidence from the visible cover.
 11. Check the cover does not look like a PPT slide: no course-heading-first layout, no small body copy, no decorative card grid, no internal process labels, and no full title repeated as the dominant visual when a sharper hook is available.
 
+## Art-Direction Style System
+
+Apply `cover-art-direction-system-v1` after content/category strategy and before prompt composition. The reusable boundary is:
+
+`derived content fields -> native platform shape -> exactly one style atom -> one integrated cover prompt -> target-bound inspection`
+
+Read `skills/codex-video-cover-generation/references/cover-art-direction-system.md` for the maintained atom catalog. Each run must record `coverArtDirectionSystem.methodologyVersion`, `selectionMode`, `selectionReason`, `selectedStyleCount: 1`, and one `selectedStyle` with `anchors`, `coverAdaptation`, `presenterPolicy`, `textPolicy`, `surfaceMode`, `backgroundPolicy`, `mustPreserve`, and `avoid` fields. An explicit `brief.coverStyleId` or `brief.coverArtDirectionStyleId` selects a known style; an unknown id is a blocking configuration error. Without an override, select from the locked title, narration-derived frames, category, proof subject, and visual metaphor.
+
+The selected atom is not an extra prompt suffix. Rewrite the atom into the subject, title behavior, composition, spatial logic, materials, texture, palette, and negative constraints of the target-specific Image 2 prompt. Every prompt must expose one `Art direction style:` id and the same id must remain stable across platform variants. Never mix multiple atoms, copy an upstream style file, or let a platform crop silently change the art-direction identity.
+
+Resolve `cover-semantic-color-system-v1` after the style atom. Content selects one semantic family; the style selects `light`, `muted`, or `dark`; the platform enforces contrast and safe area without choosing the topic hue. Persist the family, reason, surface mode, background pair, accents, and background policy per target. Never use yellow/cream paper as the automatic full-canvas background. A `brief.coverColorFamilyId` or `brief.coverPaletteId` may explicitly select a known family and must fail closed when unknown.
+
+This structure is informed by the abstract "cover task + one reusable style atom + integrated prompt" separation observed in AdrianPunk/Punk-Skill at commit `ab6e7e73b78fad519b1aa46621b25accb1e656e2`. Because that repository had no published license at review time, this workflow uses original style definitions and does not copy its prompts, screenshots, style text, or article-platform ratios.
+
 ## Methodology Execution Contract
 
 The cover engine must run the methodology before choosing or rendering a layout. `workflow/cover-design.json` and `workflow/cover-image2-prompts.json` must expose this strategy so reviewers can see why the cover exists:

@@ -557,6 +557,12 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
   assert(/data-auto-caption-toggle/.test(semiAutoHtml) && /data-keyword-highlight-toggle/.test(semiAutoHtml), "semi-auto config page must render auto subtitle and keyword highlight toggles", failures);
   assert(new Set([...semiAutoHtml.matchAll(/data-caption-signature="([^"]+)"/g)].map((match) => match[1])).size >= 68, "semi-auto config page must render unique caption preview signatures", failures);
   assert(/界面工具/.test(semiAutoHtml) && /编辑叙事/.test(semiAutoHtml) && /节奏强调/.test(semiAutoHtml), "semi-auto config page must render Chinese caption group names", failures);
+  assert(/data-config-locales="zh-CN en"/.test(semiAutoHtml), "semi-auto config page must declare Chinese and English locales", failures);
+  assert((semiAutoHtml.match(/data-config-locale=/g) || []).length === 2, "semi-auto config page must render one Chinese and one English locale control", failures);
+  assert(/Video Production Console/.test(semiAutoHtml) && /Page-level editing/.test(semiAutoHtml) && /Generate page review package/.test(semiAutoHtml), "semi-auto config page must embed English UI translations for the shell, page editing, and compose actions", failures);
+  assert(/window\.codexVideoConfigI18n/.test(semiAutoHtml) && /supportedLocales: \['zh-CN', 'en'\]/.test(semiAutoHtml), "semi-auto config page must expose a deterministic runtime locale switch", failures);
+  assert(/data-cover-logic-catalog/.test(semiAutoHtml), "semi-auto config page must expose the compact cover logic catalog", failures);
+  assert((semiAutoHtml.match(/data-cover-logic-card=/g) || []).length === 12, "semi-auto config page must expose all 12 cover logic presets", failures);
   assert(/data-local-material-toggle/.test(semiAutoHtml) && /data-local-material-panel/.test(semiAutoHtml) && /webkitdirectory/.test(semiAutoHtml), "semi-auto config page must provide local material picker UI", failures);
   assert(/data-feature-toggle="personal-ip"/.test(semiAutoHtml) && /data-feature-toggle="motion"/.test(semiAutoHtml) && /data-feature-toggle="whiteboard"/.test(semiAutoHtml), "semi-auto config page must render personal-IP, motion, and whiteboard compatibility toggles", failures);
   assert(/data-ip-gallery/.test(semiAutoHtml) && /ip-diagram-creator/.test(semiAutoHtml), "semi-auto config page must render integrated IP diagram creator gallery preview", failures);
@@ -658,6 +664,8 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
       "logs/silencedetect.log",
       "workflow/voice-direction.json",
       "workflow/voice-subtitle-manifest.json",
+      "workflow/script-fidelity.json",
+      "workflow/final-delivery-paths.json",
       "workflow/sync-timecode-plan.json",
       "script/subtitles.srt",
       "script/subtitle-cue-narration-segments.json",
@@ -666,6 +674,13 @@ function validateFullFrameworkOutput({ out, briefPath, fullRender = false }) {
     if (fileExists(out, "logs/qc.json")) {
       const qc = readJson(join(out, "logs/qc.json"));
       assert(qc.pass === true, "full-render logs/qc.json must pass", failures);
+      const scriptFidelity = readJson(join(out, "workflow", "script-fidelity.json"));
+      const deliveryPaths = readJson(join(out, "workflow", "final-delivery-paths.json"));
+      const deliveryManifest = readJson(join(out, "delivery-manifest.json"));
+      assert(scriptFidelity.pass === true && scriptFidelity.failures.length === 0, "full-render口播稿 fidelity audit must pass", failures);
+      assert(deliveryPaths.finalVideoPath && existsSync(deliveryPaths.finalVideoPath), "full-render path contract must expose an existing title-named final video", failures);
+      assert(deliveryManifest.finalVideoPath === deliveryPaths.finalVideoPath, "delivery manifest and final path contract must agree", failures);
+      assert(deliveryManifest.finalMp4 === deliveryManifest.finalCopy && deliveryManifest.sameDirectoryDelivery?.video === deliveryManifest.finalCopy, "delivery manifest final video aliases must all point to the title-named root MP4", failures);
     }
   }
 

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "strategy": "concrete-content-to-semantic-motion",
+  "rule": "Every motion example includes readable content, an object change, a named motion verb, a meaning statement, and provenance.",
+  "scenes": [
+    {
+      "id": "opening",
+      "start": 0,
+      "end": 5,
+      "caption": "动效的价值，不是让画面更忙，而是让信息变得更清楚。",
+      "captions": null
+    },
+    {
+      "id": "process",
+      "start": 5,
+      "end": 10,
+      "caption": "输入、拆页、选模板、生成素材、逐页质检，再合成成片。",
+      "captions": null
+    },
+    {
+      "id": "data",
+      "start": 10,
+      "end": 15,
+      "caption": "数据先交代口径，再让曲线解释趋势和拐点。",
+      "captions": null
+    },
+    {
+      "id": "proof",
+      "start": 15,
+      "end": 20,
+      "caption": "真实图片进入证据板，连线只在因果关系出现时绘制。",
+      "captions": null
+    },
+    {
+      "id": "product",
+      "start": 20,
+      "end": 25,
+      "caption": "配置平台把输入、处理中和输出放在同一条路径里。",
+      "captions": null
+    },
+    {
+      "id": "compare",
+      "start": 25,
+      "end": 30,
+      "caption": "设计升级必须看得见结构差异，而不是只换一组颜色。",
+      "captions": null
+    },
+    {
+      "id": "matrix",
+      "start": 30,
+      "end": 35,
+      "caption": "模板按语义匹配和素材可得性选择，不靠随机抽取。",
+      "captions": null
+    },
+    {
+      "id": "lanes",
+      "start": 35,
+      "end": 40,
+      "caption": "多个角色并行工作，交接点和最终产物都清晰可见。",
+      "captions": null
+    },
+    {
+      "id": "covers",
+      "start": 40,
+      "end": 45,
+      "caption": "封面先比较承诺和构图，再选择横版、竖版或方形。",
+      "captions": null
+    },
+    {
+      "id": "personal",
+      "start": 45,
+      "end": 50,
+      "caption": "个人 IP 使用两张原生页面，保持人物与视觉语言一致。",
+      "captions": null
+    },
+    {
+      "id": "whiteboard",
+      "start": 50,
+      "end": 54.5,
+      "caption": "白板只描绘关键路径，圈出节点，再用颜色回填结论。",
+      "captions": null
+    },
+    {
+      "id": "captions",
+      "start": 54.5,
+      "end": 66.5,
+      "caption": null,
+      "captions": [
+        {
+          "until": 0.45,
+          "text": "同一句话可以按八种语义任务，路由到六十八种字幕样式。"
+        },
+        {
+          "until": 0.78,
+          "text": "所有样式都在同一张大画布上，镜头只聚焦当前分组。"
+        },
+        {
+          "until": 1,
+          "text": "当前组被放大，其余样式自动降噪。"
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "start": 66.5,
+      "end": 71.5,
+      "caption": "从内容到动效、字幕、图片和质检，这就是完整框架。",
+      "captions": null
+    }
+  ]
+}

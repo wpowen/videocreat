@@ -18,11 +18,11 @@ Require a topic package containing:
 - `workflow/cover-size-selection.json`
 - `prompts/context-image2-covers/*.txt`
 
-Resolve this standalone Skill root first. Its dispatch planner, runtime contract, result recorder, and batch-ingest coordinator are owned here and must be changed and tested here. Resolve the companion video-workflow root only for the stable package validators and target ingest primitive. Read `references/workflow-contract.md` and `references/image2-dispatch-runtime.md` before execution.
+Resolve this standalone Skill root first. Its dispatch planner, runtime contract, result recorder, and batch-ingest coordinator are owned here and must be changed and tested here. Resolve the companion video-workflow root only for the stable package validators and target ingest primitive. Read `references/workflow-contract.md`, `references/image2-dispatch-runtime.md`, and `references/cover-art-direction-system.md` before execution.
 
 ## Workflow
 
-1. Run the companion `scripts/validate-cover-generation-workflow.mjs --out <topic> --allow-pending`. The validator must compare the request list against every target in `workflow/cover-image2-prompts.json`, not merely compare completed count with an already-truncated request list. Stop on prompt parity, request-scope, request-count, or contract-state failures; repair the package before generation. A narrowed primary-only or subset scope is valid only with matching request-bound explicit user authorization.
+1. Run the companion `scripts/validate-cover-generation-workflow.mjs --out <topic> --allow-pending`. The validator must compare the request list against every target in `workflow/cover-image2-prompts.json`, not merely compare completed count with an already-truncated request list. Stop on prompt parity, request-scope, request-count, contract-state, art-direction, or semantic-color failures; repair the package before generation. Require `cover-art-direction-system-v1`, exactly one selected style atom, a recorded selection reason, and the same style id across all platform variants. Require `cover-semantic-color-system-v1`: title, narration-derived content, visual metaphor, and category select one semantic color family; the style atom selects `light`, `muted`, or `dark` surface mode; the platform controls contrast and safe area but never the topic hue. A narrowed primary-only or subset scope is valid only with matching request-bound explicit user authorization.
 2. Prepare one immutable all-pending plan:
 
    ```bash
@@ -32,7 +32,7 @@ Resolve this standalone Skill root first. Its dispatch planner, runtime contract
    The default concurrency is the complete pending set up to nine. A lower explicit concurrency changes throughput only; it may never remove jobs from the plan.
 3. Follow `references/image2-dispatch-runtime.md`. Submit all pending jobs through one worker pool, use `Promise.allSettled`, and invoke the system `imagegen` Skill / built-in Context Image2 `image_gen` tool with each job's exact prompt and role-labelled inputs. Manual first/second batches, `slice`, `[0:4]`, `--limit`, or waiting for an agent decision between batches are forbidden.
 4. Keep every generated source PNG outside the topic package. Record each settled target immediately with `<cover-skill-root>/scripts/record-cover-image2-dispatch-result.mjs`. `coversGenerated` becomes true only when every pending target has a generated result; one failure leaves only that target in `retryTargetIds`.
-5. Inspect every native output against that job's own `approvedVisibleText`, dimensions, ratio, and persona references. Never reuse another target's text whitelist. Reject wrong topic, wrong presenter identity, unreadable/extra text, clipping, letterbox/matte bands, duplicate artwork, PPT/UI appearance, or target-ratio mismatch.
+5. Inspect every native output against that job's own `approvedVisibleText`, dimensions, ratio, persona references, selected art-direction atom, and semantic color decision. Never reuse another target's text whitelist. Confirm the first glance communicates the topic/promise and the second glance reveals the proof or metaphor. Reject wrong topic, wrong presenter identity, unreadable/extra text, clipping, letterbox/matte bands, duplicate artwork, mixed or visibly missing style anchors, PPT/UI appearance, target-ratio mismatch, or a generic full-canvas yellow/cream paper background that is not explicitly supported by the topic. Paper and parchment may be localized artifacts; they are never the default canvas color.
 6. After visual inspection passes, record the request-bound generation receipt and inspection record with the companion evidence command. Do not hand-author or copy evidence JSON:
 
    ```bash
@@ -40,11 +40,12 @@ Resolve this standalone Skill root first. Its dispatch planner, runtime contract
      --topic <topic> \
      --target <target-id> \
      --source <external-imagegen-png> \
+     --inspection-attestation <external-independent-review.json> \
      --inspection-status passed-vision-review \
      --inspector-type vision
    ```
 
-   The command binds request id, target id, provider `codex-context-image2`, tool `image_gen`, prompt SHA-256, output SHA-256, external source path, native dimensions, timestamps, inspection type, and status. It rejects package-local sources, non-Imagegen staging paths, stale prompt files, missing role-labelled inputs, and wrong native ratios.
+   The attestation must be emitted by the independent human/vision review step, remain outside the topic package, bind the source SHA-256 and target, name the reviewer, and record every required check as `{id, passed:true, assessedBy}`. The evidence command validates that attestation against the current art direction, semantic color decision, glance hierarchy, request, and bitmap; it does not self-assert review outcomes. It then binds request id, target id, provider `codex-context-image2`, tool `image_gen`, prompt SHA-256, output SHA-256, external source path, native dimensions, timestamps, inspection type, and status. It rejects package-local sources, non-Imagegen staging paths, stale prompt files, missing role-labelled inputs, and wrong native ratios.
 7. After every target has generated and passed target-bound inspection, run one locked batch ingest:
 
    ```bash

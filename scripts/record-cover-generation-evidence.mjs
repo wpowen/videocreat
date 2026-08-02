@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   validateContextImage2PromptParity,
   validateCoverRequestScopeContract,
 } from "./lib/cover-generation-workflow.mjs";
+import { REQUIRED_COVER_INSPECTION_CHECKS } from "./lib/cover-evidence-contract.mjs";
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -41,6 +42,13 @@ function targetKey(id = "") {
   return aliases[id] || id;
 }
 
+function matchingPrompt(prompts, targetId) {
+  const key = targetKey(targetId);
+  return (prompts.prompts || []).find((item) => targetKey(String(item.targetId || "").replace(/-image2-integrated-cover$/, "")) === key)
+    || (prompts.pendingNativeTargetRatioPrompts || []).find((item) => targetKey(item.id || item.targetId || "") === key)
+    || null;
+}
+
 function dimensions(path) {
   const output = execFileSync("sips", ["-g", "pixelWidth", "-g", "pixelHeight", path], { encoding: "utf8" });
   const width = Number(output.match(/pixelWidth:\s*(\d+)/)?.[1] || 0);
@@ -57,28 +65,60 @@ function ensureInside(path, root, label) {
   }
 }
 
+function packageOutputPath(root, manifestPath, label) {
+  const value = String(manifestPath || "").trim();
+  if (!value || isAbsolute(value)) throw new Error(`${label} must be a relative package path.`);
+  const canonicalRoot = realpathSync(root);
+  const candidate = resolve(canonicalRoot, value);
+  const lexicalRelation = relative(canonicalRoot, candidate);
+  if (!lexicalRelation || lexicalRelation === ".." || lexicalRelation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(lexicalRelation)) {
+    throw new Error(`${label} must stay inside the topic package: ${value}`);
+  }
+  let existingAncestor = candidate;
+  while (!existsSync(existingAncestor)) {
+    const parent = dirname(existingAncestor);
+    if (parent === existingAncestor) break;
+    existingAncestor = parent;
+  }
+  ensureInside(realpathSync(existingAncestor), canonicalRoot, label);
+  return candidate;
+}
+
 function main() {
   const topicDir = resolve(argValue("--topic"));
   const targetId = argValue("--target");
-  const source = resolve(argValue("--source"));
+  const sourceArgument = resolve(argValue("--source"));
   const inspectionStatus = argValue("--inspection-status");
   const inspectorType = argValue("--inspector-type");
-  if (!argValue("--topic") || !targetId || !argValue("--source")) {
-    throw new Error("Usage: record-cover-generation-evidence.mjs --topic <topic-dir> --target <target-id> --source <imagegen-png> --inspection-status <passed-status> --inspector-type <human|vision>");
+  const inspectionAttestationArgument = argValue("--inspection-attestation");
+  if (!argValue("--topic") || !targetId || !argValue("--source") || !inspectionAttestationArgument) {
+    throw new Error("Usage: record-cover-generation-evidence.mjs --topic <topic-dir> --target <target-id> --source <imagegen-png> --inspection-attestation <independent-review.json> --inspection-status <passed-status> --inspector-type <human|vision>");
   }
-  if (!existsSync(source)) throw new Error(`Generated source not found: ${source}`);
+  if (!existsSync(sourceArgument)) throw new Error(`Generated source not found: ${sourceArgument}`);
+  const source = realpathSync(sourceArgument);
+  if (!existsSync(topicDir)) throw new Error(`Topic package not found: ${topicDir}`);
+  const canonicalTopicDir = realpathSync(topicDir);
   const passedStatuses = new Set(["passed-human-review", "passed-vision-review", "passed-human-or-vision-review"]);
   if (!passedStatuses.has(inspectionStatus) || !["human", "vision"].includes(inspectorType)) {
     throw new Error("Evidence recording requires an explicit passed inspection status and inspectorType human or vision.");
   }
 
-  const topicPrefix = `${topicDir}/`;
+  const topicPrefix = `${canonicalTopicDir}/`;
   if (source.startsWith(topicPrefix)) {
     throw new Error("Generated source must remain outside the topic package until canonical ingest.");
   }
-  const generatedRoot = resolve(process.env.CODEX_VIDEO_COVER_GENERATED_ROOT
+  const generatedRootArgument = resolve(process.env.CODEX_VIDEO_COVER_GENERATED_ROOT
     || join(process.env.CODEX_HOME || join(process.env.HOME || "", ".codex"), "generated_images"));
+  if (!existsSync(generatedRootArgument)) throw new Error(`Generated image root not found: ${generatedRootArgument}`);
+  const generatedRoot = realpathSync(generatedRootArgument);
   ensureInside(source, generatedRoot, "Generated source");
+  const inspectionAttestationPath = resolve(inspectionAttestationArgument);
+  if (!existsSync(inspectionAttestationPath)) throw new Error(`Independent inspection attestation not found: ${inspectionAttestationPath}`);
+  const canonicalAttestationPath = realpathSync(inspectionAttestationPath);
+  ensureInside(canonicalAttestationPath, generatedRoot, "Inspection attestation");
+  if (canonicalAttestationPath.startsWith(`${canonicalTopicDir}/`)) {
+    throw new Error("Independent inspection attestation must remain outside the topic package until evidence recording.");
+  }
 
   const manifestPath = join(topicDir, "workflow", "context-image2-cover-requests.json");
   if (!existsSync(manifestPath)) throw new Error(`Canonical request manifest not found: ${manifestPath}`);
@@ -90,8 +130,31 @@ function main() {
   if (!parity.pass) throw new Error(`Canonical prompt parity failed: ${parity.failures.join("; ")}`);
   const promptPlanPath = join(topicDir, "workflow", "cover-image2-prompts.json");
   if (!existsSync(promptPlanPath)) throw new Error(`Cover prompt plan not found: ${promptPlanPath}`);
-  const scopeContract = validateCoverRequestScopeContract({ manifest, coverImage2Prompts: readJson(promptPlanPath) });
+  const promptPlan = readJson(promptPlanPath);
+  const scopeContract = validateCoverRequestScopeContract({ manifest, coverImage2Prompts: promptPlan });
   if (!scopeContract.pass) throw new Error(`Cover request scope contract failed: ${scopeContract.failures.join("; ")}`);
+  const promptItem = matchingPrompt(promptPlan, targetId);
+  if (!promptItem) throw new Error(`Cover prompt plan item not found for ${targetId}`);
+  const artDirection = promptItem.coverArtDirectionSystem || promptPlan.coverArtDirectionSystem || {};
+  const styleId = request.coverArtDirectionStyleId
+    || promptItem.coverArtDirectionStyle?.id
+    || artDirection.selectedStyle?.id
+    || "";
+  if (artDirection.methodologyVersion !== "cover-art-direction-system-v1"
+    || artDirection.selectedStyleCount !== 1
+    || !styleId
+    || artDirection.selectedStyle?.id !== styleId
+    || !artDirection.selectionReason) {
+    throw new Error(`Cover art-direction contract is incomplete for ${targetId}`);
+  }
+  const semanticColor = promptItem.platformStrategy?.colorSystem || {};
+  if (semanticColor.methodologyVersion !== "cover-semantic-color-system-v1"
+    || !semanticColor.semanticFamilyId
+    || !semanticColor.surfaceMode
+    || !semanticColor.selectionReason
+    || !semanticColor.backgroundPolicy) {
+    throw new Error(`Cover semantic-color contract is incomplete for ${targetId}`);
+  }
   for (const input of request.inputImages || []) {
     if (input.required === true && (!input.path || !existsSync(input.path))) {
       throw new Error(`Required role-labelled input image is missing: ${input.role || "unknown-role"}=${input.path || ""}`);
@@ -110,6 +173,33 @@ function main() {
   const promptSha256 = sha256Text(request.prompt || "");
   const now = new Date().toISOString();
   const requestId = request.promptTargetId || request.targetId || request.id;
+  const attestation = readJson(canonicalAttestationPath);
+  const attestationChecks = new Map((Array.isArray(attestation.checks) ? attestation.checks : [])
+    .filter((check) => check && typeof check === "object")
+    .map((check) => [check.id, check]));
+  const invalidAttestationChecks = REQUIRED_COVER_INSPECTION_CHECKS.filter((id) => {
+    const check = attestationChecks.get(id);
+    return check?.passed !== true || check?.assessedBy !== inspectorType;
+  });
+  if (targetKey(attestation.targetId || "") !== targetKey(request.targetId || targetId)
+    || attestation.sourceSha256 !== outputSha256
+    || attestation.status !== inspectionStatus
+    || attestation.inspectorType !== inspectorType
+    || !attestation.reviewer
+    || !Number.isFinite(Date.parse(attestation.inspectedAt || ""))
+    || invalidAttestationChecks.length
+    || attestation.artDirection?.methodologyVersion !== artDirection.methodologyVersion
+    || attestation.artDirection?.styleId !== styleId
+    || attestation.artDirection?.selectionReason !== artDirection.selectionReason
+    || attestation.semanticColor?.methodologyVersion !== semanticColor.methodologyVersion
+    || attestation.semanticColor?.familyId !== semanticColor.semanticFamilyId
+    || attestation.semanticColor?.surfaceMode !== semanticColor.surfaceMode
+    || attestation.semanticColor?.backgroundPolicy !== semanticColor.backgroundPolicy
+    || attestation.glance?.first !== "topic-and-promise-clear"
+    || attestation.glance?.second !== "proof-or-metaphor-clear"
+    || attestation.glance?.previewWidth !== "120-180px") {
+    throw new Error(`Independent inspection attestation does not match the current source, target, reviewer, or cover design contract${invalidAttestationChecks.length ? `; invalid checks: ${invalidAttestationChecks.join(", ")}` : ""}.`);
+  }
   const receipt = {
     schemaVersion: 1,
     targetId: request.targetId || targetId,
@@ -131,18 +221,29 @@ function main() {
     sourceSha256: outputSha256,
     status: inspectionStatus,
     inspectorType,
-    inspectedAt: now,
-    checks: [
-      "topic-and-promise-match",
-      "presenter-identity-preserved",
-      "approved-text-readable-no-extra-text",
-      "no-edge-clipping-letterbox-or-matte",
-      "native-target-ratio-match",
-      "not-ui-ppt-or-duplicate-review-artwork",
-    ],
+    inspectedAt: attestation.inspectedAt,
+    reviewer: attestation.reviewer,
+    independentAttestationPath: canonicalAttestationPath,
+    artDirection: {
+      methodologyVersion: artDirection.methodologyVersion,
+      styleId,
+      selectionReason: artDirection.selectionReason,
+    },
+    semanticColor: {
+      methodologyVersion: semanticColor.methodologyVersion,
+      familyId: semanticColor.semanticFamilyId,
+      surfaceMode: semanticColor.surfaceMode,
+      backgroundPolicy: semanticColor.backgroundPolicy,
+    },
+    glance: {
+      first: "topic-and-promise-clear",
+      second: "proof-or-metaphor-clear",
+      previewWidth: "120-180px",
+    },
+    checks: REQUIRED_COVER_INSPECTION_CHECKS.map((id) => ({ ...attestationChecks.get(id) })),
   };
-  const receiptPath = join(topicDir, request.generationReceiptPath || `workflow/context-image2-cover-evidence/${targetId}-generation-receipt.json`);
-  const inspectionPath = join(topicDir, request.inspectionRecordPath || `workflow/context-image2-cover-evidence/${targetId}-inspection-record.json`);
+  const receiptPath = packageOutputPath(canonicalTopicDir, request.generationReceiptPath || `workflow/context-image2-cover-evidence/${targetId}-generation-receipt.json`, "generationReceiptPath");
+  const inspectionPath = packageOutputPath(canonicalTopicDir, request.inspectionRecordPath || `workflow/context-image2-cover-evidence/${targetId}-inspection-record.json`, "inspectionRecordPath");
   writeJson(receiptPath, receipt);
   writeJson(inspectionPath, inspection);
   console.log(JSON.stringify({

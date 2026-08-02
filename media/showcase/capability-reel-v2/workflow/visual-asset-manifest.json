@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "relationship",
+      "source": "media/showcase/visual-series/relationship-map.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/relationship.png"
+    },
+    {
+      "id": "strategy",
+      "source": "media/showcase/visual-series/strategy-guide.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/strategy.png"
+    },
+    {
+      "id": "interface",
+      "source": "media/showcase/visual-series/interface-plate.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/interface.png"
+    },
+    {
+      "id": "config",
+      "source": "media/showcase/core-demo/config-base-zh.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/config.png"
+    },
+    {
+      "id": "coverHorizontal",
+      "source": "media/showcase/covers/story-spine-horizontal-16x9.jpg",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/cover-horizontal.jpg"
+    },
+    {
+      "id": "coverVertical",
+      "source": "media/showcase/covers/story-spine-vertical-9x16.jpg",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/cover-vertical.jpg"
+    },
+    {
+      "id": "coverSquare",
+      "source": "media/showcase/covers/story-spine-square-1x1.jpg",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/cover-square.jpg"
+    },
+    {
+      "id": "ipOpening",
+      "source": "media/showcase/personal-ip/story-spine-opening.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/ip-opening.png"
+    },
+    {
+      "id": "ipMiddle",
+      "source": "media/showcase/personal-ip/story-spine-middle.png",
+      "ownership": "project-showcase",
+      "use": "semantic scene object",
+      "embedded": "assets/ip-middle.png"
+    }
+  ],
+  "personalIpClip": {
+    "source": "media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+    "policy": "generic host; do not claim user likeness"
+  }
+}

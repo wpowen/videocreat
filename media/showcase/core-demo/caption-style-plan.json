@@ -1,0 +1,4995 @@
+{
+  "schemaVersion": 1,
+  "status": "active-premium-caption-style-plan",
+  "sourceReference": "references/subtitle-design.md",
+  "strategyReference": "references/creative-subtitle-strategy.md",
+  "catalogReference": "assets/caption-style-catalog.json",
+  "catalogStatus": "active-caption-style-catalog",
+  "platformProfile": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "designBasis": [
+    "platform guidance favors short, readable captions that avoid UI safe zones",
+    "professional timed-text guidance favors semantic units, consistent placement, and readable contrast",
+    "motion/design references require animation to preserve subtitle readability",
+    "caption catalog styles are sorted by deterministic aesthetic rank before scene-specific compatibility breaks ties"
+  ],
+  "globalContract": {
+    "safeArea": "bottom-caption-band",
+    "displayMode": "single-line-sequential",
+    "timingOwner": "workflow/voice-subtitle-manifest.json actual per-cue TTS timings",
+    "renderOrder": "caption layer above scene motion and generated visuals; raw-footage workflows apply subtitles last",
+    "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+    "noNewAudioCutsFromVisualStyle": true,
+    "readabilityOverride": {
+      "minimumBackgroundOpacity": 0.9,
+      "backdropBlurAllowed": false,
+      "emphasisRequiresHighContrastBacking": true
+    }
+  },
+  "autoSubtitle": {
+    "enabledByDefault": true,
+    "plannerOwner": "caption-style-planner",
+    "selectionTiming": "after page/content planning and before render binding",
+    "selectionInputs": [
+      "sceneJob",
+      "semanticCueTypes",
+      "platformProfile",
+      "caption catalog",
+      "aestheticRankingPolicy"
+    ],
+    "outputFields": [
+      "selectedStyleId",
+      "fallbackStyleId",
+      "sceneJob",
+      "priorityGroups",
+      "emphasisPlan"
+    ],
+    "validation": "scripts/validate-caption-strategy-routing.mjs"
+  },
+  "keywordHighlight": {
+    "enabledByDefault": true,
+    "mode": "keyword-visual-emphasis",
+    "defaultTreatments": [
+      "accentColor",
+      "highlightBackground",
+      "bold",
+      "underline"
+    ],
+    "maxTokensPerCue": 3,
+    "timingPolicy": "visual-only; does not split TTS or create extra subtitle lines",
+    "rendererClass": "caption-em"
+  },
+  "styleCatalog": [
+    {
+      "styleId": "prism-glass",
+      "selectedStyleId": "prism-glass",
+      "styleName": "Prism Glass",
+      "labelZh": "轻玻璃折射",
+      "group": "glass",
+      "rendererClass": "caption-style-prism-glass caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "blur",
+        "accent rail",
+        "soft depth"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合知识类、横版、干净背景"
+    },
+    {
+      "styleId": "aurora-strip",
+      "selectedStyleId": "aurora-strip",
+      "styleName": "Aurora Strip",
+      "labelZh": "极光流光底栏",
+      "group": "glass",
+      "rendererClass": "caption-style-aurora-strip caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "gradient mesh",
+        "sweep light",
+        "soft glow"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合科技、趋势、未来感主题"
+    },
+    {
+      "styleId": "editorial-rule",
+      "selectedStyleId": "editorial-rule",
+      "styleName": "Editorial Rule",
+      "labelZh": "杂志下三分之一",
+      "group": "editorial",
+      "rendererClass": "caption-style-editorial-rule caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "serif accent",
+        "fine rule",
+        "paper calm"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合纪录、写作、观点内容"
+    },
+    {
+      "styleId": "ink-capsule",
+      "selectedStyleId": "ink-capsule",
+      "styleName": "Ink Capsule",
+      "labelZh": "高级墨色胶囊",
+      "group": "editorial",
+      "rendererClass": "caption-style-ink-capsule caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "ink fill",
+        "compact",
+        "rounded"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合中文口播、强可读"
+    },
+    {
+      "styleId": "marker-swipe",
+      "selectedStyleId": "marker-swipe",
+      "styleName": "Marker Swipe",
+      "labelZh": "荧光笔划重点",
+      "group": "kinetic",
+      "rendererClass": "caption-style-marker-swipe caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "highlight",
+        "word emphasis",
+        "fast reveal"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合教学、拆解、步骤"
+    },
+    {
+      "styleId": "kinetic-slab",
+      "selectedStyleId": "kinetic-slab",
+      "styleName": "Kinetic Slab",
+      "labelZh": "粗体节奏块",
+      "group": "kinetic",
+      "rendererClass": "caption-style-kinetic-slab caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "impact",
+        "tilt",
+        "shadow"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合开场钩子、反差句"
+    },
+    {
+      "styleId": "holo-hud",
+      "selectedStyleId": "holo-hud",
+      "styleName": "Holo HUD",
+      "labelZh": "全息信息条",
+      "group": "ui",
+      "rendererClass": "caption-style-holo-hud caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "scanline",
+        "terminal glow",
+        "metadata"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合工具、SaaS、数据内容"
+    },
+    {
+      "styleId": "terminal-chip",
+      "selectedStyleId": "terminal-chip",
+      "styleName": "Terminal Chip",
+      "labelZh": "命令行提示",
+      "group": "ui",
+      "rendererClass": "caption-style-terminal-chip caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "mono",
+        "prompt",
+        "status"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合技术教程、流程演示"
+    },
+    {
+      "styleId": "bento-token",
+      "selectedStyleId": "bento-token",
+      "styleName": "Bento Token",
+      "labelZh": "词块分组",
+      "group": "ui",
+      "rendererClass": "caption-style-bento-token caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "tokens",
+        "semantic chips",
+        "wrap-safe"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合重点词、公式、模型"
+    },
+    {
+      "styleId": "split-bilingual",
+      "selectedStyleId": "split-bilingual",
+      "styleName": "Split Bilingual",
+      "labelZh": "双语分层",
+      "group": "bilingual",
+      "rendererClass": "caption-style-split-bilingual caption-group-bilingual caption-motion-dual-layer-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "dual-layer-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "primary/secondary",
+        "quiet translation",
+        "safe hierarchy"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "treatment": "适合出海、课程、字幕翻译"
+    },
+    {
+      "styleId": "karaoke-line",
+      "selectedStyleId": "karaoke-line",
+      "styleName": "Karaoke Line",
+      "labelZh": "进度高亮",
+      "group": "kinetic",
+      "rendererClass": "caption-style-karaoke-line caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "mask",
+        "time progress",
+        "single line"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合节奏感强的短视频"
+    },
+    {
+      "styleId": "waveform-base",
+      "selectedStyleId": "waveform-base",
+      "styleName": "Waveform Base",
+      "labelZh": "声波底座",
+      "group": "audio",
+      "rendererClass": "caption-style-waveform-base caption-group-audio caption-motion-audio-reactive-lite",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "voice-wave-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "wave",
+        "voice identity",
+        "subtle motion"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合口播、播客、访谈"
+    },
+    {
+      "styleId": "caption-card",
+      "selectedStyleId": "caption-card",
+      "styleName": "Caption Card",
+      "labelZh": "悬浮字幕卡",
+      "group": "glass",
+      "rendererClass": "caption-style-caption-card caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "floating card",
+        "inner glow",
+        "readability first"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合复杂画面、需要更高遮罩"
+    },
+    {
+      "styleId": "neon-outline",
+      "selectedStyleId": "neon-outline",
+      "styleName": "Neon Outline",
+      "labelZh": "霓虹描边",
+      "group": "kinetic",
+      "rendererClass": "caption-style-neon-outline caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "outline",
+        "dark mode",
+        "pulse"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合暗色、赛博、游戏"
+    },
+    {
+      "styleId": "film-subtitle",
+      "selectedStyleId": "film-subtitle",
+      "styleName": "Film Subtitle",
+      "labelZh": "电影感细字",
+      "group": "editorial",
+      "rendererClass": "caption-style-film-subtitle caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "cinematic",
+        "thin border",
+        "letterbox"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合叙事、纪录、慢节奏"
+    },
+    {
+      "styleId": "paper-ribbon",
+      "selectedStyleId": "paper-ribbon",
+      "styleName": "Paper Ribbon",
+      "labelZh": "纸带标签",
+      "group": "editorial",
+      "rendererClass": "caption-style-paper-ribbon caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "paper",
+        "torn edge",
+        "warm but not beige"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合课程、手账、故事拆解"
+    },
+    {
+      "styleId": "glass-console",
+      "selectedStyleId": "glass-console",
+      "styleName": "Glass Console",
+      "labelZh": "透明控制台",
+      "group": "ui",
+      "rendererClass": "caption-style-glass-console caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "panel",
+        "metadata",
+        "indicator"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合产品演示、界面讲解"
+    },
+    {
+      "styleId": "stamp-pop",
+      "selectedStyleId": "stamp-pop",
+      "styleName": "Stamp Pop",
+      "labelZh": "印章弹出",
+      "group": "kinetic",
+      "rendererClass": "caption-style-stamp-pop caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "stamp",
+        "impact",
+        "short hold"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合结论、警告、反转"
+    },
+    {
+      "styleId": "gradient-type",
+      "selectedStyleId": "gradient-type",
+      "styleName": "Gradient Type",
+      "labelZh": "文字渐变主体",
+      "group": "kinetic",
+      "rendererClass": "caption-style-gradient-type caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "text fill",
+        "soft shadow",
+        "premium accent"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合开场金句、品牌感"
+    },
+    {
+      "styleId": "minimal-luxe",
+      "selectedStyleId": "minimal-luxe",
+      "styleName": "Minimal Luxe",
+      "labelZh": "极简奢华字幕",
+      "group": "editorial",
+      "rendererClass": "caption-style-minimal-luxe caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "thin line",
+        "small caps",
+        "large spacing"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合高端、克制、品牌"
+    },
+    {
+      "styleId": "manga-burst",
+      "selectedStyleId": "manga-burst",
+      "styleName": "Manga Burst",
+      "labelZh": "漫画爆点",
+      "group": "kinetic",
+      "rendererClass": "caption-style-manga-burst caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "burst",
+        "offset",
+        "loud"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合强情绪、娱乐内容"
+    },
+    {
+      "styleId": "soft-shadow",
+      "selectedStyleId": "soft-shadow",
+      "styleName": "Soft Shadow",
+      "labelZh": "无底框软阴影",
+      "group": "minimal",
+      "rendererClass": "caption-style-soft-shadow caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "no container",
+        "halo",
+        "low obstruction"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合干净背景和低遮挡"
+    },
+    {
+      "styleId": "source-label",
+      "selectedStyleId": "source-label",
+      "styleName": "Source Label",
+      "labelZh": "来源标注式",
+      "group": "editorial",
+      "rendererClass": "caption-style-source-label caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "speaker/source",
+        "fine type",
+        "trust"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合新闻、数据、引用"
+    },
+    {
+      "styleId": "vertical-live",
+      "selectedStyleId": "vertical-live",
+      "styleName": "Vertical Live",
+      "labelZh": "竖屏直播安全区",
+      "group": "mobile",
+      "rendererClass": "caption-style-vertical-live caption-group-mobile caption-motion-retention-pop",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "retention-pop-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 900,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 50,
+        "maxFontPx": 58
+      },
+      "geometry": {
+        "horizontalInset": "8vw",
+        "bottomInset": "10.8vh",
+        "minHeight": "82px",
+        "maxHeight": "112px",
+        "padding": "13px 30px",
+        "radius": "34px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "9:16",
+        "thumb safe",
+        "large type"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "treatment": "large mobile caption pill with safe-zone lift above platform UI"
+    },
+    {
+      "styleId": "floating-orbital",
+      "selectedStyleId": "floating-orbital",
+      "styleName": "Floating Orbital",
+      "labelZh": "轨道浮层",
+      "group": "ui",
+      "rendererClass": "caption-style-floating-orbital caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "anchor dot",
+        "orbit rule",
+        "spatial cue"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合解释系统关系"
+    },
+    {
+      "styleId": "liquid-blur",
+      "selectedStyleId": "liquid-blur",
+      "styleName": "Liquid Blur",
+      "labelZh": "液态玻璃",
+      "group": "glass",
+      "rendererClass": "caption-style-liquid-blur caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "liquid edge",
+        "backdrop",
+        "premium"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合现代感、柔和画面"
+    },
+    {
+      "styleId": "blueprint-caption",
+      "selectedStyleId": "blueprint-caption",
+      "styleName": "Blueprint Caption",
+      "labelZh": "蓝图注释",
+      "group": "ui",
+      "rendererClass": "caption-style-blueprint-caption caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "grid",
+        "ruler",
+        "annotation"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合模型、结构、拆解"
+    },
+    {
+      "styleId": "warm-editorial",
+      "selectedStyleId": "warm-editorial",
+      "styleName": "Warm Editorial",
+      "labelZh": "温润编辑部",
+      "group": "editorial",
+      "rendererClass": "caption-style-warm-editorial caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "warm accent",
+        "serif label",
+        "not PPT"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合文学、写作、故事课"
+    },
+    {
+      "styleId": "alert-ribbon",
+      "selectedStyleId": "alert-ribbon",
+      "styleName": "Alert Ribbon",
+      "labelZh": "警示横幅",
+      "group": "kinetic",
+      "rendererClass": "caption-style-alert-ribbon caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "warning",
+        "stripe",
+        "short punch"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合风险、反常识、避坑"
+    },
+    {
+      "styleId": "quiet-caption",
+      "selectedStyleId": "quiet-caption",
+      "styleName": "Quiet Caption",
+      "labelZh": "低存在感字幕",
+      "group": "minimal",
+      "rendererClass": "caption-style-quiet-caption caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "low obstruction",
+        "edge glow",
+        "clear"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合画面主体很强的片段"
+    },
+    {
+      "styleId": "caption-stack",
+      "selectedStyleId": "caption-stack",
+      "styleName": "Caption Stack",
+      "labelZh": "主副标题堆叠",
+      "group": "bilingual",
+      "rendererClass": "caption-style-caption-stack caption-group-bilingual caption-motion-dual-layer-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "dual-layer-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "hierarchy",
+        "secondary line",
+        "metadata"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "treatment": "适合双层信息，不同时显示多行 cue"
+    },
+    {
+      "styleId": "data-pill",
+      "selectedStyleId": "data-pill",
+      "styleName": "Data Pill",
+      "labelZh": "数据胶囊",
+      "group": "ui",
+      "rendererClass": "caption-style-data-pill caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "stat chip",
+        "pill",
+        "measured"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合数字、比例、榜单"
+    },
+    {
+      "styleId": "slash-title",
+      "selectedStyleId": "slash-title",
+      "styleName": "Slash Title",
+      "labelZh": "斜切字幕",
+      "group": "kinetic",
+      "rendererClass": "caption-style-slash-title caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "slanted",
+        "bold",
+        "editorial energy"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合运动感、剪辑感"
+    },
+    {
+      "styleId": "crystal-plate",
+      "selectedStyleId": "crystal-plate",
+      "styleName": "Crystal Plate",
+      "labelZh": "晶体透明板",
+      "group": "glass",
+      "rendererClass": "caption-style-crystal-plate caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "crystal border",
+        "light refraction",
+        "depth"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合科技、AI、未来工具"
+    },
+    {
+      "styleId": "voice-note",
+      "selectedStyleId": "voice-note",
+      "styleName": "Voice Note",
+      "labelZh": "语音便签",
+      "group": "audio",
+      "rendererClass": "caption-style-voice-note caption-group-audio caption-motion-audio-reactive-lite",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "voice-wave-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "note",
+        "voice tag",
+        "calm"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合旁白、复盘、讲故事"
+    },
+    {
+      "styleId": "proof-highlight",
+      "selectedStyleId": "proof-highlight",
+      "styleName": "Proof Highlight",
+      "labelZh": "证明式高亮",
+      "group": "editorial",
+      "rendererClass": "caption-style-proof-highlight caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "claim/proof",
+        "underline",
+        "trust"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合论证、因果、证据"
+    },
+    {
+      "styleId": "frosted-index",
+      "selectedStyleId": "frosted-index",
+      "styleName": "Frosted Index",
+      "labelZh": "磨砂目录条",
+      "group": "glass",
+      "rendererClass": "caption-style-frosted-index caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "index",
+        "frosted",
+        "chapter"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合课程段落、章节提示"
+    },
+    {
+      "styleId": "lens-flare-tag",
+      "selectedStyleId": "lens-flare-tag",
+      "styleName": "Lens Flare Tag",
+      "labelZh": "镜头光标",
+      "group": "glass",
+      "rendererClass": "caption-style-lens-flare-tag caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "lens",
+        "flare",
+        "hook"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合开场强提示和视觉转场"
+    },
+    {
+      "styleId": "radial-glow-plate",
+      "selectedStyleId": "radial-glow-plate",
+      "styleName": "Radial Glow Plate",
+      "labelZh": "径向发光板",
+      "group": "glass",
+      "rendererClass": "caption-style-radial-glow-plate caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "radial light",
+        "halo",
+        "focus"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合暗底科技和 AI 解释"
+    },
+    {
+      "styleId": "soft-ui-dock",
+      "selectedStyleId": "soft-ui-dock",
+      "styleName": "Soft UI Dock",
+      "labelZh": "软 UI Dock",
+      "group": "ui",
+      "rendererClass": "caption-style-soft-ui-dock caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "dock",
+        "controls",
+        "product"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合产品演示、工具教程"
+    },
+    {
+      "styleId": "command-palette",
+      "selectedStyleId": "command-palette",
+      "styleName": "Command Palette",
+      "labelZh": "命令面板",
+      "group": "ui",
+      "rendererClass": "caption-style-command-palette caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "palette",
+        "shortcut",
+        "search"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合教程、自动化、流程展示"
+    },
+    {
+      "styleId": "timeline-tick",
+      "selectedStyleId": "timeline-tick",
+      "styleName": "Timeline Tick",
+      "labelZh": "时间轴刻度",
+      "group": "ui",
+      "rendererClass": "caption-style-timeline-tick caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "timeline",
+        "ticks",
+        "sequence"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合复盘、步骤和剪辑节奏"
+    },
+    {
+      "styleId": "split-quote-frame",
+      "selectedStyleId": "split-quote-frame",
+      "styleName": "Split Quote Frame",
+      "labelZh": "分栏引用框",
+      "group": "editorial",
+      "rendererClass": "caption-style-split-quote-frame caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "quote",
+        "split frame",
+        "serif"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合观点、金句、人物发言"
+    },
+    {
+      "styleId": "annotated-bracket",
+      "selectedStyleId": "annotated-bracket",
+      "styleName": "Annotated Bracket",
+      "labelZh": "括号注释",
+      "group": "editorial",
+      "rendererClass": "caption-style-annotated-bracket caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "brackets",
+        "annotation",
+        "low clutter"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合拆解概念和补充说明"
+    },
+    {
+      "styleId": "duotone-lower-third",
+      "selectedStyleId": "duotone-lower-third",
+      "styleName": "Duotone Lower Third",
+      "labelZh": "双色下三分之一",
+      "group": "editorial",
+      "rendererClass": "caption-style-duotone-lower-third caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "duotone",
+        "lower-third",
+        "identity"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合访谈、纪录、品牌口播"
+    },
+    {
+      "styleId": "edge-caption-rail",
+      "selectedStyleId": "edge-caption-rail",
+      "styleName": "Edge Caption Rail",
+      "labelZh": "边缘字幕轨",
+      "group": "minimal",
+      "rendererClass": "caption-style-edge-caption-rail caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "side rail",
+        "low obstruction",
+        "safe"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合强画面主体、低遮挡"
+    },
+    {
+      "styleId": "vertical-thumb-guard",
+      "selectedStyleId": "vertical-thumb-guard",
+      "styleName": "Vertical Thumb Guard",
+      "labelZh": "竖屏拇指安全",
+      "group": "mobile",
+      "rendererClass": "caption-style-vertical-thumb-guard caption-group-mobile caption-motion-retention-pop",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "retention-pop-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 900,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 50,
+        "maxFontPx": 58
+      },
+      "geometry": {
+        "horizontalInset": "8vw",
+        "bottomInset": "10.8vh",
+        "minHeight": "82px",
+        "maxHeight": "112px",
+        "padding": "13px 30px",
+        "radius": "34px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "thumb zone",
+        "9:16",
+        "large type"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "treatment": "large mobile caption pill with safe-zone lift above platform UI"
+    },
+    {
+      "styleId": "social-sticker",
+      "selectedStyleId": "social-sticker",
+      "styleName": "Social Sticker",
+      "labelZh": "社媒贴纸",
+      "group": "mobile",
+      "rendererClass": "caption-style-social-sticker caption-group-mobile caption-motion-retention-pop",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "retention-pop-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 900,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 50,
+        "maxFontPx": 58
+      },
+      "geometry": {
+        "horizontalInset": "8vw",
+        "bottomInset": "10.8vh",
+        "minHeight": "82px",
+        "maxHeight": "112px",
+        "padding": "13px 30px",
+        "radius": "34px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "sticker",
+        "tap-safe",
+        "casual"
+      ],
+      "supportedContentTypes": [
+        "captionText",
+        "emphasis tokens"
+      ],
+      "treatment": "large mobile caption pill with safe-zone lift above platform UI"
+    },
+    {
+      "styleId": "premium-karaoke-tokens",
+      "selectedStyleId": "premium-karaoke-tokens",
+      "styleName": "Premium Karaoke Tokens",
+      "labelZh": "高级词级高亮",
+      "group": "kinetic",
+      "rendererClass": "caption-style-premium-karaoke-tokens caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "word tokens",
+        "stagger",
+        "mask"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合节奏口播、重点词推进"
+    },
+    {
+      "styleId": "liquid-highlighter",
+      "selectedStyleId": "liquid-highlighter",
+      "styleName": "Liquid Highlighter",
+      "labelZh": "液态荧光笔",
+      "group": "kinetic",
+      "rendererClass": "caption-style-liquid-highlighter caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "liquid mark",
+        "highlight",
+        "motion"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合教学重点、拆解步骤"
+    },
+    {
+      "styleId": "capsule-transcript",
+      "selectedStyleId": "capsule-transcript",
+      "styleName": "Capsule Transcript",
+      "labelZh": "转写胶囊",
+      "group": "audio",
+      "rendererClass": "caption-style-capsule-transcript caption-group-audio caption-motion-audio-reactive-lite",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "voice-wave-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "transcript",
+        "capsule",
+        "voice"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合播客切片、采访摘要"
+    },
+    {
+      "styleId": "floating-tooltip",
+      "selectedStyleId": "floating-tooltip",
+      "styleName": "Floating Tooltip",
+      "labelZh": "悬浮提示气泡",
+      "group": "ui",
+      "rendererClass": "caption-style-floating-tooltip caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "tooltip",
+        "pointer",
+        "context"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合界面讲解和细节点名"
+    },
+    {
+      "styleId": "ribbon-cutout",
+      "selectedStyleId": "ribbon-cutout",
+      "styleName": "Ribbon Cutout",
+      "labelZh": "切纸丝带",
+      "group": "editorial",
+      "rendererClass": "caption-style-ribbon-cutout caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "cutout",
+        "ribbon",
+        "print"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合标题、结论、转折"
+    },
+    {
+      "styleId": "stat-counter-lockup",
+      "selectedStyleId": "stat-counter-lockup",
+      "styleName": "Stat Counter Lockup",
+      "labelZh": "指标锁定",
+      "group": "ui",
+      "rendererClass": "caption-style-stat-counter-lockup caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "stat",
+        "counter",
+        "lockup"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合数字、完播率、增长点"
+    },
+    {
+      "styleId": "minimal-borderless",
+      "selectedStyleId": "minimal-borderless",
+      "styleName": "Minimal Borderless",
+      "labelZh": "无框高级字",
+      "group": "minimal",
+      "rendererClass": "caption-style-minimal-borderless caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "no box",
+        "cinematic",
+        "shadow"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合纪录片、真实画面、低干扰"
+    },
+    {
+      "styleId": "mono-debug-overlay",
+      "selectedStyleId": "mono-debug-overlay",
+      "styleName": "Mono Debug Overlay",
+      "labelZh": "调试层字幕",
+      "group": "ui",
+      "rendererClass": "caption-style-mono-debug-overlay caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "debug",
+        "mono",
+        "overlay"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合技术、AI Agent、脚本演示"
+    },
+    {
+      "styleId": "depth-shadow-type",
+      "selectedStyleId": "depth-shadow-type",
+      "styleName": "Depth Shadow Type",
+      "labelZh": "景深投影字",
+      "group": "minimal",
+      "rendererClass": "caption-style-depth-shadow-type caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "depth",
+        "soft cast",
+        "image-first"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合大画面、人物主体下方"
+    },
+    {
+      "styleId": "magnetic-label",
+      "selectedStyleId": "magnetic-label",
+      "styleName": "Magnetic Label",
+      "labelZh": "磁吸标签",
+      "group": "kinetic",
+      "rendererClass": "caption-style-magnetic-label caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "magnetic",
+        "snap",
+        "label"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合转场、关键词吸附"
+    },
+    {
+      "styleId": "book-margin-note",
+      "selectedStyleId": "book-margin-note",
+      "styleName": "Book Margin Note",
+      "labelZh": "书页边注",
+      "group": "editorial",
+      "rendererClass": "caption-style-book-margin-note caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "margin note",
+        "paper",
+        "quiet"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合写作课、阅读、文学内容"
+    },
+    {
+      "styleId": "interview-lower-third",
+      "selectedStyleId": "interview-lower-third",
+      "styleName": "Interview Lower Third",
+      "labelZh": "访谈身份字幕",
+      "group": "bilingual",
+      "rendererClass": "caption-style-interview-lower-third caption-group-bilingual caption-motion-dual-layer-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "dual-layer-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "speaker",
+        "role",
+        "lower-third"
+      ],
+      "supportedContentTypes": [
+        "bilingual caption",
+        "speaker label"
+      ],
+      "treatment": "适合访谈、纪录、人设介绍"
+    },
+    {
+      "styleId": "multicolor-word-chips",
+      "selectedStyleId": "multicolor-word-chips",
+      "styleName": "Multicolor Word Chips",
+      "labelZh": "多色词卡",
+      "group": "ui",
+      "rendererClass": "caption-style-multicolor-word-chips caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "chips",
+        "semantic color",
+        "tokens"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合拆概念、公式、卖点"
+    },
+    {
+      "styleId": "caption-spotlight",
+      "selectedStyleId": "caption-spotlight",
+      "styleName": "Caption Spotlight",
+      "labelZh": "字幕聚光",
+      "group": "kinetic",
+      "rendererClass": "caption-style-caption-spotlight caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "spotlight",
+        "focus",
+        "dramatic"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合暗场、舞台、强情绪"
+    },
+    {
+      "styleId": "product-toast",
+      "selectedStyleId": "product-toast",
+      "styleName": "Product Toast",
+      "labelZh": "产品 Toast",
+      "group": "ui",
+      "rendererClass": "caption-style-product-toast caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "toast",
+        "status",
+        "UI native"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合 SaaS、App、AI 工具演示"
+    },
+    {
+      "styleId": "dimmer-band",
+      "selectedStyleId": "dimmer-band",
+      "styleName": "Dimmer Band",
+      "labelZh": "局部暗场带",
+      "group": "minimal",
+      "rendererClass": "caption-style-dimmer-band caption-group-minimal caption-motion-soft-fade",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "soft-fade",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 760,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 28,
+        "targetFontPx": 32,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "15vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "58px",
+        "maxHeight": "84px",
+        "padding": "10px 24px",
+        "radius": "10px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "dimmer",
+        "readability",
+        "safe contrast"
+      ],
+      "supportedContentTypes": [
+        "captionText"
+      ],
+      "treatment": "适合复杂背景下提升可读性"
+    },
+    {
+      "styleId": "elegant-parentheses",
+      "selectedStyleId": "elegant-parentheses",
+      "styleName": "Elegant Parentheses",
+      "labelZh": "优雅括号",
+      "group": "editorial",
+      "rendererClass": "caption-style-elegant-parentheses caption-group-editorial caption-motion-editorial-slide",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "editorial-lower-third-slide",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 820,
+        "letterSpacing": 0,
+        "lineHeight": 1.18,
+        "minFontPx": 31,
+        "targetFontPx": 34,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "13vw",
+        "bottomInset": "5.2vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "12px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "parentheses",
+        "editorial",
+        "restraint"
+      ],
+      "supportedContentTypes": [
+        "quote",
+        "speaker label",
+        "captionText"
+      ],
+      "treatment": "适合旁白补充、冷静观点"
+    },
+    {
+      "styleId": "neon-terminal-bar",
+      "selectedStyleId": "neon-terminal-bar",
+      "styleName": "Neon Terminal Bar",
+      "labelZh": "霓虹终端栏",
+      "group": "ui",
+      "rendererClass": "caption-style-neon-terminal-bar caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "terminal",
+        "neon",
+        "status"
+      ],
+      "supportedContentTypes": [
+        "speaker label",
+        "emphasis tokens",
+        "captionText"
+      ],
+      "treatment": "适合暗色科技、脚本流"
+    },
+    {
+      "styleId": "cutscene-title",
+      "selectedStyleId": "cutscene-title",
+      "styleName": "Cutscene Title",
+      "labelZh": "过场标题字幕",
+      "group": "kinetic",
+      "rendererClass": "caption-style-cutscene-title caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "cutscene",
+        "title",
+        "impact"
+      ],
+      "supportedContentTypes": [
+        "emphasis tokens",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合章节转场、强段落切换"
+    },
+    {
+      "styleId": "quote-glass-seal",
+      "selectedStyleId": "quote-glass-seal",
+      "styleName": "Quote Glass Seal",
+      "labelZh": "玻璃引用章",
+      "group": "glass",
+      "rendererClass": "caption-style-quote-glass-seal caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "exactTextOwner": "deterministic HTML/CSS subtitle layer",
+      "maxVisibleLines": 1,
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "catalogTraits": [
+        "quote seal",
+        "glass",
+        "credibility"
+      ],
+      "supportedContentTypes": [
+        "spokenText",
+        "captionText",
+        "subtitleCues[]"
+      ],
+      "treatment": "适合金句、证言、观点承接"
+    }
+  ],
+  "plannerSelectionPolicy": {
+    "defaultShortlistSize": 8,
+    "requiredOutputs": [
+      "selectedStyleId",
+      "fallbackStyleId",
+      "reason",
+      "sceneJob",
+      "emphasisPlan",
+      "safeAreaProfile"
+    ],
+    "groupPriorityBySceneJob": {
+      "hook": [
+        "kinetic",
+        "mobile",
+        "glass"
+      ],
+      "quote": [
+        "editorial",
+        "glass",
+        "minimal"
+      ],
+      "productDemo": [
+        "ui",
+        "glass",
+        "minimal"
+      ],
+      "dataProof": [
+        "ui",
+        "editorial",
+        "minimal"
+      ],
+      "imageFirst": [
+        "minimal",
+        "editorial",
+        "glass"
+      ],
+      "documentary": [
+        "editorial",
+        "minimal",
+        "audio"
+      ],
+      "verticalShort": [
+        "mobile",
+        "kinetic",
+        "glass"
+      ],
+      "bilingual": [
+        "bilingual",
+        "editorial",
+        "glass"
+      ],
+      "voiceOrInterview": [
+        "audio",
+        "bilingual",
+        "editorial"
+      ]
+    }
+  },
+  "aestheticRankingPolicy": {
+    "model": "deterministic-aesthetic-rubric-v1",
+    "sortDirection": "descending",
+    "primarySignals": [
+      "premium material finish",
+      "Chinese one-line readability",
+      "scene-job fit",
+      "low debug/terminal flavor",
+      "restrained motion"
+    ],
+    "demotedStyles": [
+      "mono-debug-overlay",
+      "neon-terminal-bar",
+      "terminal-chip",
+      "holo-hud",
+      "manga-burst",
+      "alert-ribbon"
+    ]
+  },
+  "scenes": [
+    {
+      "sceneId": "brief-to-package",
+      "order": 1,
+      "styleId": "premium-karaoke-tokens",
+      "selectedStyleId": "premium-karaoke-tokens",
+      "fallbackStyleId": "vertical-thumb-guard",
+      "sceneJob": "hook",
+      "priorityGroups": [
+        "kinetic",
+        "mobile",
+        "glass"
+      ],
+      "reason": "scene job hook prioritizes kinetic > mobile > glass; within the best compatible group, aesthetic rank selects Premium Karaoke Tokens for proof",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 70,
+        "selectedAestheticScore": 102,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "premium-karaoke-tokens",
+            "group": "kinetic",
+            "aestheticRank": 70,
+            "totalScore": 1061.9
+          },
+          {
+            "order": 2,
+            "styleId": "liquid-highlighter",
+            "group": "kinetic",
+            "aestheticRank": 61,
+            "totalScore": 1057.85
+          },
+          {
+            "order": 3,
+            "styleId": "kinetic-slab",
+            "group": "kinetic",
+            "aestheticRank": 44,
+            "totalScore": 1050.2
+          },
+          {
+            "order": 4,
+            "styleId": "cutscene-title",
+            "group": "kinetic",
+            "aestheticRank": 24,
+            "totalScore": 1041.2
+          },
+          {
+            "order": 5,
+            "styleId": "karaoke-line",
+            "group": "kinetic",
+            "aestheticRank": 33,
+            "totalScore": 1014.85
+          },
+          {
+            "order": 6,
+            "styleId": "marker-swipe",
+            "group": "kinetic",
+            "aestheticRank": 26,
+            "totalScore": 1011.7
+          },
+          {
+            "order": 7,
+            "styleId": "slash-title",
+            "group": "kinetic",
+            "aestheticRank": 13,
+            "totalScore": 1005.85
+          },
+          {
+            "order": 8,
+            "styleId": "stamp-pop",
+            "group": "kinetic",
+            "aestheticRank": 12,
+            "totalScore": 1005.4
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "proof"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "现在",
+          "一份",
+          "Brief"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-premium-karaoke-tokens caption-group-kinetic caption-motion-cue-punch",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合节奏口播、重点词推进",
+      "group": "kinetic",
+      "styleName": "Premium Karaoke Tokens",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 940,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 40,
+        "maxFontPx": 46
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "short-punch-pop",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.95)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "full-auto",
+      "order": 2,
+      "styleId": "caption-stack",
+      "selectedStyleId": "caption-stack",
+      "fallbackStyleId": "proof-highlight",
+      "sceneJob": "bilingual",
+      "priorityGroups": [
+        "bilingual",
+        "editorial",
+        "glass"
+      ],
+      "reason": "scene job bilingual prioritizes bilingual > editorial > glass; within the best compatible group, aesthetic rank selects Caption Stack for question, step, translation",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 48,
+        "selectedAestheticScore": 56,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "caption-stack",
+            "group": "bilingual",
+            "aestheticRank": 48,
+            "totalScore": 1051.2
+          },
+          {
+            "order": 2,
+            "styleId": "interview-lower-third",
+            "group": "bilingual",
+            "aestheticRank": 47,
+            "totalScore": 1050.75
+          },
+          {
+            "order": 3,
+            "styleId": "split-bilingual",
+            "group": "bilingual",
+            "aestheticRank": 24,
+            "totalScore": 1040.4
+          },
+          {
+            "order": 4,
+            "styleId": "proof-highlight",
+            "group": "editorial",
+            "aestheticRank": 64,
+            "totalScore": 888.4
+          },
+          {
+            "order": 5,
+            "styleId": "split-quote-frame",
+            "group": "editorial",
+            "aestheticRank": 60,
+            "totalScore": 886.6
+          },
+          {
+            "order": 6,
+            "styleId": "book-margin-note",
+            "group": "editorial",
+            "aestheticRank": 49,
+            "totalScore": 881.65
+          },
+          {
+            "order": 7,
+            "styleId": "editorial-rule",
+            "group": "editorial",
+            "aestheticRank": 37,
+            "totalScore": 876.25
+          },
+          {
+            "order": 8,
+            "styleId": "duotone-lower-third",
+            "group": "editorial",
+            "aestheticRank": 17,
+            "totalScore": 857.65
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "question",
+        "step",
+        "translation"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "本地语音",
+          "真实时序",
+          "页面动效"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-caption-stack caption-group-bilingual caption-motion-dual-layer-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合双层信息，不同时显示多行 cue",
+      "group": "bilingual",
+      "styleName": "Caption Stack",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "motion": {
+        "enter": "dual-layer-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "semi-auto",
+      "order": 3,
+      "styleId": "quote-glass-seal",
+      "selectedStyleId": "quote-glass-seal",
+      "fallbackStyleId": "proof-highlight",
+      "sceneJob": "premium",
+      "priorityGroups": [
+        "glass",
+        "editorial",
+        "minimal"
+      ],
+      "reason": "scene job premium prioritizes glass > editorial > minimal; within the best compatible group, aesthetic rank selects Quote Glass Seal for contrast",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 71,
+        "selectedAestheticScore": 79,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "quote-glass-seal",
+            "group": "glass",
+            "aestheticRank": 71,
+            "totalScore": 1051.55
+          },
+          {
+            "order": 2,
+            "styleId": "prism-glass",
+            "group": "glass",
+            "aestheticRank": 62,
+            "totalScore": 1047.5
+          },
+          {
+            "order": 3,
+            "styleId": "crystal-plate",
+            "group": "glass",
+            "aestheticRank": 55,
+            "totalScore": 1044.35
+          },
+          {
+            "order": 4,
+            "styleId": "liquid-blur",
+            "group": "glass",
+            "aestheticRank": 53,
+            "totalScore": 1043.45
+          },
+          {
+            "order": 5,
+            "styleId": "radial-glow-plate",
+            "group": "glass",
+            "aestheticRank": 20,
+            "totalScore": 1019
+          },
+          {
+            "order": 6,
+            "styleId": "frosted-index",
+            "group": "glass",
+            "aestheticRank": 21,
+            "totalScore": 1016.45
+          },
+          {
+            "order": 7,
+            "styleId": "caption-card",
+            "group": "glass",
+            "aestheticRank": 34,
+            "totalScore": 1015.3
+          },
+          {
+            "order": 8,
+            "styleId": "aurora-strip",
+            "group": "glass",
+            "aestheticRank": 33,
+            "totalScore": 1014.85
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "contrast"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "和五类视觉变体",
+          "核心页面模板",
+          "比较"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-quote-glass-seal caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合金句、证言、观点承接",
+      "group": "glass",
+      "styleName": "Quote Glass Seal",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "motion-system",
+      "order": 4,
+      "styleId": "caption-stack",
+      "selectedStyleId": "caption-stack",
+      "fallbackStyleId": "proof-highlight",
+      "sceneJob": "bilingual",
+      "priorityGroups": [
+        "bilingual",
+        "editorial",
+        "glass"
+      ],
+      "reason": "scene job bilingual prioritizes bilingual > editorial > glass; within the best compatible group, aesthetic rank selects Caption Stack for step, translation",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 48,
+        "selectedAestheticScore": 56,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "caption-stack",
+            "group": "bilingual",
+            "aestheticRank": 48,
+            "totalScore": 1051.2
+          },
+          {
+            "order": 2,
+            "styleId": "interview-lower-third",
+            "group": "bilingual",
+            "aestheticRank": 47,
+            "totalScore": 1050.75
+          },
+          {
+            "order": 3,
+            "styleId": "split-bilingual",
+            "group": "bilingual",
+            "aestheticRank": 24,
+            "totalScore": 1040.4
+          },
+          {
+            "order": 4,
+            "styleId": "proof-highlight",
+            "group": "editorial",
+            "aestheticRank": 64,
+            "totalScore": 888.4
+          },
+          {
+            "order": 5,
+            "styleId": "split-quote-frame",
+            "group": "editorial",
+            "aestheticRank": 60,
+            "totalScore": 886.6
+          },
+          {
+            "order": 6,
+            "styleId": "book-margin-note",
+            "group": "editorial",
+            "aestheticRank": 49,
+            "totalScore": 881.65
+          },
+          {
+            "order": 7,
+            "styleId": "editorial-rule",
+            "group": "editorial",
+            "aestheticRank": 37,
+            "totalScore": 876.25
+          },
+          {
+            "order": 8,
+            "styleId": "duotone-lower-third",
+            "group": "editorial",
+            "aestheticRank": 17,
+            "totalScore": 857.65
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "step",
+        "translation"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "覆盖界面",
+          "编辑叙事",
+          "节奏强调"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-caption-stack caption-group-bilingual caption-motion-dual-layer-rise",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合双层信息，不同时显示多行 cue",
+      "group": "bilingual",
+      "styleName": "Caption Stack",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "18px"
+      },
+      "motion": {
+        "enter": "dual-layer-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "caption-cover",
+      "order": 5,
+      "styleId": "command-palette",
+      "selectedStyleId": "command-palette",
+      "fallbackStyleId": "proof-highlight",
+      "sceneJob": "dataProof",
+      "priorityGroups": [
+        "ui",
+        "editorial",
+        "minimal"
+      ],
+      "reason": "scene job dataProof prioritizes ui > editorial > minimal; within the best compatible group, aesthetic rank selects Command Palette for spoken-caption",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 67,
+        "selectedAestheticScore": 103,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "command-palette",
+            "group": "ui",
+            "aestheticRank": 67,
+            "totalScore": 1062.35
+          },
+          {
+            "order": 2,
+            "styleId": "stat-counter-lockup",
+            "group": "ui",
+            "aestheticRank": 65,
+            "totalScore": 1061.45
+          },
+          {
+            "order": 3,
+            "styleId": "product-toast",
+            "group": "ui",
+            "aestheticRank": 68,
+            "totalScore": 1057.2
+          },
+          {
+            "order": 4,
+            "styleId": "soft-ui-dock",
+            "group": "ui",
+            "aestheticRank": 66,
+            "totalScore": 1056.3
+          },
+          {
+            "order": 5,
+            "styleId": "data-pill",
+            "group": "ui",
+            "aestheticRank": 38,
+            "totalScore": 1029.7
+          },
+          {
+            "order": 6,
+            "styleId": "glass-console",
+            "group": "ui",
+            "aestheticRank": 48,
+            "totalScore": 1021.6
+          },
+          {
+            "order": 7,
+            "styleId": "bento-token",
+            "group": "ui",
+            "aestheticRank": 39,
+            "totalScore": 1017.55
+          },
+          {
+            "order": 8,
+            "styleId": "timeline-tick",
+            "group": "ui",
+            "aestheticRank": 28,
+            "totalScore": 1012.6
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "spoken-caption"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "个人",
+          "IP",
+          "不靠随机换人物"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-command-palette caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合教程、自动化、流程展示",
+      "group": "ui",
+      "styleName": "Command Palette",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "personal-ip",
+      "order": 6,
+      "styleId": "quote-glass-seal",
+      "selectedStyleId": "quote-glass-seal",
+      "fallbackStyleId": "proof-highlight",
+      "sceneJob": "premium",
+      "priorityGroups": [
+        "glass",
+        "editorial",
+        "minimal"
+      ],
+      "reason": "scene job premium prioritizes glass > editorial > minimal; within the best compatible group, aesthetic rank selects Quote Glass Seal for spoken-caption",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 71,
+        "selectedAestheticScore": 79,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "quote-glass-seal",
+            "group": "glass",
+            "aestheticRank": 71,
+            "totalScore": 1051.55
+          },
+          {
+            "order": 2,
+            "styleId": "prism-glass",
+            "group": "glass",
+            "aestheticRank": 62,
+            "totalScore": 1047.5
+          },
+          {
+            "order": 3,
+            "styleId": "crystal-plate",
+            "group": "glass",
+            "aestheticRank": 55,
+            "totalScore": 1044.35
+          },
+          {
+            "order": 4,
+            "styleId": "liquid-blur",
+            "group": "glass",
+            "aestheticRank": 53,
+            "totalScore": 1043.45
+          },
+          {
+            "order": 5,
+            "styleId": "frosted-index",
+            "group": "glass",
+            "aestheticRank": 21,
+            "totalScore": 1016.45
+          },
+          {
+            "order": 6,
+            "styleId": "caption-card",
+            "group": "glass",
+            "aestheticRank": 34,
+            "totalScore": 1015.3
+          },
+          {
+            "order": 7,
+            "styleId": "aurora-strip",
+            "group": "glass",
+            "aestheticRank": 33,
+            "totalScore": 1014.85
+          },
+          {
+            "order": 8,
+            "styleId": "radial-glow-plate",
+            "group": "glass",
+            "aestheticRank": 20,
+            "totalScore": 1009
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "spoken-caption"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "只有显式要求个人",
+          "IP",
+          "加动画时"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-quote-glass-seal caption-group-glass caption-motion-glass-sweep",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合金句、证言、观点承接",
+      "group": "glass",
+      "styleName": "Quote Glass Seal",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "subtle-y-rise",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 10, 14, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "evidence",
+      "order": 7,
+      "styleId": "product-toast",
+      "selectedStyleId": "product-toast",
+      "fallbackStyleId": "quote-glass-seal",
+      "sceneJob": "productDemo",
+      "priorityGroups": [
+        "ui",
+        "glass",
+        "minimal"
+      ],
+      "reason": "scene job productDemo prioritizes ui > glass > minimal; within the best compatible group, aesthetic rank selects Product Toast for proof, step",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 68,
+        "selectedAestheticScore": 104,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "product-toast",
+            "group": "ui",
+            "aestheticRank": 68,
+            "totalScore": 1079.8
+          },
+          {
+            "order": 2,
+            "styleId": "soft-ui-dock",
+            "group": "ui",
+            "aestheticRank": 66,
+            "totalScore": 1078.9
+          },
+          {
+            "order": 3,
+            "styleId": "command-palette",
+            "group": "ui",
+            "aestheticRank": 67,
+            "totalScore": 1062.35
+          },
+          {
+            "order": 4,
+            "styleId": "stat-counter-lockup",
+            "group": "ui",
+            "aestheticRank": 65,
+            "totalScore": 1058.85
+          },
+          {
+            "order": 5,
+            "styleId": "glass-console",
+            "group": "ui",
+            "aestheticRank": 48,
+            "totalScore": 1034.2
+          },
+          {
+            "order": 6,
+            "styleId": "timeline-tick",
+            "group": "ui",
+            "aestheticRank": 28,
+            "totalScore": 1022.6
+          },
+          {
+            "order": 7,
+            "styleId": "floating-tooltip",
+            "group": "ui",
+            "aestheticRank": 27,
+            "totalScore": 1022.15
+          },
+          {
+            "order": 8,
+            "styleId": "bento-token",
+            "group": "ui",
+            "aestheticRank": 39,
+            "totalScore": 1017.55
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "proof",
+        "step"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "声音与字幕时序",
+          "字幕安全层",
+          "黑帧"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-product-toast caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合 SaaS、App、AI 工具演示",
+      "group": "ui",
+      "styleName": "Product Toast",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    },
+    {
+      "sceneId": "delivery",
+      "order": 8,
+      "styleId": "product-toast",
+      "selectedStyleId": "product-toast",
+      "fallbackStyleId": "quote-glass-seal",
+      "sceneJob": "productDemo",
+      "priorityGroups": [
+        "ui",
+        "glass",
+        "minimal"
+      ],
+      "reason": "scene job productDemo prioritizes ui > glass > minimal; within the best compatible group, aesthetic rank selects Product Toast for step",
+      "aestheticSelection": {
+        "model": "deterministic-aesthetic-rubric-v1",
+        "selectedAestheticRank": 68,
+        "selectedAestheticScore": 104,
+        "descendingShortlist": [
+          {
+            "order": 1,
+            "styleId": "product-toast",
+            "group": "ui",
+            "aestheticRank": 68,
+            "totalScore": 1072.8
+          },
+          {
+            "order": 2,
+            "styleId": "soft-ui-dock",
+            "group": "ui",
+            "aestheticRank": 66,
+            "totalScore": 1071.9
+          },
+          {
+            "order": 3,
+            "styleId": "command-palette",
+            "group": "ui",
+            "aestheticRank": 67,
+            "totalScore": 1062.35
+          },
+          {
+            "order": 4,
+            "styleId": "stat-counter-lockup",
+            "group": "ui",
+            "aestheticRank": 65,
+            "totalScore": 1048.85
+          },
+          {
+            "order": 5,
+            "styleId": "glass-console",
+            "group": "ui",
+            "aestheticRank": 48,
+            "totalScore": 1034.2
+          },
+          {
+            "order": 6,
+            "styleId": "bento-token",
+            "group": "ui",
+            "aestheticRank": 39,
+            "totalScore": 1017.55
+          },
+          {
+            "order": 7,
+            "styleId": "data-pill",
+            "group": "ui",
+            "aestheticRank": 38,
+            "totalScore": 1017.1
+          },
+          {
+            "order": 8,
+            "styleId": "timeline-tick",
+            "group": "ui",
+            "aestheticRank": 28,
+            "totalScore": 1012.6
+          }
+        ],
+        "policy": "Sort the 68-style catalog by taste/readability first, then apply scene-job compatibility so the best-looking valid style wins."
+      },
+      "semanticCueTypes": [
+        "step"
+      ],
+      "emphasisPlan": {
+        "enabledByDefault": true,
+        "mode": "keyword-visual-emphasis",
+        "tokens": [
+          "原生比例封面",
+          "字幕",
+          "审阅页面"
+        ],
+        "allowedTreatments": [
+          "bold",
+          "accentColor",
+          "underline",
+          "marker",
+          "chip",
+          "scale <= 1.08",
+          "highlightBackground"
+        ],
+        "forbidden": [
+          "do not split TTS",
+          "do not create simultaneous extra subtitle lines",
+          "do not rewrite spoken cue"
+        ]
+      },
+      "layerClass": "caption-style-product-toast caption-group-ui caption-motion-ui-state-shift",
+      "safeArea": "bottom-caption-band",
+      "displayMode": "single-line-sequential",
+      "treatment": "适合 SaaS、App、AI 工具演示",
+      "group": "ui",
+      "styleName": "Product Toast",
+      "typography": {
+        "fontFamily": "PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif",
+        "fontWeight": 850,
+        "letterSpacing": 0,
+        "lineHeight": 1.14,
+        "minFontPx": 31,
+        "targetFontPx": 36,
+        "maxFontPx": 43
+      },
+      "geometry": {
+        "horizontalInset": "11.5vw",
+        "bottomInset": "5.6vh",
+        "minHeight": "66px",
+        "maxHeight": "96px",
+        "padding": "13px 30px",
+        "radius": "22px"
+      },
+      "motion": {
+        "enter": "console-glass-scan",
+        "exit": "short-fade",
+        "timingSource": "per-cue TTS segment timing"
+      },
+      "contrast": {
+        "target": "high-contrast on every frame",
+        "textColor": "#fffaf0",
+        "backgroundColor": "rgba(8, 12, 20, 0.94)",
+        "accentColor": "#a06f32",
+        "minimumBackgroundOpacity": 0.9,
+        "blurAllowed": false,
+        "emphasisPolicy": "emphasis never uses accent-colored text alone; it must keep light text on a dark/high-contrast backing"
+      },
+      "platformProfile": "local-review-horizontal",
+      "readibilityGuards": [
+        "one visible subtitle line per timestamp",
+        "caption text preserves spoken cue text",
+        "subtitle layer remains outside primary image/chart/proof area",
+        "cue transition is opacity/transform only and never changes timing"
+      ]
+    }
+  ],
+  "rejectList": [
+    "plain unstyled default subtitle bar as final treatment",
+    "multi-line simultaneous subtitle display",
+    "caption motion that obscures text during the active cue",
+    "subtitle inside generated bitmap pixels",
+    "bottom placement that collides with platform UI safe zones"
+  ],
+  "verification": [
+    "logs/qc.json captionStylePlanPresent",
+    "logs/qc.json captionStylePlanEnforced",
+    "validate-subtitle-cover-contract.mjs checks caption-style-plan.json",
+    "frame layout overlap audit keeps .subtitle visible and non-overlapping"
+  ]
+}

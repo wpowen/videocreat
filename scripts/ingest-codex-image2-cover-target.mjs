@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
@@ -10,6 +10,9 @@ import {
   validateContextImage2PromptParity,
   validateCoverRequestScopeContract,
 } from "./lib/cover-generation-workflow.mjs";
+import { classifyCoverQcRerun } from "./lib/cover-qc-rerun.mjs";
+import { REQUIRED_COVER_INSPECTION_CHECKS } from "./lib/cover-evidence-contract.mjs";
+import { resolveStandaloneCoverSkillRoot } from "./lib/cover-skill-runtime.mjs";
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -20,11 +23,46 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function refreshCoverDispatchState(topicDir) {
+  const mainSkillRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const coverSkillRoot = resolveStandaloneCoverSkillRoot({ mainSkillRoot });
+  const planner = join(coverSkillRoot, "scripts", "prepare-cover-image2-dispatch.mjs");
+  execFileSync(process.execPath, [planner, "--out", topicDir], {
+    cwd: mainSkillRoot,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return readJson(join(topicDir, "workflow", "cover-generation-run.json"));
+}
+
 function writeJson(path, value) {
   mkdirSync(dirname(path), { recursive: true });
   const temporary = `${path}.tmp-${process.pid}`;
   writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   renameSync(temporary, path);
+}
+
+function packageOutputPath(root, manifestPath, label) {
+  const value = String(manifestPath || "").trim();
+  if (!value || isAbsolute(value)) throw new Error(`${label} must be a relative package path.`);
+  const canonicalRoot = realpathSync(root);
+  const candidate = resolve(canonicalRoot, value);
+  const lexicalRelation = relative(canonicalRoot, candidate);
+  if (!lexicalRelation || lexicalRelation === ".." || lexicalRelation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(lexicalRelation)) {
+    throw new Error(`${label} must stay inside the topic package: ${value}`);
+  }
+  let existingAncestor = candidate;
+  while (!existsSync(existingAncestor)) {
+    const parent = dirname(existingAncestor);
+    if (parent === existingAncestor) break;
+    existingAncestor = parent;
+  }
+  const canonicalAncestor = realpathSync(existingAncestor);
+  const ancestorRelation = relative(canonicalRoot, canonicalAncestor);
+  if (ancestorRelation === ".." || ancestorRelation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(ancestorRelation)) {
+    throw new Error(`${label} resolves through a path outside the topic package: ${value}`);
+  }
+  return candidate;
 }
 
 function sha256File(path) {
@@ -92,9 +130,10 @@ function validateGenerationEvidence({ topicDir, targetId, source, receiptPath, i
   }
   const promptPlanPath = join(topicDir, "workflow", "cover-image2-prompts.json");
   if (!existsSync(promptPlanPath)) throw new Error(`Cover prompt plan not found: ${promptPlanPath}`);
+  const promptPlan = readJson(promptPlanPath);
   const scopeContract = validateCoverRequestScopeContract({
     manifest: requestManifest,
-    coverImage2Prompts: readJson(promptPlanPath),
+    coverImage2Prompts: promptPlan,
   });
   if (!scopeContract.pass) throw new Error(`Cover request scope contract failed: ${scopeContract.failures.join("; ")}`);
   const receipt = readJson(receiptPath);
@@ -109,7 +148,9 @@ function validateGenerationEvidence({ topicDir, targetId, source, receiptPath, i
   if (receiptTarget !== key || String(receipt.requestId || "") !== String(requestId || "")) {
     throw new Error(`Generation receipt does not match canonical request ${requestId} for ${key}.`);
   }
-  if (resolve(receipt.sourcePath || "") !== resolve(source)) throw new Error("Generation receipt sourcePath does not match --source.");
+  if (!receipt.sourcePath || !existsSync(receipt.sourcePath) || realpathSync(receipt.sourcePath) !== realpathSync(source)) {
+    throw new Error("Generation receipt sourcePath does not match --source.");
+  }
   if (receipt.outputSha256 !== sourceHash) throw new Error("Generation receipt outputSha256 does not match the source bitmap.");
   if (receipt.promptSha256 !== promptHash) throw new Error("Generation receipt promptSha256 does not match the package-bound request prompt.");
   if (!Number.isFinite(Date.parse(receipt.generatedAt || ""))) throw new Error("Generation receipt generatedAt is missing or invalid.");
@@ -120,8 +161,50 @@ function validateGenerationEvidence({ topicDir, targetId, source, receiptPath, i
     throw new Error("Inspection record must contain a passed status and inspectorType human or vision.");
   }
   if (!Number.isFinite(Date.parse(inspection.inspectedAt || ""))) throw new Error("Inspection record inspectedAt is missing or invalid.");
-  const topicPrefix = `${resolve(topicDir)}/`;
-  if (resolve(source).startsWith(topicPrefix)) throw new Error("The source bitmap must be an external image_gen output, not an existing topic-package artifact.");
+  const promptItem = matchingPrompt(promptPlan, targetId);
+  if (!promptItem) throw new Error(`Cover prompt plan item not found for ${targetId}.`);
+  const artDirection = promptItem.coverArtDirectionSystem || promptPlan.coverArtDirectionSystem || {};
+  const expectedStyleId = request.coverArtDirectionStyleId
+    || promptItem.coverArtDirectionStyle?.id
+    || artDirection.selectedStyle?.id
+    || "";
+  const semanticColor = promptItem.platformStrategy?.colorSystem || {};
+  const inspectionChecks = new Map((Array.isArray(inspection.checks) ? inspection.checks : [])
+    .filter((check) => check && typeof check === "object")
+    .map((check) => [check.id, check]));
+  const missingInspectionChecks = REQUIRED_COVER_INSPECTION_CHECKS.filter((check) => {
+    const result = inspectionChecks.get(check);
+    return result?.passed !== true || result?.assessedBy !== inspection.inspectorType;
+  });
+  if (missingInspectionChecks.length) {
+    throw new Error(`Inspection record is missing required cover checks: ${missingInspectionChecks.join(", ")}.`);
+  }
+  if (artDirection.methodologyVersion !== "cover-art-direction-system-v1"
+    || artDirection.selectedStyleCount !== 1
+    || !expectedStyleId
+    || artDirection.selectedStyle?.id !== expectedStyleId
+    || !artDirection.selectionReason
+    || inspection.artDirection?.methodologyVersion !== artDirection.methodologyVersion
+    || inspection.artDirection?.styleId !== expectedStyleId
+    || inspection.artDirection?.selectionReason !== artDirection.selectionReason) {
+    throw new Error("Inspection record art direction does not match the current target-bound cover prompt.");
+  }
+  if (semanticColor.methodologyVersion !== "cover-semantic-color-system-v1"
+    || !semanticColor.semanticFamilyId
+    || !semanticColor.surfaceMode
+    || inspection.semanticColor?.methodologyVersion !== semanticColor.methodologyVersion
+    || inspection.semanticColor?.familyId !== semanticColor.semanticFamilyId
+    || inspection.semanticColor?.surfaceMode !== semanticColor.surfaceMode
+    || inspection.semanticColor?.backgroundPolicy !== semanticColor.backgroundPolicy) {
+    throw new Error("Inspection record semantic color does not match the current target-bound cover prompt.");
+  }
+  if (inspection.glance?.first !== "topic-and-promise-clear"
+    || inspection.glance?.second !== "proof-or-metaphor-clear"
+    || inspection.glance?.previewWidth !== "120-180px") {
+    throw new Error("Inspection record must prove first-glance topic/promise and second-glance proof/metaphor at small-preview size.");
+  }
+  const topicPrefix = `${realpathSync(topicDir)}/`;
+  if (realpathSync(source).startsWith(topicPrefix)) throw new Error("The source bitmap must be an external image_gen output, not an existing topic-package artifact.");
   const selection = readJson(join(topicDir, "workflow", "cover-size-selection.json"));
   const reviewFiles = (selection.entries || []).flatMap((entry) => [
     ...(entry.internalReviewFiles || []),
@@ -418,10 +501,10 @@ function updateContextRequests({ topicDir, targetId, source, sourceCopy, pngFile
   request.generationReceipt = generationEvidence.receipt;
   request.inspectionRecord = generationEvidence.inspection;
   if (request.generationReceiptPath) {
-    writeJson(join(topicDir, request.generationReceiptPath), generationEvidence.receipt);
+    writeJson(packageOutputPath(topicDir, request.generationReceiptPath, "generationReceiptPath"), generationEvidence.receipt);
   }
   if (request.inspectionRecordPath) {
-    writeJson(join(topicDir, request.inspectionRecordPath), generationEvidence.inspection);
+    writeJson(packageOutputPath(topicDir, request.inspectionRecordPath, "inspectionRecordPath"), generationEvidence.inspection);
   }
   request.outputSha256 = generationEvidence.sourceHash;
   request.promptSha256 = generationEvidence.promptHash;
@@ -568,6 +651,18 @@ function updatePackageDeliveryState({ topicDir, requestState }) {
   }
 }
 
+function parseTrailingJsonObject(stdout) {
+  const text = String(stdout || "").trim();
+  for (let index = text.lastIndexOf("{"); index >= 0; index = text.lastIndexOf("{", index - 1)) {
+    try {
+      return JSON.parse(text.slice(index));
+    } catch {
+      // Keep scanning toward the start until the complete trailing result object is found.
+    }
+  }
+  throw new Error("Video workflow did not emit a parseable trailing JSON result.");
+}
+
 function finalizePublishingPackageIfVideoExists(topicDir) {
   const briefPath = join(topicDir, "brief.json");
   const normalizedFinalVideo = join(topicDir, "renders", "final.audio-normalized.mp4");
@@ -592,13 +687,32 @@ function finalizePublishingPackageIfVideoExists(topicDir) {
       env: { ...process.env, CODEX_VIDEO_WORKFLOW_HEADLESS: "1" },
       maxBuffer: 32 * 1024 * 1024,
     });
-    return { attempted: true, status: "qc-rerun-complete", stdout: stdout.trim().split("\n").slice(-1)[0] || "" };
+    const result = parseTrailingJsonObject(stdout);
+    return {
+      attempted: true,
+      status: classifyCoverQcRerun({ exitCode: 0, result }),
+      exitCode: 0,
+      result,
+    };
   } catch (error) {
+    const stdout = String(error.stdout || "");
+    try {
+      const result = parseTrailingJsonObject(stdout);
+      return {
+        attempted: true,
+        status: classifyCoverQcRerun({ exitCode: error.status ?? null, result }),
+        exitCode: error.status ?? null,
+        result,
+        stderr: String(error.stderr || error.message || "").slice(-4000),
+      };
+    } catch {
+      // Preserve bounded raw diagnostics only when the workflow emitted no structured result.
+    }
     return {
       attempted: true,
       status: "qc-rerun-failed-package-remains-review-only",
       exitCode: error.status ?? null,
-      stdout: String(error.stdout || "").slice(-8000),
+      stdout: stdout.slice(-8000),
       stderr: String(error.stderr || error.message || "").slice(-4000),
     };
   }
@@ -647,7 +761,7 @@ function updatePrompts({ topicDir, targetId, entry, promptItem, source, sourceCo
 function main() {
   const topicDir = resolve(argValue("--topic"));
   const targetId = targetKey(argValue("--target"));
-  const source = resolve(argValue("--source"));
+  const sourceArgument = argValue("--source");
   const receiptArg = argValue("--generation-receipt");
   const inspectionArg = argValue("--inspection-record");
   const receiptPath = receiptArg ? resolve(receiptArg) : "";
@@ -655,10 +769,12 @@ function main() {
   const validateOnly = process.argv.includes("--validate-only");
   const deferPackageFinalization = process.argv.includes("--defer-package-finalization");
   const runFullPackageQc = process.argv.includes("--run-full-package-qc");
-  if (!topicDir || !targetId || !source) {
+  if (!topicDir || !targetId || !sourceArgument) {
     throw new Error("Usage: ingest-codex-image2-cover-target.mjs --topic <topic-dir> --target <target-id> --source <codex-imagegen-png>");
   }
-  if (!existsSync(source)) throw new Error(`Source image not found: ${source}`);
+  const resolvedSource = resolve(sourceArgument);
+  if (!existsSync(resolvedSource)) throw new Error(`Source image not found: ${resolvedSource}`);
+  const source = realpathSync(resolvedSource);
   const evidence = validateGenerationEvidence({ topicDir, targetId, source, receiptPath, inspectionPath });
   const inspectionStatus = evidence.inspection.status;
   const approved = true;
@@ -715,9 +831,13 @@ function main() {
     inspectionStatus,
     generationEvidence: evidence,
   });
+  const generationRunPath = join(topicDir, "workflow", "cover-generation-run.json");
+  const generationRun = deferPackageFinalization
+    ? (existsSync(generationRunPath) ? readJson(generationRunPath) : {})
+    : refreshCoverDispatchState(topicDir);
   writeJson(
     join(topicDir, "workflow", "cover-generation-workflow.json"),
-    buildCoverGenerationWorkflowContract({ requestManifest: requestState.manifest }),
+    buildCoverGenerationWorkflowContract({ requestManifest: requestState.manifest, generationRun }),
   );
   cleanupCompletedCoverSelection({ topicDir, requestState });
   const coverQc = updateCoverQc({ topicDir, requestState });

@@ -229,17 +229,22 @@ function main() {
     }
   }
   const evidenceRecorderPath = join(workspace, "scripts", "record-cover-generation-evidence.mjs");
+  const evidenceContractPath = join(workspace, "scripts", "lib", "cover-evidence-contract.mjs");
   if (!existsSync(evidenceRecorderPath)) fail("dedicated cover evidence recorder is missing");
+  if (!existsSync(evidenceContractPath)) fail("shared cover evidence contract is missing");
   const evidenceRecorderSource = readFileSync(evidenceRecorderPath, "utf8");
+  const evidenceContractSource = readFileSync(evidenceContractPath, "utf8");
   for (const contract of [
     "CODEX_VIDEO_COVER_GENERATED_ROOT",
     "validateContextImage2PromptParity",
     "Generated source must remain outside the topic package",
-    "native-target-ratio-match",
     "generationReceiptPath",
     "inspectionRecordPath",
   ]) {
     if (!evidenceRecorderSource.includes(contract)) fail(`cover evidence recorder is missing contract: ${contract}`);
+  }
+  for (const contract of ["native-target-ratio-match", "art-direction-style-match", "no-unapproved-full-canvas-warm-paper"]) {
+    if (!evidenceContractSource.includes(contract)) fail(`shared cover evidence contract is missing check: ${contract}`);
   }
 
   console.log(JSON.stringify({ ok: true, root, routed, parity }, null, 2));

@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Semantic Flow Motion</title>
+  <style>
+    :root {
+      --paper: #f4efe5;
+      --ink: #171916;
+      --muted: #6d7168;
+      --coral: #ed654b;
+      --lime: #cbe96a;
+      --blue: #6e8df4;
+      --panel: rgba(255, 253, 247, 0.88);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", system-ui, sans-serif;
+    }
+    .stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 13% 17%, rgba(203,233,106,.42), transparent 24%),
+        radial-gradient(circle at 83% 20%, rgba(110,141,244,.18), transparent 26%),
+        linear-gradient(rgba(23,25,22,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23,25,22,.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: auto, auto, 72px 72px, 72px 72px, auto;
+    }
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: .18;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+    .eyebrow {
+      position: absolute;
+      left: 104px;
+      top: 74px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 25px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+    .eyebrow::before {
+      content: "";
+      width: 42px;
+      height: 12px;
+      border-radius: 99px;
+      background: var(--coral);
+    }
+    .headline {
+      position: absolute;
+      left: 98px;
+      top: 132px;
+      z-index: 30;
+      width: 900px;
+      margin: 0;
+      font-size: 112px;
+      line-height: .98;
+      letter-spacing: -.07em;
+      font-weight: 930;
+    }
+    .headline .accent { color: var(--coral); }
+    .headline .char { display: inline-block; transform-origin: 50% 100%; }
+    .mechanical-stack {
+      position: absolute;
+      left: 107px;
+      top: 425px;
+      width: 610px;
+      height: 254px;
+      z-index: 20;
+    }
+    .slide-word {
+      position: absolute;
+      left: 0;
+      width: 360px;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      padding-left: 34px;
+      border: 4px solid var(--ink);
+      border-radius: 18px;
+      background: #fffdf7;
+      box-shadow: 13px 13px 0 var(--ink);
+      font-size: 44px;
+      font-weight: 900;
+    }
+    .slide-word:nth-child(1) { top: 0; }
+    .slide-word:nth-child(2) { top: 79px; left: 78px; }
+    .slide-word:nth-child(3) { top: 158px; left: 156px; }
+    .strike {
+      position: absolute;
+      left: -20px;
+      top: 122px;
+      width: 570px;
+      height: 20px;
+      border-radius: 99px;
+      background: var(--coral);
+      transform: rotate(-10deg) scaleX(0);
+      transform-origin: left center;
+      z-index: 22;
+    }
+    .flow-field {
+      position: absolute;
+      inset: 94px 82px 176px 790px;
+      z-index: 18;
+    }
+    .flow-paths {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .path-base {
+      fill: none;
+      stroke: rgba(23,25,22,.13);
+      stroke-width: 8;
+      stroke-linecap: round;
+    }
+    .path-active {
+      fill: none;
+      stroke: var(--coral);
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+    .node {
+      position: absolute;
+      width: 250px;
+      min-height: 142px;
+      padding: 26px 26px 24px;
+      border: 4px solid var(--ink);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 15px 15px 0 var(--ink);
+      transform-origin: center;
+      z-index: 30;
+      will-change: transform, opacity;
+    }
+    .node-a { left: 22px; top: 74px; }
+    .node-b { left: 390px; top: 275px; }
+    .node-c { right: 20px; top: 68px; }
+    .node-number {
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 20px;
+      font-weight: 850;
+    }
+    .node h2 {
+      margin: 12px 0 0;
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+    .node small {
+      display: block;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 21px;
+      font-weight: 650;
+    }
+    .signal {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 50;
+      width: 42px;
+      height: 42px;
+      border: 7px solid var(--ink);
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 0 14px rgba(203,233,106,.3);
+      will-change: transform;
+    }
+    .focus-ring {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 45;
+      width: 330px;
+      height: 220px;
+      border: 8px solid var(--coral);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+    .resolve-card {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      z-index: 70;
+      width: 940px;
+      min-height: 360px;
+      padding: 55px 72px 48px;
+      border: 5px solid var(--ink);
+      border-radius: 42px;
+      background: #fffdf7;
+      box-shadow: 22px 22px 0 var(--ink);
+      transform: translate(-50%, -50%) scale(.74) rotate(-2deg);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    .resolve-card::before {
+      content: "";
+      position: absolute;
+      left: -42px;
+      top: -42px;
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background: var(--lime);
+      border: 5px solid var(--ink);
+      z-index: -1;
+    }
+    .resolve-kicker {
+      color: var(--coral);
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    .resolve-card h2 {
+      margin: 18px 0 0;
+      font-size: 108px;
+      line-height: .96;
+      letter-spacing: -.07em;
+    }
+    .resolve-card p {
+      margin: 26px 0 0;
+      font-size: 35px;
+      font-weight: 760;
+      color: var(--muted);
+      letter-spacing: .02em;
+    }
+    .caption-band {
+      position: absolute;
+      left: 200px;
+      right: 200px;
+      bottom: 42px;
+      z-index: 100;
+      min-height: 94px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 19px 44px;
+      border-radius: 28px;
+      background: rgba(23,25,22,.94);
+      color: #fffdf7;
+      font-size: 38px;
+      line-height: 1.25;
+      font-weight: 780;
+      text-align: center;
+      box-shadow: 0 16px 45px rgba(23,25,22,.18);
+    }
+    .progress-rail {
+      position: absolute;
+      left: 104px;
+      right: 104px;
+      bottom: 160px;
+      z-index: 95;
+      height: 6px;
+      border-radius: 99px;
+      background: rgba(23,25,22,.14);
+      overflow: hidden;
+    }
+    .progress-fill {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--coral);
+      transform: scaleX(0);
+      transform-origin: left center;
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="grain"></div>
+    <div class="eyebrow">让动效承担解释任务</div>
+    <h1 class="headline" id="mainTitle">信息，<span class="accent">不该</span><br />一页一页出现</h1>
+
+    <section class="mechanical-stack" aria-label="机械翻页状态">
+      <div class="slide-word">出现</div>
+      <div class="slide-word">切走</div>
+      <div class="slide-word">再出现</div>
+      <div class="strike"></div>
+    </section>
+
+    <section class="flow-field" aria-label="语义路径动画">
+      <svg class="flow-paths" viewBox="0 0 1050 760" aria-hidden="true">
+        <path class="path-base" d="M120 160 C330 72 430 370 548 350 S760 100 920 150" />
+        <path id="semanticPath" class="path-active" d="M120 160 C330 72 430 370 548 350 S760 100 920 150" />
+      </svg>
+      <article class="node node-a">
+        <span class="node-number">1</span>
+        <h2>关系</h2>
+        <small>先让元素彼此有关</small>
+      </article>
+      <article class="node node-b">
+        <span class="node-number">2</span>
+        <h2>路径</h2>
+        <small>让视线知道往哪走</small>
+      </article>
+      <article class="node node-c">
+        <span class="node-number">3</span>
+        <h2>结论</h2>
+        <small>变化最终留下意义</small>
+      </article>
+      <div class="signal" aria-hidden="true"></div>
+      <div class="focus-ring" aria-hidden="true"></div>
+    </section>
+
+    <section class="resolve-card">
+      <div class="resolve-kicker">不是更多动画，而是更强因果</div>
+      <h2>让信息发生</h2>
+      <p>关系 → 路径 → 结论</p>
+    </section>
+
+    <div class="progress-rail"><div class="progress-fill"></div></div>
+    <div class="caption-band" data-field="caption">别让信息，一页一页跳出来。</div>
+  </main>
+
+  <!-- GSAP_RUNTIME_START -->
+  <!-- GSAP_RUNTIME_END -->
+  <script>
+    (() => {
+      const TOTAL_SECONDS = 10;
+      const clamp = (value) => Math.max(0, Math.min(1, value));
+      const captions = [
+        { start: 0, end: 2.64, text: "别让信息，一页一页跳出来。" },
+        { start: 2.64, end: 5.91, text: "先建立关系，让视线沿路径前进。" },
+        { start: 5.91, end: 10, text: "再把线索，收束成一个结论。" }
+      ];
+
+      gsap.registerPlugin(MotionPathPlugin, DrawSVGPlugin, SplitText);
+      gsap.defaults({ ease: "power3.out" });
+
+      const titleSplit = SplitText.create("#mainTitle", {
+        type: "chars",
+        charsClass: "char",
+        aria: "auto"
+      });
+      const timeline = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
+
+      timeline
+        .addLabel("reject-slides", 0)
+        .from(titleSplit.chars, {
+          yPercent: 92,
+          rotation: 5,
+          autoAlpha: .18,
+          duration: .78,
+          stagger: { each: .026, from: "start" },
+          ease: "power4.out"
+        }, 0)
+        .from(".slide-word", {
+          x: -115,
+          y: 34,
+          rotation: -7,
+          autoAlpha: 0,
+          duration: .62,
+          stagger: .16,
+          ease: "back.out(1.35)"
+        }, .42)
+        .to(".strike", {
+          scaleX: 1,
+          duration: .48,
+          ease: "power4.inOut"
+        }, 1.58)
+        .to(".mechanical-stack", {
+          x: -92,
+          rotation: -4,
+          autoAlpha: 0,
+          duration: .72,
+          ease: "power3.in"
+        }, 2.03)
+        .to(".headline", {
+          x: -34,
+          y: -22,
+          scale: .68,
+          transformOrigin: "left top",
+          duration: .86,
+          ease: "power3.inOut"
+        }, 2.1)
+        .addLabel("build-relationship", 2.5)
+        .from(".flow-field", {
+          autoAlpha: 0,
+          scale: .96,
+          duration: .48
+        }, 2.48)
+        .fromTo("#semanticPath", {
+          drawSVG: "0% 0%"
+        }, {
+          drawSVG: "0% 100%",
+          duration: 3.15,
+          ease: "power2.inOut"
+        }, 2.58)
+        .from(".node", {
+          y: 80,
+          scale: .72,
+          rotation: (index) => [-7, 5, -4][index],
+          autoAlpha: 0,
+          duration: .72,
+          stagger: .78,
+          ease: "back.out(1.24)"
+        }, 2.68)
+        .fromTo(".signal", {
+          autoAlpha: 0,
+          scale: .5
+        }, {
+          autoAlpha: 1,
+          scale: 1,
+          duration: .32
+        }, 2.6)
+        .to(".signal", {
+          duration: 3.25,
+          ease: "power1.inOut",
+          motionPath: {
+            path: "#semanticPath",
+            align: "#semanticPath",
+            alignOrigin: [.5, .5],
+            autoRotate: true
+          }
+        }, 2.62)
+        .to(".node-a", { scale: 1.08, duration: .28, yoyo: true, repeat: 1 }, 3.02)
+        .to(".node-b", { scale: 1.08, duration: .28, yoyo: true, repeat: 1 }, 4.35)
+        .to(".node-c", { scale: 1.08, duration: .28, yoyo: true, repeat: 1 }, 5.56)
+        .fromTo(".focus-ring", {
+          x: 750,
+          y: 40,
+          scale: .62,
+          autoAlpha: 0
+        }, {
+          x: 690,
+          y: 10,
+          scale: 1,
+          autoAlpha: 1,
+          duration: .58,
+          ease: "power3.out"
+        }, 5.22)
+        .to(".focus-ring", {
+          x: 330,
+          y: 258,
+          rotation: -12,
+          duration: .75,
+          ease: "power3.inOut"
+        }, 5.8)
+        .addLabel("resolve", 5.91)
+        .to(".headline", { autoAlpha: 0, x: -90, duration: .55, ease: "power2.in" }, 5.91)
+        .to(".flow-field", { scale: .9, autoAlpha: .18, duration: .68, ease: "power2.inOut" }, 5.91)
+        .to(".node-a", { x: 390, y: 210, scale: .48, rotation: -9, autoAlpha: 0, duration: .62, ease: "power3.inOut" }, 5.94)
+        .to(".node-b", { x: 0, y: -15, scale: .48, rotation: 6, autoAlpha: 0, duration: .62, ease: "power3.inOut" }, 5.94)
+        .to(".node-c", { x: -390, y: 220, scale: .48, rotation: -3, autoAlpha: 0, duration: .62, ease: "power3.inOut" }, 5.94)
+        .to(".focus-ring, .signal", { autoAlpha: 0, duration: .32 }, 5.91)
+        .to(".resolve-card", {
+          autoAlpha: 1,
+          scale: 1,
+          rotation: 0,
+          duration: .9,
+          ease: "back.out(1.18)"
+        }, 6.28)
+        .from(".resolve-card h2", {
+          y: 58,
+          autoAlpha: 0,
+          duration: .64,
+          ease: "power4.out"
+        }, 6.66)
+        .from(".resolve-card p", {
+          y: 26,
+          autoAlpha: 0,
+          duration: .5
+        }, 7.01)
+        .to(".resolve-card", {
+          y: -8,
+          boxShadow: "28px 28px 0 #171916",
+          duration: .8,
+          ease: "sine.inOut"
+        }, 8.05)
+        .to(".resolve-card", {
+          y: 0,
+          boxShadow: "22px 22px 0 #171916",
+          duration: .8,
+          ease: "sine.inOut"
+        }, 8.85)
+        .to({}, { duration: .35 }, 9.65);
+
+      timeline.duration(TOTAL_SECONDS);
+
+      function setCaption(time) {
+        const cue = captions.find((item) => time >= item.start && time < item.end) || captions[captions.length - 1];
+        const caption = document.querySelector("[data-field=caption]");
+        if (caption.textContent !== cue.text) caption.textContent = cue.text;
+      }
+
+      function setProgress(progress = 0) {
+        const safe = clamp(Number(progress) || 0);
+        const time = safe * TOTAL_SECONDS;
+        timeline.time(time, false);
+        gsap.set(".progress-fill", { scaleX: safe });
+        setCaption(time);
+      }
+
+      window.motionTemplate = {
+        id: "gsap-semantic-flow",
+        durationSeconds: TOTAL_SECONDS,
+        fps: 30,
+        capabilities: ["timeline", "SplitText", "DrawSVG", "MotionPath"],
+        setContent(data = {}) {
+          for (const [key, value] of Object.entries(data)) {
+            const element = document.querySelector(`[data-field="${key}"]`);
+            if (element) element.textContent = value;
+          }
+        },
+        setProgress,
+        setFrame(frame = 0, fps = 30) {
+          setProgress((Number(frame) || 0) / (TOTAL_SECONDS * fps));
+        }
+      };
+      setProgress(0);
+      document.documentElement.dataset.motionReady = "true";
+    })();
+  </script>
+</body>
+</html>

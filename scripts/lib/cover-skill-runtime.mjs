@@ -5,6 +5,9 @@ import { join, resolve } from "node:path";
 
 export const COVER_SKILL_PARITY_FILES = [
   "SKILL.md",
+  "references/workflow-contract.md",
+  "references/image2-dispatch-runtime.md",
+  "references/cover-art-direction-system.md",
   "scripts/prepare-cover-image2-dispatch.mjs",
   "scripts/record-cover-image2-dispatch-result.mjs",
   "scripts/ingest-codex-image2-cover-batch.mjs",

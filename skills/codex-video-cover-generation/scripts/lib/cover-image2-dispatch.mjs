@@ -8,6 +8,30 @@ function unique(values = []) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function dispatchJobFingerprint(job = {}) {
+  return JSON.stringify({
+    targetId: normalizedTargetId(job.targetId || job.id),
+    requestId: String(job.requestId || job.promptTargetId || job.targetId || job.id || ""),
+    provider: String(job.provider || "codex-context-image2"),
+    tool: String(job.tool || "image_gen"),
+    prompt: String(job.prompt || ""),
+    promptSha256: String(job.promptSha256 || ""),
+    inputImages: (Array.isArray(job.inputImages) ? job.inputImages : []).map((item) => ({
+      role: String(item?.role || "reference"),
+      path: String(item?.path || ""),
+      contentSha256: String(item?.contentSha256 || ""),
+    })),
+    promptPath: String(job.promptPath || ""),
+    expectedOutput: String(job.expectedOutput || ""),
+    generationReceiptPath: String(job.generationReceiptPath || ""),
+    inspectionRecordPath: String(job.inspectionRecordPath || ""),
+    requestSchemaVersion: String(job.requestSchemaVersion || ""),
+    width: Number(job.width || 0),
+    height: Number(job.height || 0),
+    ratio: String(job.ratio || ""),
+  });
+}
+
 function normalizeConcurrency(value, pendingCount) {
   if (pendingCount <= 0) return 0;
   const requested = Number(value);
@@ -48,10 +72,15 @@ export function buildCoverImage2DispatchPlan({
   topicDir = "",
   requestedConcurrency,
   createdAt = new Date().toISOString(),
+  previousPlan = {},
+  previousRun = {},
+  sourceExists = () => false,
+  inputImageFingerprint = () => "",
+  sourceFingerprint = () => "",
 } = {}) {
   const requests = Array.isArray(manifest.requests) ? manifest.requests : [];
   const pendingRequests = requests.filter((request) => request?.status !== "completed");
-  const jobs = pendingRequests.map((request) => ({
+  const candidateJobs = pendingRequests.map((request) => ({
     targetId: normalizedTargetId(request.targetId || request.id),
     requestId: request.requestId || request.promptTargetId || request.targetId || request.id || "",
     provider: request.provider || manifest.provider || "codex-context-image2",
@@ -65,6 +94,7 @@ export function buildCoverImage2DispatchPlan({
     inputImages: (Array.isArray(request.inputImages) ? request.inputImages : []).map((item) => ({
       role: String(item?.role || "reference"),
       path: String(item?.path || ""),
+      contentSha256: String(inputImageFingerprint(item?.path, item) || item?.contentSha256 || ""),
     })),
     width: Number(request.width || 0),
     height: Number(request.height || 0),
@@ -72,8 +102,32 @@ export function buildCoverImage2DispatchPlan({
     expectedOutput: String(request.expectedOutput || ""),
     generationReceiptPath: String(request.generationReceiptPath || ""),
     inspectionRecordPath: String(request.inspectionRecordPath || ""),
+    requestSchemaVersion: String(request.schemaVersion || manifest.schemaVersion || ""),
     parallelSafe: request.parallelSafe === true,
   }));
+  const previousJobByTarget = new Map([
+    ...(Array.isArray(previousPlan.jobs) ? previousPlan.jobs : []),
+    ...(Array.isArray(previousPlan.preservedJobs) ? previousPlan.preservedJobs : []),
+  ]
+    .map((job) => [normalizedTargetId(job.targetId || job.id), job]));
+  const previousResultByTarget = new Map((Array.isArray(previousRun.targetResults) ? previousRun.targetResults : [])
+    .map((result) => [normalizedTargetId(result.targetId), result]));
+  const preservedGeneratedTargetIds = candidateJobs
+    .filter((job) => {
+      const previousJob = previousJobByTarget.get(job.targetId);
+      const previousResult = previousResultByTarget.get(job.targetId);
+      return previousJob
+        && previousResult?.status === "generated"
+        && previousResult.sourcePath
+        && previousResult.sourceSha256
+        && sourceExists(previousResult.sourcePath)
+        && sourceFingerprint(previousResult.sourcePath) === previousResult.sourceSha256
+        && dispatchJobFingerprint(previousJob) === dispatchJobFingerprint(job);
+    })
+    .map((job) => job.targetId);
+  const preservedGeneratedSet = new Set(preservedGeneratedTargetIds);
+  const preservedJobs = candidateJobs.filter((job) => preservedGeneratedSet.has(job.targetId));
+  const jobs = candidateJobs.filter((job) => !preservedGeneratedSet.has(job.targetId));
   const plannedTargetCount = Number(manifest.requestCountContract?.plannedTargetCount || requests.length);
   const requestedTargetCount = Number(manifest.requestCountContract?.expectedRequestCount || requests.length);
   const completedTargetIds = requests
@@ -81,7 +135,7 @@ export function buildCoverImage2DispatchPlan({
     .map((request) => normalizedTargetId(request.targetId || request.id));
   const pendingTargetIds = jobs.map((job) => job.targetId);
   const concurrency = normalizeConcurrency(requestedConcurrency, jobs.length);
-  const invalidJobs = jobs.filter((job) => !job.targetId
+  const invalidJobs = candidateJobs.filter((job) => !job.targetId
     || !job.prompt
     || !job.width
     || !job.height
@@ -111,8 +165,10 @@ export function buildCoverImage2DispatchPlan({
     completedTargetCount: completedTargetIds.length,
     pendingTargetCount: jobs.length,
     completedTargetIds,
+    preservedGeneratedTargetIds,
+    preservedJobs,
     pendingTargetIds,
-    targetCountPreserved: jobs.length === pendingRequests.length,
+    targetCountPreserved: jobs.length + preservedGeneratedTargetIds.length === pendingRequests.length,
     singleWave: jobs.length > 0 && concurrency === jobs.length,
     jobs,
   };
@@ -168,7 +224,7 @@ export async function executeCoverImage2DispatchPlan({
       nextIndex += 1;
       const job = jobs[index];
       const submittedAt = now();
-      const [settled] = await Promise.allSettled([generate(job)]);
+      const [settled] = await Promise.allSettled([Promise.resolve().then(() => generate(job))]);
       results[index] = settledResult({
         job,
         status: settled.status,

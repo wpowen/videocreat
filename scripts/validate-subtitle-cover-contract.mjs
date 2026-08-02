@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { resolveCanonicalNarration } from "./lib/script-and-delivery-contract.mjs";
 
 function usage() {
   return [
@@ -151,7 +152,9 @@ function main() {
   const warnings = [];
 
   const subtitleSegmentsPath = requireFile(outDir, "script/subtitle-cue-narration-segments.json", failures);
+  const narrationPath = requireFile(outDir, "script/narration.txt", failures);
   const spokenPath = requireFile(outDir, "script/narration-spoken.txt", failures);
+  const scriptFidelityPath = requireFile(outDir, "workflow/script-fidelity.json", failures);
   const srtPath = requireFile(outDir, "script/subtitles.srt", failures);
   const qcPath = requireFile(outDir, "logs/qc.json", failures);
   const syncPath = requireFile(outDir, "workflow/sync-timecode-plan.json", failures);
@@ -173,8 +176,13 @@ function main() {
     for (const segment of segments) validateCaptionText(segment, failures);
 
     const spoken = readFileSync(spokenPath, "utf8");
+    const narration = readFileSync(narrationPath, "utf8");
     const cueText = segments.map((segment) => segment.text || "").join("");
     expect(compactText(cueText) === compactText(spoken), "TTS cue text does not preserve narration-spoken.txt", failures);
+    const scriptFidelity = readJson(scriptFidelityPath);
+    expect(scriptFidelity.schemaVersion === 1 && scriptFidelity.pass === true && scriptFidelity.status === "pass", "workflow/script-fidelity.json must pass", failures);
+    expect(Array.isArray(scriptFidelity.failures) && scriptFidelity.failures.length === 0, "workflow/script-fidelity.json must have no failures", failures);
+    expect(Object.values(scriptFidelity.checks || {}).every((value) => value === true), "every workflow/script-fidelity.json check must pass", failures);
 
     const blocks = parseSrt(readFileSync(srtPath, "utf8"));
     expect(blocks.length > 0, "subtitles.srt has no subtitle blocks", failures);
@@ -192,6 +200,7 @@ function main() {
     expect(qc.checks?.captionStylePlanPresent === true, "logs/qc.json must pass captionStylePlanPresent", failures);
     expect(qc.checks?.captionStylePlanEnforced === true, "logs/qc.json must pass captionStylePlanEnforced", failures);
     expect(qc.checks?.frameAudioTimingBound === true, "logs/qc.json must pass frameAudioTimingBound", failures);
+    expect(qc.checks?.scriptFidelityPass === true, "logs/qc.json must pass scriptFidelityPass", failures);
     expect(qc.checks?.openingAudioStartsImmediately === true, "logs/qc.json must pass openingAudioStartsImmediately", failures);
     if (semanticLayerRenderer) {
       expect(qc.checks?.personalIpSemanticPackageQcPass === true, "semantic-layer video must pass its package QC", failures);
@@ -242,6 +251,7 @@ function main() {
     expect(hardGates.includes("captionStylePlanPresent"), "quality contract must include captionStylePlanPresent hard gate", failures);
     expect(hardGates.includes("captionStylePlanEnforced"), "quality contract must include captionStylePlanEnforced hard gate", failures);
     expect(hardGates.includes("frameAudioTimingBound"), "quality contract must include frameAudioTimingBound hard gate", failures);
+    expect(hardGates.includes("scriptFidelityPass"), "quality contract must include scriptFidelityPass hard gate", failures);
     expect(hardGates.includes("directFirstSceneStart"), "quality contract must include directFirstSceneStart hard gate", failures);
     expect(hardGates.includes("openingAudioStartsImmediately"), "quality contract must include openingAudioStartsImmediately hard gate", failures);
     expect(hardGates.includes("visualAssetsContentBound"), "quality contract must include visualAssetsContentBound hard gate", failures);
@@ -258,6 +268,7 @@ function main() {
     const requiredArtifacts = Array.isArray(contract.requiredArtifacts) ? contract.requiredArtifacts : [];
     expect(requiredArtifacts.includes("workflow/runtime-config.json"), "quality contract must require workflow/runtime-config.json", failures);
     expect(requiredArtifacts.includes("workflow/retention-structure-contract.json"), "quality contract must require workflow/retention-structure-contract.json", failures);
+    expect(requiredArtifacts.includes("workflow/script-fidelity.json"), "quality contract must require workflow/script-fidelity.json", failures);
     const sceneContracts = Array.isArray(contract.sceneContracts) ? contract.sceneContracts : [];
     const requiredLayers = ["style-signature", "motion-grammar-panel", "platform-overlay", "motion-note", "caption-band"];
     expect(sceneContracts.length > 0, "quality contract must include scene contracts", failures);
@@ -373,6 +384,13 @@ function main() {
       const briefPath = resolve(args.brief);
       if (existsSync(briefPath)) {
         const brief = readJson(briefPath);
+        const packageBrief = existsSync(join(outDir, "brief.json")) ? readJson(join(outDir, "brief.json")) : brief;
+        const canonical = resolveCanonicalNarration({
+          brief,
+          frames: Array.isArray(packageBrief.scenes) ? packageBrief.scenes : [],
+          briefDirectory: dirname(briefPath),
+        });
+        expect(compactText(canonical.text) === compactText(narration), `script/narration.txt does not preserve authoritative ${canonical.source}`, failures);
         const expectedTitle = coverTitleDescription(brief.title || "");
         if (expectedTitle) {
           expect(cover.coverTitleSource === "brief.title", "cover title must declare brief.title as source", failures);
@@ -408,6 +426,7 @@ function main() {
     checked: [
       "subtitle cue spoken text is sentence/semantic complete and newline-free",
       "captionText preserves spoken cue text without becoming TTS segmentation",
+      "the authoritative brief口播稿 matches narration.txt and the script-fidelity audit passes",
       "subtitles.srt has exactly one visible subtitle line per timestamp",
       "QC and quality contract enforce visualSubtitleSingleLine",
       "caption-style-plan.json defines premium safe-area subtitle styling without changing TTS cuts",

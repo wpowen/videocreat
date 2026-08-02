@@ -24,6 +24,14 @@ coverage/
 /.omx/
 /.playwright-cli/
 
+# Private local publication/application notes and one-off source-bound briefs.
+/CODEX_FOR_OSS_APPLICATION_TEMPLATE.zh-CN.md
+/brief-9-step-story-spine-female-horizontal.json
+
+# Generated QC snapshots can contain absolute local run paths.
+/media/qc/
+/media/showcase/core-demo/workflow/semi-auto-config.json
+
 # One-off local personal-IP assembly helpers with private project inputs
 /scripts/build-personal-ip-native-brief.mjs
 /scripts/build-personal-ip-native-package.mjs

@@ -1,0 +1,1257 @@
+{
+  "schemaVersion": 1,
+  "status": "active-generation-mode-contract",
+  "selectedMode": "semi-auto",
+  "defaultMode": "full-auto",
+  "defaultBehaviorPreserved": false,
+  "modeSelectionRule": {
+    "default": "full-auto-render",
+    "horizontalDefault": "16:9 1920x1080 30fps local-review",
+    "verticalOnlyWhenExplicit": true,
+    "askWhenAmbiguous": true,
+    "semiAutoTriggers": [
+      "explicit user request for semi-auto/半自动/custom",
+      "--generation-mode semi-auto",
+      "--generation-mode custom",
+      "brief.generationMode: semi-auto/custom"
+    ],
+    "fullAutoTriggers": [
+      "default when no explicit semi-auto request exists",
+      "--generation-mode full-auto",
+      "--full-auto",
+      "--auto",
+      "brief.generationMode: full-auto"
+    ]
+  },
+  "canvasDecision": {
+    "width": 1920,
+    "height": 1080,
+    "aspect": "16:9",
+    "vertical": false,
+    "platformProfile": "local-review-horizontal",
+    "decisionSource": "default horizontal local-review profile"
+  },
+  "supportedModes": [
+    {
+      "id": "full-auto",
+      "label": "全自动化",
+      "default": true,
+      "behavior": "User provides brief/script/materials, then the existing workflow plans, renders, QC-checks, packages, and outputs the final video in one pass.",
+      "entry": "poc-video-workflow.mjs --generation-mode full-auto",
+      "preservesExistingLogic": true,
+      "explicitOptInRequired": false,
+      "stopPoint": "after final MP4, delivery page, scorecard, and QC logs are written",
+      "requiredHumanAction": "none unless a hard gate fails"
+    },
+    {
+      "id": "semi-auto",
+      "label": "半自动化 / 自定义",
+      "default": false,
+      "behavior": "User provides topic/script, the workflow prepares research/plans/assets, stops at a configuration page, then continues only after page/config review.",
+      "entry": "poc-video-workflow.mjs --generation-mode semi-auto",
+      "stopPoint": "after semi-auto-config.html and page-level review artifacts are written",
+      "composeEntry": "rerun with approved config/page edits and --compose, or use the existing full-auto render path after the review package is accepted",
+      "explicitOptInRequired": true
+    }
+  ],
+  "semiAutoPipeline": {
+    "stages": [
+      {
+        "id": "prepare",
+        "label": "前期准备",
+        "responsibility": "planner/search/material/image-routing",
+        "userInput": "题材、口播稿、素材稿、授权素材或约束",
+        "outputs": [
+          "script/narration.txt",
+          "workflow/content-presentation-design.json",
+          "workflow/image-generation-strategy.json",
+          "workflow/image2-prompts.json",
+          "workflow/media-routing-plan.json",
+          "workflow/material-candidate-pool.json"
+        ]
+      },
+      {
+        "id": "configure",
+        "label": "参数配置页",
+        "responsibility": "semi-auto-config.html",
+        "userInput": "横竖屏、分辨率、帧率、动效、颜色、字幕、素材来源、个人 IP、语音模式",
+        "outputs": [
+          "semi-auto-config.html",
+          "workflow/semi-auto-config.json"
+        ]
+      },
+      {
+        "id": "page-edit",
+        "label": "页面级编辑",
+        "responsibility": "page-review.html + page-decision-contract",
+        "userInput": "单页内容、TDS、动效、设计、素材替换批注",
+        "outputs": [
+          "page-review.html",
+          "workflow/page-decision-contract.json",
+          "workflow/page-edit-requests.json"
+        ]
+      },
+      {
+        "id": "compose",
+        "label": "最终合成",
+        "responsibility": "renderer + voice/subtitle/sync/QC",
+        "userInput": "确认后的配置和页面批注",
+        "outputs": [
+          "renders/final.mp4",
+          "delivery.html",
+          "logs/qc.json"
+        ]
+      }
+    ],
+    "configurationSurface": {
+      "html": "semi-auto-config.html",
+      "json": "workflow/semi-auto-config.json",
+      "sections": {
+        "baseParameters": [
+          "orientation",
+          "resolution",
+          "fps"
+        ],
+        "visualMotion": [
+          "data-curve-trace",
+          "typed-black-white-opener",
+          "dark-saas-magic-ui",
+          "semantic-timeline-reveal",
+          "interactive-proof-board",
+          "kinetic-editorial-explainer"
+        ],
+        "videoMotionStyles": {
+          "catalog": "assets/motion-style-catalog.json",
+          "templateLibrary": "assets/motion-style-template-library.json",
+          "templateLibraryStatus": "active-motion-style-template-library",
+          "selectionArtifact": "workflow/motion-style-template-selection.json",
+          "count": 160,
+          "familyCount": 32,
+          "variantCount": 5,
+          "contentKindCount": 32,
+          "selectionMode": "rule-ranked-curated-catalog"
+        },
+        "colorSystem": {
+          "mode": "auto-by-default",
+          "plannerArtifact": "workflow/color-system-plan.json",
+          "selectedSystemId": "creator-warm-studio",
+          "selectedLabel": "创作者演播：暖影棚",
+          "userOverrideAllowed": true,
+          "systems": [
+            "porcelain ink",
+            "mineral glass",
+            "newsprint copper",
+            "archive olive",
+            "studio sage",
+            "midnight studio",
+            "single-color",
+            "multi-color",
+            "pure-black-explicit"
+          ]
+        },
+        "captionStyles": {
+          "catalog": "assets/caption-style-catalog.json",
+          "count": 68
+        },
+        "materialSources": [
+          "free-stock-search",
+          "local-video-materials",
+          "codex/image2 scene images"
+        ],
+        "personalIp": [
+          "off",
+          "creator-presenter",
+          "hand-drawn-ip",
+          "agent-collaboration",
+          "ppt-director-page-cards"
+        ],
+        "voiceModule": {
+          "languageModes": [
+            "zh-mandarin",
+            "en-narration",
+            "bilingual",
+            "dialect-accent"
+          ],
+          "speechStyles": [
+            "auto",
+            "conversational",
+            "tutorial",
+            "explainer",
+            "story",
+            "news",
+            "product",
+            "documentary"
+          ]
+        }
+      }
+    },
+    "pageEditSurface": {
+      "html": "page-review.html",
+      "pageCount": 8,
+      "tdsContract": {
+        "T": "Text/content: primary message, support copy, narration beat, on-screen exact text",
+        "D": "Design: layout, visual metaphor, color/theme, typography, inserted visual asset",
+        "S": "Subtitle/style: selected caption style, safe area, emphasis, subtitle timing binding"
+      },
+      "patchScopeRule": "Page edits must name one scene/page id; unchanged voice, cover, assets, and QC evidence should be reused when the change does not invalidate them."
+    }
+  },
+  "capabilityInventory": {
+    "motionTemplateRegistry": "templates/html-motion/motion-template-registry.json",
+    "motionTemplateCount": 6,
+    "motionTemplates": [
+      "data-curve-trace",
+      "typed-black-white-opener",
+      "dark-saas-magic-ui",
+      "semantic-timeline-reveal",
+      "interactive-proof-board",
+      "kinetic-editorial-explainer"
+    ],
+    "selectedMotionTemplate": "dark-saas-magic-ui",
+    "motionStyleCatalog": "assets/motion-style-catalog.json",
+    "motionStyleTemplateLibrary": "assets/motion-style-template-library.json",
+    "motionStyleTemplateSelection": "workflow/motion-style-template-selection.json",
+    "motionStyleTemplateCount": 160,
+    "motionStyleTemplateLibraryCount": 160,
+    "motionStyleTemplateContentKinds": [
+      "agent-simulation",
+      "before-after",
+      "checklist-gate",
+      "choice-matrix",
+      "claim-split",
+      "code-walkthrough",
+      "comparison-gallery",
+      "concept-orbit",
+      "cover-bridge",
+      "dashboard-inspection",
+      "data-chart",
+      "evidence-board",
+      "formula-derivation",
+      "funnel-conversion",
+      "geo-map",
+      "hierarchy-tree",
+      "ip-knowledge-card",
+      "journey-map",
+      "material-collage",
+      "network-relationship",
+      "process-timeline",
+      "quote-lockup",
+      "recap-loop",
+      "risk-alert",
+      "screenflow-demo",
+      "source-citation",
+      "storyboard-pressure",
+      "table-ranking",
+      "timeline-calendar",
+      "typed-thesis",
+      "voice-sync",
+      "whiteboard-method"
+    ],
+    "motionStyleFamilyCount": 32,
+    "selectedSceneMotionStyles": [
+      {
+        "sceneId": "brief-to-package",
+        "order": 1,
+        "styleTemplateId": "claim-split-reveal--calm-premium",
+        "familyId": "claim-split-reveal",
+        "familyLabelZh": "观点分裂揭示",
+        "variantId": "calm-premium",
+        "variantLabelZh": "高级克制",
+        "baseTemplate": "kinetic-editorial-explainer",
+        "selectedTemplate": "kinetic-editorial-explainer",
+        "motionVerb": "reveal",
+        "layoutIntent": "左侧大标题先提出错误直觉，右侧证据块随后覆盖或反转。",
+        "visualHierarchy": "headline -> contradiction chip -> proof seal",
+        "interactionFeeling": "像观众点击了一个被隐藏的结论按钮。",
+        "animationSteps": [
+          "标题切入",
+          "反证贴片出现",
+          "证明章落下"
+        ],
+        "guardrails": [
+          "一屏只保留一个反差",
+          "证据块不能遮挡字幕"
+        ],
+        "density": "low",
+        "camera": "stable-focus",
+        "paletteBehavior": "无黑底，使用暖白、矿物灰和低饱和强调色。",
+        "timingProfile": "slow-ease / 0.35s entry / 0.8s hold",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "code-walkthrough",
+          "coreIdea": "现在，一份 Brief 不只是生成一个视频文件。",
+          "pageCard": {
+            "type": "演示页",
+            "visualMode": "screen demo with IP hint",
+            "structureType": "code-run-output",
+            "visualWeight": "dense",
+            "informationLevel": "high",
+            "layoutBlueprint": "左侧代码编辑器 / 右侧运行状态 / 底部输出结果与字幕安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "人物缩小到角落提示当前执行行",
+            "agentRoles": [
+              "调试 Agent 检查输入",
+              "运行 Agent 展示状态",
+              "输出 Agent 锁定结果"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "brief-to-package-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "screen demo with IP hint / 演示页 / 现在，一份 Brief 不只是生成一个视频文件。"
+            },
+            {
+              "id": "brief-to-package-persona-action",
+              "role": "persona-action",
+              "purpose": "人物缩小到角落提示当前执行行",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "brief-to-package-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "code-walkthrough / code-run-output / 观点分裂揭示"
+            },
+            {
+              "id": "brief-to-package-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "高级克制"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "演示页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "人物缩小到角落提示当前执行行"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "code-walkthrough 对象按 reveal/compare/resolve 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 59,
+        "decisionReason": "Matched 观点分裂揭示 / 高级克制 to kinetic-editorial-explainer with reveal motion, then applied 演示页 content-driven layout logic."
+      },
+      {
+        "sceneId": "full-auto",
+        "order": 2,
+        "styleTemplateId": "checkpoint-timeline--editorial-contrast",
+        "familyId": "checkpoint-timeline",
+        "familyLabelZh": "检查点时间线",
+        "variantId": "editorial-contrast",
+        "variantLabelZh": "编辑对比",
+        "baseTemplate": "semantic-timeline-reveal",
+        "selectedTemplate": "semantic-timeline-reveal",
+        "motionVerb": "trace",
+        "layoutIntent": "节点按口播节拍逐个点亮，每个节点只承担一个判断问题。",
+        "visualHierarchy": "timeline rail -> active node -> detail panel",
+        "interactionFeeling": "像在一个可点击流程里逐步推进。",
+        "animationSteps": [
+          "轨道生长",
+          "节点激活",
+          "详情卡片锁定"
+        ],
+        "guardrails": [
+          "节点不超过五个",
+          "进度与字幕时间绑定"
+        ],
+        "density": "medium",
+        "camera": "cut-and-lock",
+        "paletteBehavior": "纸张底色、深墨文字、一个高对比重点色。",
+        "timingProfile": "snap-ease / 0.22s contrast / 0.6s lock",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "process-timeline",
+          "coreIdea": "流程会完成内容规划、本地语音、真实时序、页面动效、字幕合",
+          "pageCard": {
+            "type": "路线页",
+            "visualMode": "PPT director page",
+            "structureType": "timeline-route",
+            "visualWeight": "breathing",
+            "informationLevel": "medium",
+            "layoutBlueprint": "顶部步骤轨道 / 当前节点展开 / 底部收束句安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "主讲人站在当前节点旁做节奏引导",
+            "agentRoles": [
+              "准备 Agent",
+              "生成 Agent",
+              "审核 Agent",
+              "合成 Agent"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "full-auto-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "PPT director page / 路线页 / 流程会完成内容规划、本地语音、真实时序、页面动效、字幕合"
+            },
+            {
+              "id": "full-auto-persona-action",
+              "role": "persona-action",
+              "purpose": "主讲人站在当前节点旁做节奏引导",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "full-auto-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "process-timeline / timeline-route / 检查点时间线"
+            },
+            {
+              "id": "full-auto-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "编辑对比"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "路线页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "主讲人站在当前节点旁做节奏引导"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "process-timeline 对象按 trace/accumulate/step 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 64,
+        "decisionReason": "Matched 检查点时间线 / 编辑对比 to semantic-timeline-reveal with trace motion, then applied 路线页 content-driven layout logic."
+      },
+      {
+        "sceneId": "semi-auto",
+        "order": 3,
+        "styleTemplateId": "proof-thread-board--glass-product",
+        "familyId": "proof-thread-board",
+        "familyLabelZh": "证据线索板",
+        "variantId": "glass-product",
+        "variantLabelZh": "玻璃产品",
+        "baseTemplate": "interactive-proof-board",
+        "selectedTemplate": "interactive-proof-board",
+        "motionVerb": "transform",
+        "layoutIntent": "分散证据先出现，再用连线和聚焦镜头证明关系。",
+        "visualHierarchy": "evidence cards -> connector -> focus lens",
+        "interactionFeeling": "像把鼠标移到关键证据上后，关系被照亮。",
+        "animationSteps": [
+          "证据入场",
+          "线索绘制",
+          "焦点放大"
+        ],
+        "guardrails": [
+          "连线不能穿过主字幕",
+          "最多一个主焦点"
+        ],
+        "density": "medium",
+        "camera": "parallax-focus",
+        "paletteBehavior": "浅玻璃面板、冷暖双强调、避免整屏黑。",
+        "timingProfile": "spring-ease / 0.3s cascade / 0.7s settle",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "process-timeline",
+          "coreIdea": "动效不是换一套皮肤。",
+          "pageCard": {
+            "type": "路线页",
+            "visualMode": "PPT director page",
+            "structureType": "timeline-route",
+            "visualWeight": "breathing",
+            "informationLevel": "medium",
+            "layoutBlueprint": "顶部步骤轨道 / 当前节点展开 / 底部收束句安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "主讲人站在当前节点旁做节奏引导",
+            "agentRoles": [
+              "准备 Agent",
+              "生成 Agent",
+              "审核 Agent",
+              "合成 Agent"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "semi-auto-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "PPT director page / 路线页 / 动效不是换一套皮肤。"
+            },
+            {
+              "id": "semi-auto-persona-action",
+              "role": "persona-action",
+              "purpose": "主讲人站在当前节点旁做节奏引导",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "semi-auto-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "process-timeline / timeline-route / 证据线索板"
+            },
+            {
+              "id": "semi-auto-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "玻璃产品"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "路线页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "主讲人站在当前节点旁做节奏引导"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "process-timeline 对象按 connect/inspect/pressure 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 44,
+        "decisionReason": "Matched 证据线索板 / 玻璃产品 to interactive-proof-board with transform motion, then applied 路线页 content-driven layout logic."
+      },
+      {
+        "sceneId": "motion-system",
+        "order": 4,
+        "styleTemplateId": "screenflow-demo-path--warm-paper",
+        "familyId": "screenflow-demo-path",
+        "familyLabelZh": "界面路径演示",
+        "variantId": "warm-paper",
+        "variantLabelZh": "暖纸知识",
+        "baseTemplate": "dark-saas-magic-ui",
+        "selectedTemplate": "dark-saas-magic-ui",
+        "motionVerb": "accumulate",
+        "layoutIntent": "屏幕状态按真实操作路径切换，焦点光标只指向当前动作。",
+        "visualHierarchy": "screen state -> cursor focus -> completion badge",
+        "interactionFeeling": "像把一次真实点击路径压缩成一页。",
+        "animationSteps": [
+          "起始界面",
+          "焦点点击",
+          "完成状态"
+        ],
+        "guardrails": [
+          "不展示真实隐私数据",
+          "界面状态必须连续"
+        ],
+        "density": "low-medium",
+        "camera": "reader-pan",
+        "paletteBehavior": "暖纸、橄榄绿、铜色重点，适合课程与知识卡。",
+        "timingProfile": "draw-ease / 0.45s reveal / 0.9s explain",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "process-timeline",
+          "coreIdea": "配置台提供六十八种字幕样式，覆盖界面、编辑叙事、节奏强调",
+          "pageCard": {
+            "type": "路线页",
+            "visualMode": "PPT director page",
+            "structureType": "timeline-route",
+            "visualWeight": "breathing",
+            "informationLevel": "medium",
+            "layoutBlueprint": "顶部步骤轨道 / 当前节点展开 / 底部收束句安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "主讲人站在当前节点旁做节奏引导",
+            "agentRoles": [
+              "准备 Agent",
+              "生成 Agent",
+              "审核 Agent",
+              "合成 Agent"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "motion-system-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "PPT director page / 路线页 / 配置台提供六十八种字幕样式，覆盖界面、编辑叙事、节奏强调"
+            },
+            {
+              "id": "motion-system-persona-action",
+              "role": "persona-action",
+              "purpose": "主讲人站在当前节点旁做节奏引导",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "motion-system-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "process-timeline / timeline-route / 界面路径演示"
+            },
+            {
+              "id": "motion-system-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "暖纸知识"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "路线页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "主讲人站在当前节点旁做节奏引导"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "process-timeline 对象按 tap/switch/complete 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 46,
+        "decisionReason": "Matched 界面路径演示 / 暖纸知识 to dark-saas-magic-ui with accumulate motion, then applied 路线页 content-driven layout logic."
+      },
+      {
+        "sceneId": "caption-cover",
+        "order": 5,
+        "styleTemplateId": "whiteboard-overlay-step--bright-clean",
+        "familyId": "whiteboard-overlay-step",
+        "familyLabelZh": "白板前景步骤",
+        "variantId": "bright-clean",
+        "variantLabelZh": "明亮清透",
+        "baseTemplate": "semantic-timeline-reveal",
+        "selectedTemplate": "semantic-timeline-reveal",
+        "motionVerb": "trace",
+        "layoutIntent": "主框架保留背景，白板只描语义前景并回填彩色组件。",
+        "visualHierarchy": "stable background -> sketch path -> colored component",
+        "interactionFeeling": "像讲师在已有画面上圈重点。",
+        "animationSteps": [
+          "描线",
+          "圈画",
+          "颜色回填"
+        ],
+        "guardrails": [
+          "字幕最后合成",
+          "白板不重画整个页面"
+        ],
+        "density": "medium-high",
+        "camera": "state-switch",
+        "paletteBehavior": "亮色但不荧光，适合工具、产品、清单和短节奏说明。",
+        "timingProfile": "quick-state / 0.18s switch / 0.5s proof",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "ip-knowledge-card",
+          "coreIdea": "个人 IP 不靠随机换人物。",
+          "pageCard": {
+            "type": "个人 IP 知识卡页",
+            "visualMode": "personal IP knowledge card",
+            "structureType": "persona-led-card",
+            "visualWeight": "anchor",
+            "informationLevel": "medium",
+            "layoutBlueprint": "左侧固定人物 / 中央知识板 / 右侧 Agent 或图解行动"
+          },
+          "rolePlan": {
+            "presenterAction": "人物必须承担讲解、搬运、圈画或交接职责",
+            "agentRoles": [
+              "拆内容 Agent",
+              "隐喻 Agent",
+              "可读性 Agent",
+              "补证据 Agent"
+            ],
+            "personaUseRule": "reuse saved persona asset and match one image task to each script/voiceover unit"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "caption-cover-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "personal IP knowledge card / 个人 IP 知识卡页 / 个人 IP 不靠随机换人物。"
+            },
+            {
+              "id": "caption-cover-persona-action",
+              "role": "persona-action",
+              "purpose": "人物必须承担讲解、搬运、圈画或交接职责",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "caption-cover-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "ip-knowledge-card / persona-led-card / 白板前景步骤"
+            },
+            {
+              "id": "caption-cover-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "明亮清透"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "个人 IP 知识卡页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "人物必须承担讲解、搬运、圈画或交接职责"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "ip-knowledge-card 对象按 trace/draw/accumulate 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 58,
+        "decisionReason": "Matched 白板前景步骤 / 明亮清透 to semantic-timeline-reveal with trace motion, then applied 个人 IP 知识卡页 content-driven layout logic."
+      },
+      {
+        "sceneId": "personal-ip",
+        "order": 6,
+        "styleTemplateId": "product-state-cascade--calm-premium",
+        "familyId": "product-state-cascade",
+        "familyLabelZh": "产品状态级联",
+        "variantId": "calm-premium",
+        "variantLabelZh": "高级克制",
+        "baseTemplate": "dark-saas-magic-ui",
+        "selectedTemplate": "dark-saas-magic-ui",
+        "motionVerb": "trace",
+        "layoutIntent": "输入、处理中、输出三种界面状态依次切换，突出用户收益。",
+        "visualHierarchy": "input panel -> processing beam -> result card",
+        "interactionFeeling": "像一次真实产品操作被压缩成视频镜头。",
+        "animationSteps": [
+          "输入框激活",
+          "处理中层叠",
+          "输出卡锁定"
+        ],
+        "guardrails": [
+          "深色只在产品场景使用",
+          "不展示真实框架名"
+        ],
+        "density": "low",
+        "camera": "stable-focus",
+        "paletteBehavior": "无黑底，使用暖白、矿物灰和低饱和强调色。",
+        "timingProfile": "slow-ease / 0.35s entry / 0.8s hold",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "ip-knowledge-card",
+          "coreIdea": "只有显式要求个人 IP 加动画时，才会把标题、卡片、路径",
+          "pageCard": {
+            "type": "个人 IP 知识卡页",
+            "visualMode": "personal IP knowledge card",
+            "structureType": "persona-led-card",
+            "visualWeight": "anchor",
+            "informationLevel": "medium",
+            "layoutBlueprint": "左侧固定人物 / 中央知识板 / 右侧 Agent 或图解行动"
+          },
+          "rolePlan": {
+            "presenterAction": "人物必须承担讲解、搬运、圈画或交接职责",
+            "agentRoles": [
+              "拆内容 Agent",
+              "隐喻 Agent",
+              "可读性 Agent",
+              "补证据 Agent"
+            ],
+            "personaUseRule": "reuse saved persona asset and match one image task to each script/voiceover unit"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "personal-ip-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "personal IP knowledge card / 个人 IP 知识卡页 / 只有显式要求个人 IP 加动画时，才会把标题、卡片、路径"
+            },
+            {
+              "id": "personal-ip-persona-action",
+              "role": "persona-action",
+              "purpose": "人物必须承担讲解、搬运、圈画或交接职责",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "personal-ip-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "ip-knowledge-card / persona-led-card / 产品状态级联"
+            },
+            {
+              "id": "personal-ip-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "高级克制"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "个人 IP 知识卡页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "人物必须承担讲解、搬运、圈画或交接职责"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "ip-knowledge-card 对象按 summon/transform/resolve 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 43,
+        "decisionReason": "Matched 产品状态级联 / 高级克制 to dark-saas-magic-ui with trace motion, then applied 个人 IP 知识卡页 content-driven layout logic."
+      },
+      {
+        "sceneId": "evidence",
+        "order": 7,
+        "styleTemplateId": "screenflow-demo-path--editorial-contrast",
+        "familyId": "screenflow-demo-path",
+        "familyLabelZh": "界面路径演示",
+        "variantId": "editorial-contrast",
+        "variantLabelZh": "编辑对比",
+        "baseTemplate": "dark-saas-magic-ui",
+        "selectedTemplate": "dark-saas-magic-ui",
+        "motionVerb": "accumulate",
+        "layoutIntent": "屏幕状态按真实操作路径切换，焦点光标只指向当前动作。",
+        "visualHierarchy": "screen state -> cursor focus -> completion badge",
+        "interactionFeeling": "像把一次真实点击路径压缩成一页。",
+        "animationSteps": [
+          "起始界面",
+          "焦点点击",
+          "完成状态"
+        ],
+        "guardrails": [
+          "不展示真实隐私数据",
+          "界面状态必须连续"
+        ],
+        "density": "medium",
+        "camera": "cut-and-lock",
+        "paletteBehavior": "纸张底色、深墨文字、一个高对比重点色。",
+        "timingProfile": "snap-ease / 0.22s contrast / 0.6s lock",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "code-walkthrough",
+          "coreIdea": "流程还会检查脚本一致性、声音与字幕时序、字幕安全层、黑帧",
+          "pageCard": {
+            "type": "演示页",
+            "visualMode": "screen demo with IP hint",
+            "structureType": "code-run-output",
+            "visualWeight": "dense",
+            "informationLevel": "high",
+            "layoutBlueprint": "左侧代码编辑器 / 右侧运行状态 / 底部输出结果与字幕安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "人物缩小到角落提示当前执行行",
+            "agentRoles": [
+              "调试 Agent 检查输入",
+              "运行 Agent 展示状态",
+              "输出 Agent 锁定结果"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "evidence-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "screen demo with IP hint / 演示页 / 流程还会检查脚本一致性、声音与字幕时序、字幕安全层、黑帧"
+            },
+            {
+              "id": "evidence-persona-action",
+              "role": "persona-action",
+              "purpose": "人物缩小到角落提示当前执行行",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "evidence-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "code-walkthrough / code-run-output / 界面路径演示"
+            },
+            {
+              "id": "evidence-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "编辑对比"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "演示页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "人物缩小到角落提示当前执行行"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "code-walkthrough 对象按 tap/switch/complete 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 46,
+        "decisionReason": "Matched 界面路径演示 / 编辑对比 to dark-saas-magic-ui with accumulate motion, then applied 演示页 content-driven layout logic."
+      },
+      {
+        "sceneId": "delivery",
+        "order": 8,
+        "styleTemplateId": "screenflow-demo-path--glass-product",
+        "familyId": "screenflow-demo-path",
+        "familyLabelZh": "界面路径演示",
+        "variantId": "glass-product",
+        "variantLabelZh": "玻璃产品",
+        "baseTemplate": "dark-saas-magic-ui",
+        "selectedTemplate": "dark-saas-magic-ui",
+        "motionVerb": "accumulate",
+        "layoutIntent": "屏幕状态按真实操作路径切换，焦点光标只指向当前动作。",
+        "visualHierarchy": "screen state -> cursor focus -> completion badge",
+        "interactionFeeling": "像把一次真实点击路径压缩成一页。",
+        "animationSteps": [
+          "起始界面",
+          "焦点点击",
+          "完成状态"
+        ],
+        "guardrails": [
+          "不展示真实隐私数据",
+          "界面状态必须连续"
+        ],
+        "density": "medium",
+        "camera": "parallax-focus",
+        "paletteBehavior": "浅玻璃面板、冷暖双强调、避免整屏黑。",
+        "timingProfile": "spring-ease / 0.3s cascade / 0.7s settle",
+        "captionSafeArea": "bottom-caption-band",
+        "contentDrivenLayoutPlan": {
+          "generationLogicSource": "haloshin/ip-diagram-creator-content-to-image-methodology",
+          "methodology": "topic-and-script -> content type -> page director card -> role/assets -> semantic foreground objects -> motion layers -> QA repair",
+          "inputSourceType": "process-timeline",
+          "coreIdea": "最终交付包含标题命名的视频、原生比例封面、字幕、审阅页面",
+          "pageCard": {
+            "type": "路线页",
+            "visualMode": "PPT director page",
+            "structureType": "timeline-route",
+            "visualWeight": "breathing",
+            "informationLevel": "medium",
+            "layoutBlueprint": "顶部步骤轨道 / 当前节点展开 / 底部收束句安全区"
+          },
+          "rolePlan": {
+            "presenterAction": "主讲人站在当前节点旁做节奏引导",
+            "agentRoles": [
+              "准备 Agent",
+              "生成 Agent",
+              "审核 Agent",
+              "合成 Agent"
+            ],
+            "personaUseRule": "use persona only when it carries a semantic action"
+          },
+          "imageResourcePlan": [
+            {
+              "id": "delivery-source-plate",
+              "role": "source-plate",
+              "purpose": "生成承载当前口播单元的完整页面底图或图解主板",
+              "promptDriver": "PPT director page / 路线页 / 最终交付包含标题命名的视频、原生比例封面、字幕、审阅页面"
+            },
+            {
+              "id": "delivery-persona-action",
+              "role": "persona-action",
+              "purpose": "主讲人站在当前节点旁做节奏引导",
+              "promptDriver": "复用固定个人 IP 形象，只改变动作、表情、指向和局部姿态"
+            },
+            {
+              "id": "delivery-semantic-foreground",
+              "role": "semantic-foreground",
+              "purpose": "把图表、公式、代码、证据卡、Agent 节点等可动画对象拆成前景层",
+              "promptDriver": "process-timeline / timeline-route / 界面路径演示"
+            },
+            {
+              "id": "delivery-trace-or-highlight",
+              "role": "motion-highlight",
+              "purpose": "为白板描线、拐点高亮、公式移项或代码执行行预留动效层",
+              "promptDriver": "玻璃产品"
+            }
+          ],
+          "animationLayerPlan": [
+            {
+              "layer": "background-frame",
+              "owner": "codex-video-workflow",
+              "timing": "0%-100%",
+              "animation": "稳定全屏页面底板，不做随机裁切、缩放或跳动"
+            },
+            {
+              "layer": "source-plate",
+              "owner": "ip-diagram-inspired image plan",
+              "timing": "0%-25%",
+              "animation": "路线页 骨架入场，优先出现主要结构"
+            },
+            {
+              "layer": "persona-or-agent-action",
+              "owner": "personal-ip planner",
+              "timing": "18%-55%",
+              "animation": "主讲人站在当前节点旁做节奏引导"
+            },
+            {
+              "layer": "semantic-foreground",
+              "owner": "html-video deterministic renderer",
+              "timing": "35%-78%",
+              "animation": "process-timeline 对象按 tap/switch/complete 激活"
+            },
+            {
+              "layer": "readable-text-and-subtitles",
+              "owner": "caption and typography plans",
+              "timing": "0%-100%",
+              "animation": "最终可读文本保持确定性，字幕永远在最上层安全区"
+            }
+          ],
+          "qaRepairRules": [
+            "人物、图表、代码、公式、Agent 和字幕不得重叠",
+            "每个图片任务必须服务当前口播单元，不允许通用装饰图",
+            "文字最终由确定性 HTML/SVG/CSS 层承载，图片只做语义底图或前景素材",
+            "同一内容骨架可以切换视觉变体，但结构、动效目标和口播绑定不变"
+          ]
+        },
+        "score": 46,
+        "decisionReason": "Matched 界面路径演示 / 玻璃产品 to dark-saas-magic-ui with accumulate motion, then applied 路线页 content-driven layout logic."
+      }
+    ],
+    "captionStyleCatalog": "assets/caption-style-catalog.json",
+    "captionStyleCount": 68,
+    "supportedCapabilities": [
+      "图片绘制",
+      "动态规划",
+      "图片生成",
+      "样式/动画/动效",
+      "白板绘制模式",
+      "个人 IP 口播",
+      "中文/英文/双语/方言语音选择",
+      "口播节奏与语音风格选择",
+      "免费素材搜索",
+      "本地视频素材",
+      "页面级 TDS 编辑"
+    ]
+  },
+  "decisionOwnership": {
+    "modeDecision": "full-auto is the default; only an explicit user/caller semi-auto, custom, or configuration request may stop at the configuration page",
+    "contentDecision": "workflow/content-presentation-design.json and workflow/page-decision-contract.json",
+    "designDecision": "workflow/design-plan.json, workflow/theme-readability-audit.json, semi-auto-config.html",
+    "interactionDecision": "workflow/page-decision-contract.json interactionAnswer; rendered MP4 shows state, not live web interaction",
+    "animationDecision": "workflow/motion-template-selection.json and workflow/motion-grammar-plan.json",
+    "templateDirectorDecision": "workflow/motion-style-template-selection.json binds reusable page templates, layout contracts, asset tasks, and sub-agent handoffs",
+    "finalComposeDecision": "user approval in semi-auto; automatic render path in full-auto",
+    "qcDecision": "logs/qc.json and workflow/quality-scorecard.md"
+  },
+  "rendererMode": "recommended",
+  "fullAutoCompatibility": {
+    "currentRendererMode": "recommended",
+    "behaviorChanged": false,
+    "note": "generation mode is a product workflow mode; renderer mode recommended/fallback remains a separate low-level render choice."
+  },
+  "fullAutoContinuationPolicy": {
+    "stopAtConfiguration": false,
+    "recoverablePlannerBlockersAreTerminal": false,
+    "personalIpNativePagePolicy": "Missing native page provenance is an internal generation stage in full-auto mode: generate and ingest every planned image_gen page, then resume native-page render, QC, and delivery.",
+    "completionEvidence": [
+      "renders/final.mp4",
+      "delivery.html",
+      "logs/qc.json"
+    ]
+  },
+  "requiredArtifacts": [
+    "workflow/generation-mode-contract.json",
+    "workflow/runtime-config.json",
+    "workflow/content-presentation-design.json",
+    "workflow/page-decision-contract.json",
+    "workflow/caption-style-plan.json",
+    "workflow/motion-template-selection.json",
+    "workflow/layered-motion-plan.json",
+    "workflow/motion-style-template-selection.json",
+    "workflow/motion-style-plan.json",
+    "workflow/quality-consistency-contract.json"
+  ]
+}

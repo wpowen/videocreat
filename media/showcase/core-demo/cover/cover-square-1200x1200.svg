@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <defs>
+    <filter id="posterShadow" x="-20%" y="-20%" width="145%" height="145%">
+      <feDropShadow dx="0" dy="29" stdDeviation="31" flood-color="#001209" flood-opacity="0.38"/>
+    </filter>
+    <filter id="softTextShadow" x="-12%" y="-12%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <linearGradient id="posterBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061923"/>
+      <stop offset="0.55" stop-color="#0c2b3a"/>
+      <stop offset="1" stop-color="#061923"/>
+    </linearGradient>
+    <linearGradient id="deepPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061923"/>
+      <stop offset="0.62" stop-color="#0c2b3a"/>
+      <stop offset="1" stop-color="#061923"/>
+    </linearGradient>
+    <linearGradient id="accentWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#294755" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#061923" stop-opacity="0.98"/>
+    </linearGradient></defs>
+  <rect width="1200" height="1200" fill="url(#posterBg)"/>
+  <path d="M660 0 L1200 0 L1200 1200 L432 1200 Z" fill="url(#accentWash)"/>
+  <path d="M672.0000000000001 120 C864 216, 1104 252, 1248 72" fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="24"/>
+  <path d="M576 983.9999999999999 C792 1080, 1044 1056, 1224 816.0000000000001" fill="none" stroke="#012114" stroke-opacity="0.20" stroke-width="31.2"/>
+  <g>
+      <g filter="url(#posterShadow)">
+        <path d="M158.4 478.08 L1051.1999999999998 468 L1003.2 951.8399999999999 L139.2 972 Z" fill="#03140c" stroke="#fff" stroke-width="7.2"/>
+        <rect x="206.39999999999998" y="533.52" width="595.2" height="211.67999999999998" rx="26.4" fill="#fffdf7" stroke="#fff" stroke-width="6"/>
+        <rect x="236.15999999999997" y="550.4544" width="535.6800000000001" height="122.77439999999999" rx="16.8" fill="#101716"/>
+        <path d="M468.288 582.2064 L468.288 643.5935999999999 L599.232 612.9 Z" fill="#ffd338"/>
+        <rect x="259.96799999999996" y="694.3968" width="142.848" height="8.4" rx="4.8" fill="#00a6c8"/>
+        <rect x="438.528" y="694.3968" width="119.04000000000002" height="8.4" rx="4.8" fill="#ffd338"/>
+        <rect x="593.28" y="694.3968" width="142.848" height="8.4" rx="4.8" fill="#00a6c8"/>
+        <g transform="rotate(-4 801.6 675.9000000000001)">
+            <rect x="648" y="649.44" width="307.2" height="52.919999999999995" rx="11.642399999999999" fill="#fff9ea" stroke="#fff" stroke-width="3.6"/>
+            <circle cx="697.152" cy="675.9000000000001" r="11.642399999999999" fill="#202726"/>
+            <text x="740.16" y="682.2504" fill="#03140c" font-size="23" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">脚本</text>
+          </g><g transform="rotate(-2.2 801.6 740.9916000000001)">
+            <rect x="648" y="714.5316" width="307.2" height="52.919999999999995" rx="11.642399999999999" fill="#fff9ea" stroke="#fff" stroke-width="3.6"/>
+            <circle cx="697.152" cy="740.9916000000001" r="11.642399999999999" fill="#202726"/>
+            <text x="740.16" y="747.342" fill="#03140c" font-size="23" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">封面</text>
+          </g><g transform="rotate(-0.3999999999999999 801.6 806.0832)">
+            <rect x="648" y="779.6232" width="307.2" height="52.919999999999995" rx="11.642399999999999" fill="#fff9ea" stroke="#fff" stroke-width="3.6"/>
+            <circle cx="697.152" cy="806.0832" r="11.642399999999999" fill="#202726"/>
+            <text x="740.16" y="812.4336" fill="#03140c" font-size="23" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">字幕</text>
+          </g><g transform="rotate(1.4000000000000004 801.6 871.1748000000001)">
+            <rect x="648" y="844.7148000000001" width="307.2" height="52.919999999999995" rx="11.642399999999999" fill="#ffd338" stroke="#fff" stroke-width="3.6"/>
+            <circle cx="697.152" cy="871.1748000000001" r="11.642399999999999" fill="#00a6c8"/>
+            <text x="740.16" y="877.5252" fill="#08110d" font-size="23" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif">QC</text>
+          </g>
+        <path d="M254.016 835.9200000000001 L964.8 835.9200000000001" stroke="#fff" stroke-opacity="0.30" stroke-width="8.4" stroke-linecap="round"/>
+        <g>
+            <circle cx="277.82399999999996" cy="835.9200000000001" r="36" fill="#00a6c8" stroke="#fff" stroke-width="4.8"/>
+            <path d="M265.82399999999996 835.9200000000001 L275.424 847.9200000000001 L297.02399999999994 819.1200000000001" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g><g>
+            <circle cx="450.6239999999999" cy="835.9200000000001" r="36" fill="#00a6c8" stroke="#fff" stroke-width="4.8"/>
+            <path d="M438.6239999999999 835.9200000000001 L448.22399999999993 847.9200000000001 L469.8239999999999 819.1200000000001" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g><g>
+            <circle cx="623.424" cy="835.9200000000001" r="36" fill="#00a6c8" stroke="#fff" stroke-width="4.8"/>
+            <path d="M611.424 835.9200000000001 L621.024 847.9200000000001 L642.624 819.1200000000001" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g><g>
+            <circle cx="796.2239999999999" cy="835.9200000000001" r="36" fill="#ffd338" stroke="#fff" stroke-width="4.8"/>
+            <path d="M784.2239999999999 835.9200000000001 L793.824 847.9200000000001 L815.424 819.1200000000001" fill="none" stroke="#03140c" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        <path d="M244.8 911.52 C446.40000000000003 830.88, 734.4 901.44, 936 785.52" fill="none" stroke="#ffd338" stroke-width="14.4" stroke-linecap="round" opacity="0.92"/>
+        <circle cx="945.6" cy="780.48" r="76.8" fill="#00a6c8" stroke="#fff" stroke-width="7.2"/>
+        <path d="M907.1999999999999 780.48 L940.8 800.6400000000001 L998.4000000000001 750.24" fill="none" stroke="#fff" stroke-width="9.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  <rect x="66" y="89.1" width="22" height="51" rx="11" fill="#00a6c8"/>
+  <text x="114" y="126" fill="#00a6c8" font-size="41" font-weight="900" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif">Codex Video Workflow</text>
+
+
+
+  <g filter="url(#softTextShadow)">
+    <g transform="rotate(-2.6 72 288)">
+        <text x="78" y="295" fill="#00a6c8" opacity="0.88" font-size="127" font-weight="1000" font-family="Arial Black, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif">可验证</text>
+        <text x="72" y="288" fill="#fffdf4" font-size="127" font-weight="1000" font-family="Arial Black, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif" paint-order="stroke" stroke="#080808" stroke-width="11" stroke-linejoin="round">可验证</text>
+      </g><g transform="rotate(-2.6 72 418)">
+        <text x="78" y="425" fill="#00a6c8" opacity="0.88" font-size="127" font-weight="1000" font-family="Arial Black, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif">成片</text>
+        <text x="72" y="418" fill="#ff5a36" font-size="127" font-weight="1000" font-family="Arial Black, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif" paint-order="stroke" stroke="#080808" stroke-width="11" stroke-linejoin="round">成片</text>
+      </g>
+  </g>
+  <g filter="url(#posterShadow)" transform="rotate(-2.2 72 620)">
+      <rect x="72" y="568.96" width="420" height="104" rx="16" fill="#ff5a36"/>
+      <path d="M90.56 682.24 L471.12 668.32" stroke="#00a6c8" stroke-width="8.4" stroke-linecap="round"/>
+      <text x="108" y="620" fill="#061923" font-size="58" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif" paint-order="stroke" stroke="#000" stroke-opacity="0.20" stroke-width="2.4">脚本·封面·视频·QC</text>
+    </g>
+
+  <g filter="url(#posterShadow)">
+    <rect x="72" y="715.14" width="240" height="89" rx="44.5" fill="#00a6c8"/>
+    <text x="118.28" y="762.31" fill="#fff" font-size="41" font-weight="950" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif">看证据</text>
+  </g>
+</svg>

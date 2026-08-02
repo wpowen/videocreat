@@ -1,0 +1,38 @@
+{
+  "scene": "whiteboard",
+  "durationSeconds": 4.5,
+  "layers": [
+    "stable project-owned base image",
+    "hand-drawn path",
+    "circled node and arrow",
+    "semantic color fill",
+    "topmost narration caption"
+  ],
+  "timing": [
+    {
+      "from": 0,
+      "to": 0.7,
+      "action": "hold base"
+    },
+    {
+      "from": 0.7,
+      "to": 1.8,
+      "action": "trace path"
+    },
+    {
+      "from": 1.8,
+      "to": 2.7,
+      "action": "circle node and arrow"
+    },
+    {
+      "from": 2.7,
+      "to": 3.8,
+      "action": "color fill"
+    },
+    {
+      "from": 3.8,
+      "to": 4.5,
+      "action": "reading hold"
+    }
+  ]
+}

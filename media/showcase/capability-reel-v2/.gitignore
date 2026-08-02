@@ -1,0 +1,12 @@
+# Local render intermediates. Keep the final MP4, poster, README screenshots,
+# HTML source, project-owned image copies, manifests, and QC evidence.
+audio-segments/
+audio-segments-refined/
+assets/narration*.wav
+capability-showcase-v2-html.mp4
+capability-showcase-v2-silent.mp4
+contact-sheet.png
+preview-contact-sheet.png
+screenshots/final-*.png
+logs/blackdetect.log
+logs/volumedetect.log

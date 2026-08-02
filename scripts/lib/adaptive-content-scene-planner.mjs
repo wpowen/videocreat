@@ -11,6 +11,15 @@ function comparableText(value = "") {
   return normalizeContentText(value).replace(/[\s，,。！？!?；;：:、|\-—_（）()【】\[\]]/g, "").toLowerCase();
 }
 
+function orderedNarrationText(value = "") {
+  return normalizeContentText(value).replace(/\s/g, "");
+}
+
+function narrationSpanHeadline(value = "", maxCharacters = 28) {
+  const firstUnit = splitSemanticContentUnits(value)[0] || normalizeContentText(value);
+  return Array.from(firstUnit).slice(0, maxCharacters).join("");
+}
+
 function textFromEntry(entry = {}) {
   if (typeof entry === "string") return entry;
   return entry.text || entry.narration || entry.voiceover || entry.spokenText || entry.subtitle || entry.body || entry.content || "";
@@ -59,39 +68,48 @@ export function selectCanonicalContentUnits({ structuredGroups = [], scenes = []
     id: page?.id || page?.frame?.id,
     text: textFromEntry(page?.frame || page),
   })), "designPlan.page");
-  const fullTextUnits = fullTexts.flatMap((item) => {
+  const authoritativeFullText = fullTexts.find((item) => {
     const rawText = item && typeof item === "object" ? item.text : item;
-    if (typeof rawText !== "string" || !rawText.trim()) return [];
+    return typeof rawText === "string" && rawText.trim();
+  });
+  const fullTextUnits = authoritativeFullText ? (() => {
+    const item = authoritativeFullText;
+    const rawText = item && typeof item === "object" ? item.text : item;
     return splitSemanticContentUnits(rawText).map((text, index) => ({
       id: `${item?.source || "full-text"}-${String(index + 1).padStart(2, "0")}`,
       source: item?.source || "full-text",
       text,
     }));
-  });
-  const sceneChars = sceneUnits.reduce((sum, unit) => sum + Array.from(unit.text.replace(/\s/g, "")).length, 0);
-  const fullTextChars = fullTextUnits.reduce((sum, unit) => sum + Array.from(unit.text.replace(/\s/g, "")).length, 0);
-  const fullNarrationIsCanonical = fullTextUnits.length > 0 && fullTextChars > Math.max(120, sceneChars * 1.35);
-  const fallbackTiers = fullNarrationIsCanonical
+  })() : [];
+  const structuredMatchesFullNarration = fullTextUnits.length > 0
+    && structured.length > 0
+    && orderedNarrationText(structured.map((unit) => unit.text).join("")) === orderedNarrationText(fullTextUnits.map((unit) => unit.text).join(""));
+  const tiers = fullTextUnits.length > 0
     ? [
+        ...(structuredMatchesFullNarration ? [{ sourceTier: "structured-cues", units: structured }] : []),
         { sourceTier: "full-narration", units: fullTextUnits },
         { sourceTier: "brief-scenes", units: sceneUnits },
         { sourceTier: "design-pages", units: pageUnits },
       ]
     : [
+        { sourceTier: "structured-cues", units: structured },
         { sourceTier: "brief-scenes", units: sceneUnits },
-        { sourceTier: "full-narration", units: fullTextUnits },
         { sourceTier: "design-pages", units: pageUnits },
       ];
-  const tiers = [{ sourceTier: "structured-cues", units: structured }, ...fallbackTiers];
   const selectedIndex = tiers.findIndex((tier) => tier.units.length > 0);
   const selected = selectedIndex >= 0 ? tiers[selectedIndex] : { sourceTier: "empty", units: [] };
+  const selectedUnits = ["structured-cues", "full-narration"].includes(selected.sourceTier)
+    ? selected.units.map((unit, index) => ({ ...unit, order: index + 1 }))
+    : dedupeUnits(selected.units);
   return {
     sourceTier: selected.sourceTier,
-    units: dedupeUnits(selected.units),
+    units: selectedUnits,
     availableTiers: tiers.map((tier) => ({ sourceTier: tier.sourceTier, unitCount: tier.units.length })),
     duplicateTiersIgnored: selectedIndex >= 0 && tiers.slice(selectedIndex + 1).some((tier) => tier.units.length > 0),
     precedence: tiers.map((tier) => tier.sourceTier),
-    fullNarrationPreferredOverCoarseScenes: fullNarrationIsCanonical,
+    fullNarrationPreferredOverCoarseScenes: fullTextUnits.length > 0,
+    structuredCuesMatchFullNarration: structured.length === 0 ? null : structuredMatchesFullNarration,
+    structuredCueMismatchRejected: fullTextUnits.length > 0 && structured.length > 0 && !structuredMatchesFullNarration,
   };
 }
 
@@ -437,9 +455,13 @@ export function expandScenesAdaptively({
     canonicalChunkCursor += chunks.length;
     chunks.forEach((chunk, beatIndex) => {
       const beatCount = chunks.length;
+      const canonicalHeadline = narrationSpanHeadline(chunk);
       expanded.push({
         ...row.scene,
         id: beatCount === 1 ? row.sourceSceneId : `${row.sourceSceneId}--beat-${String(beatIndex + 1).padStart(2, "0")}`,
+        label: canonicalHeadline,
+        headline: [canonicalHeadline],
+        kicker: "",
         sourceSceneId: row.sourceSceneId,
         sourceSceneOrder: rowIndex + 1,
         beatIndex: beatIndex + 1,

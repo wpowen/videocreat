@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Short README demos derived from verified Personal-IP production runs",
+  "persona": {
+    "personaId": "generic-host-female",
+    "type": "generic-personal-ip-fallback",
+    "doNotClaimUserLikeness": true
+  },
+  "demos": [
+    {
+      "file": "personal-ip-whiteboard-horizontal-6s.mp4",
+      "poster": "personal-ip-whiteboard-horizontal-poster.jpg",
+      "sha256": "f11e908336511e2b9cc7b78b75a08bc14d5d36e75888ac4f6eadd15bf3535089",
+      "durationSeconds": 6,
+      "width": 1920,
+      "height": 1080,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "sourceRun": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto",
+      "sourceRunStatus": {
+        "pass": true,
+        "videoPass": true,
+        "publishingReady": true,
+        "sourceDurationSeconds": 285.6
+      },
+      "representation": "native horizontal Personal-IP hand-drawn teaching page with deterministic captions",
+      "foregroundWhiteboardMotionActive": false,
+      "claimBoundary": "This clip proves the native hand-drawn Personal-IP page route. It does not claim an active page-local whiteboard foreground layer."
+    },
+    {
+      "file": "personal-ip-whiteboard-vertical-6s.mp4",
+      "poster": "personal-ip-whiteboard-vertical-poster.jpg",
+      "sha256": "bc7ea670472ce82687b98af72acafeeaf4ec43e87dd6f65e2e8adb42dda62b31",
+      "durationSeconds": 6,
+      "width": 1080,
+      "height": 1920,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "sourceRun": "research/personal-ip-animation-e2e-20260714",
+      "sourceRunStatus": {
+        "pass": true,
+        "videoPass": true,
+        "publishingReady": true,
+        "sourceDurationSeconds": 19.1
+      },
+      "representation": "native vertical Personal-IP page plus page-local hand-drawn path and node motion with topmost captions",
+      "foregroundWhiteboardMotionActive": true,
+      "claimBoundary": "The native base page stays fixed while page-specific foreground paths and nodes animate in their safe regions."
+    }
+  ]
+}

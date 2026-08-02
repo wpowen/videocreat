@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "finalVideo": "capability-showcase-v2.mp4",
+  "durationSeconds": 71.5,
+  "previewOnly": false,
+  "audioBearing": true,
+  "audioMetrics": {
+    "meanVolumeDb": -20.1,
+    "maxVolumeDb": -1.4
+  },
+  "checks": {
+    "duration": true,
+    "resolution": true,
+    "videoCodec": true,
+    "audioStream": true,
+    "noDetectedBlackSegments": true,
+    "audioMeasured": true,
+    "audibleMeanLevel": true,
+    "unclippedPeak": true,
+    "captionCoverage": true,
+    "realImageCount": true,
+    "contactSheetPresent": true
+  },
+  "passed": true
+}

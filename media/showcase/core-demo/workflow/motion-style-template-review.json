@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "status": "motion-style-template-ready",
+  "surfaceName": "风格模板",
+  "previewMode": "video-frame-simulation",
+  "html": "motion-style-template-review.html",
+  "templateCount": 160,
+  "skeletonCount": 32,
+  "variantsPerSkeleton": 5,
+  "groupingMode": "content-skeleton-with-style-buttons",
+  "familyCount": 32,
+  "variantCount": 5,
+  "source": "assets/motion-style-catalog.json",
+  "generatedAt": "2026-08-02T15:56:11.676Z"
+}

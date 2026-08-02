@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "route": "semantic-example-reel",
+  "selectionPolicy": "content job first; visual style and color second",
+  "selectedSceneFamilies": [
+    "checkpoint-timeline",
+    "data-curve-proof",
+    "proof-thread-board",
+    "screenflow-demo-path",
+    "before-after-craft",
+    "matrix-choice-map",
+    "agent-simulation-lane",
+    "comparison-gallery-wall",
+    "whiteboard-overlay-step"
+  ],
+  "catalogBoundary": {
+    "families": 32,
+    "variantsPerFamily": 5,
+    "contracts": 160,
+    "claim": "reviewable contracts mapped onto executable cores; not 160 independent videos"
+  }
+}

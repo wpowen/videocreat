@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "requiredChecks": [
+    "1920x1080",
+    "30fps",
+    "H.264 video",
+    "AAC audio when final",
+    "no detected black segment",
+    "critical labels inside canvas",
+    "critical labels outside caption band",
+    "68 caption styles across 8 groups",
+    "project-owned image manifest",
+    "Personal-IP provenance"
+  ],
+  "statusLanguage": [
+    "catalog",
+    "review preview",
+    "QC passed video",
+    "publishing ready"
+  ]
+}

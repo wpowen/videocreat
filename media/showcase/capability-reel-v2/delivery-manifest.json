@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "status": "qc-passed-demo",
+  "video": "capability-showcase-v2.mp4",
+  "durationSeconds": 71.5,
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "poster": "poster.jpg",
+  "contactSheet": "final-contact-sheet.png",
+  "personalIpDemo": "../personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+  "evidence": [
+    "logs/qc.json",
+    "logs/ffprobe.json",
+    "logs/layout-audit.json",
+    "workflow/visual-asset-manifest.json",
+    "workflow/caption-style-plan.json",
+    "workflow/whiteboard-layered-reveal-plan.json",
+    "workflow/sync-timecode-plan.json"
+  ],
+  "publishingReadyClaim": false,
+  "note": "This is a QC-passed public capability demo. It does not claim that every catalog contract is an independently published video."
+}

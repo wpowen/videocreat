@@ -1,0 +1,4 @@
+# Keep only the public final reel from this superseded V1 render package.
+*
+!.gitignore
+!capability-showcase.mp4

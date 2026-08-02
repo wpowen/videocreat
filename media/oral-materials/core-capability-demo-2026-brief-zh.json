@@ -1,0 +1,116 @@
+{
+  "title": "一份 Brief，两种视频生产模式",
+  "language": "zh",
+  "audience": "希望用 Codex 稳定制作讲解视频、个人 IP 内容、产品演示与平台封面的创作者和团队",
+  "objective": "生成一支新的核心能力 Demo，清楚展示默认全自动生产、显式半自动配置、语义动效、字幕与封面目录、个人 IP、独立 QC 和证据交付。",
+  "platform": "local-review-horizontal",
+  "aspectRatio": "16:9",
+  "durationMode": "auto",
+  "videoType": "professional-explainer",
+  "imageSource": "image2-dryrun",
+  "style": "premium editorial product film with semantic flow, proof boards, native cover examples, and restrained cinematic motion",
+  "voiceBackend": "melotts_local",
+  "voiceGender": "female",
+  "speechStyle": "explainer",
+  "personalIp": false,
+  "ipDiagramCreator": false,
+  "coverTheme": "从 Brief 到可审查成品",
+  "rights": {
+    "text": "original Chinese narration written for the 2026 core-capability demo",
+    "visuals": "original local HTML CSS SVG and repository-owned showcase assets; generated-image requests remain prompt-only until separately inspected",
+    "voice": "local MeloTTS female narration, no real-person cloning or unauthorized reference voice",
+    "music": "local ffmpeg generated low-volume bed if used",
+    "externalMedia": "none"
+  },
+  "scenes": [
+    {
+      "id": "brief-to-package",
+      "label": "开场承诺",
+      "kicker": "01 / ONE BRIEF",
+      "headline": ["一份 Brief", "一套成品包"],
+      "stat": "可审查",
+      "body": "脚本、画面、口播、字幕、封面和 QC 在同一条生产链里闭环。",
+      "subtitle": "一份 Brief，可以变成一套可审查的视频成品。",
+      "narration": "现在，一份 Brief 不只是生成一个视频文件。它可以继续变成脚本、分镜、本地口播、语义动效、字幕、平台封面和质量证据完整闭环的成品包。",
+      "palette": "ink"
+    },
+    {
+      "id": "full-auto",
+      "label": "全自动模式",
+      "kicker": "02 / FULL AUTO",
+      "headline": ["不指定模式", "默认跑到交付"],
+      "stat": "Full Auto",
+      "body": "自动规划内容与视觉，绑定真实语音时序，渲染、检查并打包。",
+      "subtitle": "普通需求默认走全自动，不在配置页中途停下。",
+      "narration": "如果你没有要求配置或逐页审阅，默认就是全自动模式。流程会完成内容规划、本地语音、真实时序、页面动效、字幕合成、视频检查和交付打包，不会在配置页中途停下。",
+      "palette": "blue"
+    },
+    {
+      "id": "semi-auto",
+      "label": "半自动模式",
+      "kicker": "03 / SEMI AUTO",
+      "headline": ["先配置", "再合成"],
+      "stat": "中 / EN",
+      "body": "中英双语配置台集中管理画幅、动效、颜色、字幕、素材、封面、语音与页面批注。",
+      "subtitle": "明确要求半自动时，先生成双语配置台和页面审核包。",
+      "narration": "当你明确要求半自动、自定义配置或逐页审阅，流程会先生成中英双语配置台。你可以选择画幅、动效、颜色、字幕、素材、封面和语音，再用内容、设计、字幕三类批注决定如何进入最终合成。",
+      "palette": "green"
+    },
+    {
+      "id": "motion-system",
+      "label": "语义动效",
+      "kicker": "04 / MOTION",
+      "headline": ["动画服务内容", "不做模板堆叠"],
+      "stat": "32×5",
+      "body": "32 个动效 family、5 类视觉 variant，以及 6 个可直接运行的核心页面模板。",
+      "subtitle": "动效按照揭示、比较、追踪、连接和收束等语义任务来选择。",
+      "narration": "动效不是换一套皮肤。目录包含三十二个动效家族和五类视觉变体，同时保留六个可直接运行的核心页面模板。每段动画都要承担揭示、比较、追踪、连接或收束等内容任务。",
+      "palette": "purple"
+    },
+    {
+      "id": "caption-cover",
+      "label": "字幕与封面",
+      "kicker": "05 / CAPTION + COVER",
+      "headline": ["68 种字幕", "12 类封面逻辑"],
+      "stat": "原生比例",
+      "body": "字幕绑定真实口播节奏；封面按平台点击逻辑和目标比例独立生产。",
+      "subtitle": "目录可选不等于全部已成片，最终仍由当前运行的证据决定。",
+      "narration": "配置台提供六十八种字幕样式，覆盖界面、编辑叙事、节奏强调、极简、玻璃、双语、声音同步和移动端。封面则从十二类点击逻辑中选择一个方向，再按十类常用目标比例独立生成和验证。目录可选，不等于全部已经成为最终成片。",
+      "palette": "gold"
+    },
+    {
+      "id": "personal-ip",
+      "label": "个人 IP",
+      "kicker": "06 / PERSONAL IP",
+      "headline": ["人物保持一致", "内容独立运动"],
+      "stat": "分层",
+      "body": "原生个人 IP 页面与语义分层动画是两条明确隔离的路线。",
+      "subtitle": "个人 IP 保持人物和视觉系统一致，动画只在授权路线中重建语义层。",
+      "narration": "个人 IP 不靠随机换人物。普通路线保持原生页面、人物和视觉系统一致；只有显式要求个人 IP 加动画时，才会把标题、卡片、路径、人物和字幕拆成独立语义层来运动。",
+      "palette": "red"
+    },
+    {
+      "id": "evidence",
+      "label": "质量证据",
+      "kicker": "07 / EVIDENCE",
+      "headline": ["能播放", "还要能证明"],
+      "stat": "QC",
+      "body": "检查脚本一致性、声音、字幕层、黑帧、静音、解码、封面比例和来源。",
+      "subtitle": "渲染成功只是一道门禁，发布状态由完整证据决定。",
+      "narration": "渲染成功只是一道门禁。流程还会检查脚本一致性、声音与字幕时序、字幕安全层、黑帧、静音、响度、解码、封面比例和素材来源。任何必要证据没有通过，都不能把运行标记为可发布。",
+      "palette": "blue"
+    },
+    {
+      "id": "delivery",
+      "label": "最终交付",
+      "kicker": "08 / DELIVERY",
+      "headline": ["视频 + 封面", "字幕 + 证据"],
+      "stat": "闭环",
+      "body": "标题命名 MP4、原生比例封面、SRT、审阅页、manifest、截图和 QC 日志一起交付。",
+      "subtitle": "把生成能力变成一套可以审查和修复的生产系统。",
+      "narration": "最终交付包含标题命名的视频、原生比例封面、字幕、审阅页面、清单、截图和质量日志。这套视频工作流的核心能力，就是把生成变成一套可以审查、可以修复、也可以诚实判断是否完成的生产系统。",
+      "palette": "green"
+    }
+  ],
+  "narration": "现在，一份 Brief 不只是生成一个视频文件。它可以继续变成脚本、分镜、本地口播、语义动效、字幕、平台封面和质量证据完整闭环的成品包。如果你没有要求配置或逐页审阅，默认就是全自动模式。流程会完成内容规划、本地语音、真实时序、页面动效、字幕合成、视频检查和交付打包，不会在配置页中途停下。当你明确要求半自动、自定义配置或逐页审阅，流程会先生成中英双语配置台。你可以选择画幅、动效、颜色、字幕、素材、封面和语音，再用内容、设计、字幕三类批注决定如何进入最终合成。动效不是换一套皮肤。目录包含三十二个动效家族和五类视觉变体，同时保留六个可直接运行的核心页面模板。每段动画都要承担揭示、比较、追踪、连接或收束等内容任务。配置台提供六十八种字幕样式，覆盖界面、编辑叙事、节奏强调、极简、玻璃、双语、声音同步和移动端。封面则从十二类点击逻辑中选择一个方向，再按十类常用目标比例独立生成和验证。目录可选，不等于全部已经成为最终成片。个人 IP 不靠随机换人物。普通路线保持原生页面、人物和视觉系统一致；只有显式要求个人 IP 加动画时，才会把标题、卡片、路径、人物和字幕拆成独立语义层来运动。渲染成功只是一道门禁。流程还会检查脚本一致性、声音与字幕时序、字幕安全层、黑帧、静音、响度、解码、封面比例和素材来源。任何必要证据没有通过，都不能把运行标记为可发布。最终交付包含标题命名的视频、原生比例封面、字幕、审阅页面、清单、截图和质量日志。这套视频工作流的核心能力，就是把生成变成一套可以审查、可以修复、也可以诚实判断是否完成的生产系统。"
+}

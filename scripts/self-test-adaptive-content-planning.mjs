@@ -27,6 +27,30 @@ const canonical = selectCanonicalContentUnits({
 assert.equal(canonical.sourceTier, "structured-cues");
 assert.equal(canonical.units.length, 113, "canonical selection must not add scene summaries and full narration on top of subtitle cues");
 assert.equal(canonical.duplicateTiersIgnored, true);
+assert.equal(canonical.structuredCuesMatchFullNarration, true);
+
+const mismatchedCanonical = selectCanonicalContentUnits({
+  structuredGroups: [{ source: "stale-cues", entries: [{ text: "被改写的等长错误文本。" }] }],
+  scenes: [{ id: "scene-1", narration: "场景摘要不是真实原稿。" }],
+  fullTexts: [{ source: "brief.narration", text: "用户提供的等长真实原稿。" }],
+});
+assert.equal(mismatchedCanonical.sourceTier, "full-narration", "explicit full narration must outrank conflicting structured cues and scene summaries");
+assert.equal(mismatchedCanonical.structuredCueMismatchRejected, true);
+
+const punctuationMismatch = selectCanonicalContentUnits({
+  structuredGroups: [{ source: "stale-cues", entries: [{ text: "保留原稿？绝不能改。" }] }],
+  fullTexts: [{ source: "brief.narration", text: "保留原稿！绝不能改。" }],
+});
+assert.equal(punctuationMismatch.sourceTier, "full-narration", "punctuation changes are content changes, not whitespace-only fidelity");
+assert.equal(punctuationMismatch.structuredCueMismatchRejected, true);
+
+const repeatedNarration = "记住这句话。第一步。记住这句话。";
+const repeatedCanonical = selectCanonicalContentUnits({
+  fullTexts: [{ source: "brief.narration", text: repeatedNarration }],
+});
+assert.equal(repeatedCanonical.sourceTier, "full-narration");
+assert.equal(repeatedCanonical.units.map((unit) => unit.text).join(""), repeatedNarration);
+assert.equal(repeatedCanonical.units.filter((unit) => unit.text === "记住这句话。").length, 2, "legitimate repeated sentences must be preserved in order");
 
 const longPlan = buildAdaptiveCountPlan({
   sourceCount: 12,

@@ -44,11 +44,25 @@ function main() {
   const selection = readJson(selectionPath);
   const promptAssessments = Array.isArray(qc.promptAssessments) ? qc.promptAssessments : [];
   const promptItems = Array.isArray(prompts.prompts) ? prompts.prompts : [];
+  const promptTargetId = (value) => String(value || "").replace(/-image2-integrated-cover$/, "");
+  const promptTargetIds = promptItems.map((item) => promptTargetId(item.targetId));
+  const assessmentTargetIds = promptAssessments.map((item) => promptTargetId(item.targetId));
+  const plannedPromptCount = Number(requests.requestCountContract?.plannedTargetCount || promptItems.length);
 
   expect(qc.version === "cover-image2-qc-v2-integrated-typography", "unexpected cover image2 qc version", failures);
   expect(qc.promptQualityPass === true, "cover Image 2 prompt quality did not pass", failures);
-  expect(promptAssessments.length >= 5, "expected prompt assessments for common platform cover targets", failures);
-  expect(promptItems.length >= 5, "expected Image 2 prompts for common platform cover targets", failures);
+  expect(promptItems.length === plannedPromptCount, "Image 2 prompt plan does not cover every planned platform target", failures);
+  expect(promptAssessments.length === promptItems.length, "prompt assessments do not cover every Image 2 prompt", failures);
+  expect(promptTargetIds.every((targetId) => assessmentTargetIds.includes(targetId))
+    && assessmentTargetIds.every((targetId) => promptTargetIds.includes(targetId)), "prompt assessment target ids differ from the prompt plan", failures);
+  expect(promptItems.every((item) => String(item.prompt || "").length <= 4500), "one or more Image 2 prompts exceed the 4500-character production limit", failures);
+  expect(promptItems.every((item) => item.coverArtDirectionSystem?.methodologyVersion === "cover-art-direction-system-v1"
+    && item.coverArtDirectionSystem?.selectedStyleCount === 1
+    && item.coverArtDirectionStyle?.id === item.coverArtDirectionSystem?.selectedStyle?.id
+    && item.platformStrategy?.colorSystem?.methodologyVersion === "cover-semantic-color-system-v1"
+    && item.platformStrategy?.colorSystem?.semanticFamilyId
+    && item.platformStrategy?.colorSystem?.surfaceMode
+    && item.platformStrategy?.colorSystem?.backgroundPolicy), "one or more Image 2 prompts lack target-bound art-direction or semantic-color evidence", failures);
   expect(promptAssessments.every((item) => item.pass === true && Number(item.score || 0) >= 88), "one or more prompt assessments failed score threshold", failures);
   expect(design.coverImage2QualityGateFile === "workflow/cover-image2-qc.json", "cover-design.json does not reference cover-image2-qc.json", failures);
   expect(prompts.promptQualityGateFile === "workflow/cover-image2-qc.json", "cover-image2-prompts.json does not reference cover-image2-qc.json", failures);

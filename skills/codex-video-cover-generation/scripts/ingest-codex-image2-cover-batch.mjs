@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildCoverGenerationWorkflowContract } from "./lib/cover-generation-workflow-contract.mjs";
 
 function argValue(name, fallback = "") {
@@ -36,7 +37,8 @@ const workflowRoot = resolve(argValue("--workflow-root", process.env.CODEX_VIDEO
 const ingestScript = join(workflowRoot, "scripts", "ingest-codex-image2-cover-target.mjs");
 const coverValidator = join(workflowRoot, "scripts", "validate-cover-generation-workflow.mjs");
 const platformValidator = join(workflowRoot, "scripts", "validate-platform-submission-cover.mjs");
-for (const path of [ingestScript, coverValidator, platformValidator]) {
+const prepareScript = join(dirname(fileURLToPath(import.meta.url)), "prepare-cover-image2-dispatch.mjs");
+for (const path of [ingestScript, coverValidator, platformValidator, prepareScript]) {
   if (!existsSync(path)) throw new Error(`Cover workflow dependency is missing: ${path}`);
 }
 
@@ -53,7 +55,9 @@ const manifest = readJson(requestPath);
 if (run.coversGenerated !== true) throw new Error("Cannot batch-ingest before every pending Image2 target has generated successfully");
 const resultByTarget = new Map((run.targetResults || []).map((item) => [item.targetId, item]));
 const requestByTarget = new Map((manifest.requests || []).map((item) => [item.targetId, item]));
-const targetIds = plan.pendingTargetIds || [];
+const targetIds = (manifest.requests || [])
+  .filter((request) => request.status !== "completed")
+  .map((request) => String(request.targetId || request.id || "").replace(/-image2-integrated-cover$/, ""));
 const entries = targetIds.map((targetId) => {
   const result = resultByTarget.get(targetId);
   const request = requestByTarget.get(targetId);
@@ -96,13 +100,12 @@ try {
     ], workflowRoot);
     completed += 1;
   }
-  runNode(coverValidator, ["--out", topicDir], workflowRoot);
-  runNode(platformValidator, ["--out", topicDir], workflowRoot);
   const completedAt = new Date().toISOString();
   const finalManifest = readJson(requestPath);
   if (finalManifest.allRequestedPlatformUploadCoversReady !== true || Number(finalManifest.pendingRequestCount || 0) !== 0) {
     throw new Error("Batch ingest finished without satisfying the complete requested cover scope");
   }
+  runNode(prepareScript, ["--out", topicDir], workflowRoot);
   const finalRun = readJson(runPath);
   finalRun.status = "covers_verified";
   finalRun.coversGenerated = true;
@@ -119,6 +122,8 @@ try {
     requestManifest: finalManifest,
     generationRun: finalRun,
   }));
+  runNode(coverValidator, ["--out", topicDir], workflowRoot);
+  runNode(platformValidator, ["--out", topicDir, "--require-all-platform-covers"], workflowRoot);
   console.log(JSON.stringify({
     ok: true,
     topicDir,

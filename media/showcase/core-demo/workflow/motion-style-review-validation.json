@@ -1,0 +1,260 @@
+{
+  "ok": true,
+  "html": "media/showcase/core-demo/motion-style-template-review.html",
+  "generatedAt": "2026-08-02T16:06:26.875Z",
+  "staticFacts": {
+    "title": "风格模板",
+    "skeletonCards": 32,
+    "variantButtons": 163,
+    "variantPanels": 163,
+    "videoFrames": 160,
+    "businessScenarios": 160,
+    "dataSources": 160,
+    "galaceanEffects": 160,
+    "effectLayers": 320,
+    "benchmarks": 160,
+    "oldAuditCopy": false,
+    "hasBenchmarkModalField": true,
+    "hasScenarioModalField": true,
+    "hasEffectPlanModalField": true,
+    "missingContentKinds": []
+  },
+  "browser": {
+    "ok": true,
+    "failures": [],
+    "initial": {
+      "title": "风格模板",
+      "oldAuditCopy": false,
+      "cards": 32,
+      "visibleCards": 32,
+      "familyButtons": 33,
+      "variantButtons": 160,
+      "variantPanels": 160,
+      "videoFrames": 160,
+      "scenarioFrames": 160,
+      "dataSourceFrames": 160,
+      "effectFrames": 160,
+      "effectLayers": 320,
+      "pageShells": 160,
+      "designedTitles": 160,
+      "benchmarkFrames": 160,
+      "contentKinds": [
+        "agent-simulation",
+        "before-after",
+        "checklist-gate",
+        "choice-matrix",
+        "claim-split",
+        "code-walkthrough",
+        "comparison-gallery",
+        "concept-orbit",
+        "cover-bridge",
+        "dashboard-inspection",
+        "data-chart",
+        "evidence-board",
+        "formula-derivation",
+        "funnel-conversion",
+        "geo-map",
+        "hierarchy-tree",
+        "ip-knowledge-card",
+        "journey-map",
+        "material-collage",
+        "network-relationship",
+        "process-timeline",
+        "quote-lockup",
+        "recap-loop",
+        "risk-alert",
+        "screenflow-demo",
+        "source-citation",
+        "storyboard-pressure",
+        "table-ranking",
+        "timeline-calendar",
+        "typed-thesis",
+        "voice-sync",
+        "whiteboard-method"
+      ],
+      "layoutModes": [
+        "agent-lane-stage",
+        "alert-stage",
+        "audio-stage",
+        "calendar-stage",
+        "cinematic-board",
+        "citation-stage",
+        "comparison-stage",
+        "coordinate-stage",
+        "cover-continuity",
+        "dashboard-stage",
+        "data-stage",
+        "editorial-poster",
+        "flow-lane",
+        "full-poster",
+        "funnel-stage",
+        "gallery-stage",
+        "gate-stage",
+        "geo-stage",
+        "map-stage",
+        "math-canvas",
+        "media-stage",
+        "network-stage",
+        "orbit-stage",
+        "persona-board",
+        "proof-arena",
+        "ranking-stage",
+        "recap-stage",
+        "screenflow-stage",
+        "sketch-canvas",
+        "split-workbench",
+        "tree-stage"
+      ],
+      "typographyModes": [
+        "alert-editorial",
+        "audio-caption",
+        "cinematic-title",
+        "code-terminal",
+        "comparison-slab",
+        "cover-hook",
+        "data-mono",
+        "editorial-display",
+        "kinetic-poster",
+        "map-label",
+        "math-coordinate",
+        "media-caption",
+        "product-ui",
+        "summary-lockup",
+        "system-label",
+        "warm-annotation"
+      ],
+      "realDataLabels": true,
+      "realPopulationLabels": true,
+      "realCoordinateLabels": true,
+      "realFormulaLabels": true,
+      "horizontalOverflowCount": 0,
+      "shellIssues": [],
+      "textIssues": []
+    },
+    "modalChecks": [
+      {
+        "kind": "data-chart",
+        "before": {
+          "activeTemplate": "data-curve-proof--calm-premium",
+          "layout": "data-stage",
+          "typography": "data-mono"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "data-chart",
+          "hasLargePreview": true,
+          "layout": "data-stage",
+          "typography": "data-mono",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "GDP 曲线先看量级，再看趋势：财经、政策、市场分析视频中的趋势证明页。",
+          "scenario": "用 World Bank 2019-2025 年 GDP 数据讲解主要经济体体量变化。",
+          "dataSource": "measured / World Bank GDP current US$ 2019-2025",
+          "effectPlan": "轨迹沿 GDP 曲线推进，不覆盖标签"
+        }
+      },
+      {
+        "kind": "table-ranking",
+        "before": {
+          "activeTemplate": "ranking-table-system--calm-premium",
+          "layout": "ranking-stage",
+          "typography": "data-mono"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "table-ranking",
+          "hasLargePreview": true,
+          "layout": "ranking-stage",
+          "typography": "data-mono",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "GDP 排名要同时看到数值和口径：财经、宏观、市场分析视频。",
+          "scenario": "用 2025 年 GDP current US$ 对五个主要经济体做表格排名。",
+          "dataSource": "measured / World Bank GDP current US$ 2025",
+          "effectPlan": "聚光扫过排行行并锁定依据"
+        }
+      },
+      {
+        "kind": "geo-map",
+        "before": {
+          "activeTemplate": "geo-data-map--calm-premium",
+          "layout": "geo-stage",
+          "typography": "map-label"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "geo-map",
+          "hasLargePreview": true,
+          "layout": "geo-stage",
+          "typography": "map-label",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "人口规模先定位，再比较：地理、人口、政策、市场入门视频。",
+          "scenario": "用 2025 年 World Bank 人口数据比较印度、中国、美国、日本、德国。",
+          "dataSource": "measured / World Bank Population total 2025",
+          "effectPlan": "聚光强调目标区域标记"
+        }
+      },
+      {
+        "kind": "network-relationship",
+        "before": {
+          "activeTemplate": "network-relationship-map--calm-premium",
+          "layout": "network-stage",
+          "typography": "system-label"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "network-relationship",
+          "hasLargePreview": true,
+          "layout": "network-stage",
+          "typography": "system-label",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "从关系网里抽出主链路：系统解释、依赖诊断、自动化流程说明。",
+          "scenario": "脚本、模板、素材、字幕、效果层和 QC 之间的依赖关系。",
+          "dataSource": "dependency-graph / workflow artifact dependency",
+          "effectPlan": "光束点亮主依赖链路"
+        }
+      },
+      {
+        "kind": "agent-simulation",
+        "before": {
+          "activeTemplate": "agent-simulation-lane--calm-premium",
+          "layout": "agent-lane-stage",
+          "typography": "product-ui"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "agent-simulation",
+          "hasLargePreview": true,
+          "layout": "agent-lane-stage",
+          "typography": "product-ui",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "多角色协作要看到交接：自动化系统介绍、执行流程说明。",
+          "scenario": "多个执行角色分别负责内容规划、配音时间、模板引用和渲染验收。",
+          "dataSource": "workflow / multi-agent production contract",
+          "effectPlan": "轨迹跟随协作泳道的交接路径"
+        }
+      },
+      {
+        "kind": "voice-sync",
+        "before": {
+          "activeTemplate": "voice-waveform-sync--calm-premium",
+          "layout": "audio-stage",
+          "typography": "audio-caption"
+        },
+        "modal": {
+          "open": true,
+          "templateKind": "voice-sync",
+          "hasLargePreview": true,
+          "layout": "audio-stage",
+          "typography": "audio-caption",
+          "benchmarkText": "Apple Human Interface Guidelines / Motion / Material Design Motion / 高级动效路线 CSS motion primitives / FT Visual Vocabulary + Observable Plot / 数学动画方案 transform model",
+          "videoUse": "语音节奏驱动画面：口播视频、双语字幕、方言讲解。",
+          "scenario": "中文、英文、方言和男女声选择与字幕时间点、关键词高亮同步。",
+          "dataSource": "voice-manifest / voice-subtitle manifest",
+          "effectPlan": "轨迹跟随波形播放头"
+        }
+      }
+    ],
+    "screenshots": "media/showcase/core-demo/validation-screenshots"
+  },
+  "screenshots": "media/showcase/core-demo/validation-screenshots",
+  "failures": []
+}

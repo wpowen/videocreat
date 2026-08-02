@@ -3,11 +3,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadPlaywright } from "./lib/load-playwright.mjs";
+import { chromiumLaunchOptions, loadPlaywright } from "./lib/load-playwright.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = resolve(SCRIPT_DIR, "..");
-const WORKSPACE_ROOT = resolve(SKILL_ROOT, "../../..");
+const WORKSPACE_ROOT = SKILL_ROOT;
 const MIN_FAMILY_COUNT = 32;
 const MIN_TEMPLATE_COUNT = 160;
 const REQUIRED_CONTENT_KINDS = [
@@ -507,7 +507,7 @@ async function validateBrowserPage(page, screenshotDir) {
     await page.waitForTimeout(80);
   }
 
-  return { ok: failures.length === 0, failures, initial, modalChecks, screenshots: screenshotDir };
+  return { ok: failures.length === 0, failures, initial, modalChecks, screenshots: rel(screenshotDir) };
 }
 
 async function main() {
@@ -543,8 +543,8 @@ async function main() {
 
   let browserReport = null;
   if (existsSync(htmlPath)) {
-    const { chromium } = await loadPlaywright();
-    const browser = await chromium.launch({ headless: true });
+    const { chromium } = loadPlaywright();
+    const browser = await chromium.launch(chromiumLaunchOptions(chromium));
     try {
       const page = await browser.newPage({ viewport: { width: 1516, height: 960 }, deviceScaleFactor: 1 });
       await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });

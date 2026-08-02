@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Video Workflow Skill Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #101316;
+      --muted: #5b6572;
+      --paper: #f7f5ef;
+      --panel: #ffffff;
+      --line: #d7d0c4;
+      --accent: #0b8b74;
+      --accent-2: #6f3ff5;
+      --warn: #c66a00;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    main {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, 0.84fr) minmax(520px, 1.16fr);
+      gap: 28px;
+      padding: clamp(22px, 4vw, 54px);
+      align-items: center;
+    }
+
+    .copy {
+      max-width: 620px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: var(--accent);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(42px, 6vw, 78px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0 0 24px;
+      font-size: clamp(18px, 2vw, 23px);
+      line-height: 1.46;
+      color: #262b30;
+    }
+
+    .switcher {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 4px;
+      margin: 0 0 26px;
+      gap: 4px;
+    }
+
+    .switcher button {
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      min-width: 88px;
+      height: 38px;
+      padding: 0 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .switcher button[aria-pressed="true"] {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .points {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    .points li {
+      border-left: 4px solid var(--accent-2);
+      padding-left: 12px;
+    }
+
+    .video-shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 16px 44px rgba(20, 24, 28, 0.12);
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 4px;
+      background: #111;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .meta strong {
+      color: var(--ink);
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 800;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .copy {
+        max-width: none;
+      }
+
+      .meta {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="copy" aria-live="polite">
+      <p class="eyebrow" data-i18n="eyebrow">Skill 演示视频</p>
+      <h1 data-i18n="title">先口播，再成片，再用证据验收。</h1>
+      <p class="lead" data-i18n="lead">Codex Video Workflow 把视频制作拆成可审查的链路：口播材料、声音策略、视觉设计、运动模板、封面和 QC 报告都在渲染前后留下证据。</p>
+      <div class="switcher" role="group" aria-label="Language">
+        <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+        <button type="button" data-lang="en" aria-pressed="false">English</button>
+      </div>
+      <ul class="points">
+        <li data-i18n="point1">中文版本使用本地授权声音工作流生成口播。</li>
+        <li data-i18n="point2">英文版本使用同一套本地语音流程和英文 CosyVoice speaker。</li>
+        <li data-i18n="point3">两版都输出 MP4、封面、字幕、截图和 QC JSON。</li>
+      </ul>
+    </section>
+
+    <section class="video-shell">
+      <video id="demoVideo" controls playsinline preload="metadata" poster="codex-video-workflow-zh-cover.svg">
+        <source src="codex-video-workflow-zh.mp4" type="video/mp4">
+      </video>
+      <div class="meta">
+        <span data-i18n="metaLeft"><strong>中文成片</strong> 74 秒，1080p，H.264 + AAC。</span>
+        <span><a id="directLink" href="codex-video-workflow-zh.mp4" data-i18n="download">打开视频文件</a></span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const content = {
+      zh: {
+        eyebrow: "Skill 演示视频",
+        title: "先口播，再成片，再用证据验收。",
+        lead: "Codex Video Workflow 把视频制作拆成可审查的链路：口播材料、声音策略、视觉设计、运动模板、封面和 QC 报告都在渲染前后留下证据。",
+        point1: "中文版本使用本地授权声音工作流生成口播。",
+        point2: "英文版本使用同一套本地语音流程和英文 CosyVoice speaker。",
+        point3: "两版都输出 MP4、封面、字幕、截图和 QC JSON。",
+        metaLeft: "<strong>中文成片</strong> 74 秒，1080p，H.264 + AAC。",
+        download: "打开视频文件",
+        video: "codex-video-workflow-zh.mp4",
+        poster: "codex-video-workflow-zh-cover.svg",
+        htmlLang: "zh-CN"
+      },
+      en: {
+        eyebrow: "Skill demo video",
+        title: "Script first. Render second. Evidence at the end.",
+        lead: "Codex Video Workflow turns video production into a reviewable chain: spoken material, voice direction, visual design, motion templates, covers, and QC evidence are recorded before and after rendering.",
+        point1: "The Chinese version uses the local authorized voice workflow.",
+        point2: "The English version uses the same local voice workflow with an English CosyVoice speaker.",
+        point3: "Both versions output MP4, covers, subtitles, screenshots, and QC JSON.",
+        metaLeft: "<strong>English cut</strong> 86 seconds, 1080p, H.264 + AAC, local CosyVoice.",
+        download: "Open video file",
+        video: "codex-video-workflow-en.mp4",
+        poster: "codex-video-workflow-en-cover.svg",
+        htmlLang: "en"
+      }
+    };
+
+    const video = document.getElementById("demoVideo");
+    const directLink = document.getElementById("directLink");
+    const buttons = [...document.querySelectorAll("[data-lang]")];
+
+    function setLanguage(lang) {
+      const next = content[lang];
+      document.documentElement.lang = next.htmlLang;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        node.innerHTML = next[node.dataset.i18n];
+      });
+      buttons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      video.pause();
+      video.poster = next.poster;
+      video.querySelector("source").src = next.video;
+      video.load();
+      directLink.href = next.video;
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setLanguage(button.dataset.lang));
+    });
+  </script>
+</body>
+</html>

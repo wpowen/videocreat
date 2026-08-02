@@ -1,431 +1,381 @@
-# Codex Video Workflow Skill
+# Codex Video Workflow
 
-English | [简体中文](README.zh-CN.md)
+<p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-Produce reviewable narrated videos from a brief: script first, render second, evidence at the end.
+<p align="center">
+  <img src="media/showcase/hero/codex-video-workflow-hero.png" alt="An inspectable production chain from brief to video, covers, and quality evidence" width="100%">
+</p>
 
-`codex-video-workflow` is a local Codex skill for planning, rendering, and validating rights-safe explainer, product, tutorial, and oral-series videos. It does not treat video generation as a single black-box render. It creates the narration material, voice direction, visual system, motion plan, cover package, subtitles, screenshots, and QC report as inspectable artifacts.
+<h3 align="center">Turn one brief into an inspectable, repairable, evidence-backed video package</h3>
 
-> This is an independent, community-maintained project. It is not affiliated with, sponsored by, or endorsed by OpenAI. OpenAI and Codex are trademarks of their respective owner.
+<p align="center">
+  Full Auto · Bilingual Semi Auto · 160 Motion Contracts · 44 Config Color Systems · 68 Caption Styles · Covers · Personal IP · Whiteboard · Independent QC
+</p>
 
-## Demo
+<p align="center">
+  <a href="media/showcase/capability-reel-v2/capability-showcase-v2.mp4"><strong>Watch the V2 semantic-motion reel</strong></a> ·
+  <a href="media/codex-video-workflow-core-2026-zh.mp4">Watch the full workflow demo</a> ·
+  <a href="media/showcase/core-demo/semi-auto-config.html">Open the bilingual console</a> ·
+  <a href="media/showcase/core-demo/motion-style-template-review.html">Browse 160 motion combinations</a> ·
+  <a href="SKILL.md">Read the Skill contract</a>
+</p>
 
-Open the visual-effects showcase:
+---
 
-[Launch the Galacean-style VFX showcase](media/galacean-vfx-showcase.html)
+## The short version
 
-| Chinese oral-series cut | English oral-series cut |
-| --- | --- |
-| ![Chinese demo cover](media/codex-video-workflow-zh-cover.svg) | ![English demo cover](media/codex-video-workflow-en-cover.svg) |
-| Chinese workflow cover fixture. | English workflow cover fixture. |
-
-Rendered voice and video binaries are intentionally excluded from the public source repository. Generate them locally with assets you are authorized to use; the resulting package contains its own QC and provenance evidence.
-
-## What It Does
-
-- **Narration before rendering**: writes the oral script and TTS-ready spoken text before video generation.
-- **Voice policy**: keeps comma-like punctuation as short in-clause pauses and only inserts semantic line breaks after complete sentences or beats.
-- **Content presentation design**: selects a visual system, aesthetic brief, motion template, and scene metaphor before render.
-- **Local voice path**: supports local CosyVoice and MeloTTS for authorized narration in both Chinese and English final-quality runs.
-- **HTML motion rendering**: uses the local `html-video` renderer when available, with FFmpeg fallback paths recorded in the logs.
-- **Remotion-inspired motion primitives**: borrows Remotion frame-driven timing, easing, transition accounting, and text-animation rules to make `html-video` scenes more dynamic without replacing the renderer.
-- **Image prompt manifest**: can write GPT Image 2-compatible prompts while consuming Codex built-in `image_gen` bitmap assets or recording prompt-pending local review assets.
-- **Cover package**: uses a Codex built-in Image 2 / `image_gen` integrated-typography cover route by default. The title, subtitle, badge, visual subject, lighting, and material finish are expected inside the cover bitmap; direct OpenAI Images API usage is only an explicit opt-in path.
-- **Personal-IP diagram route**: can activate `ip-diagram-creator` style planning for explicit personal IP, creator persona, knowledge-card, Agent-collaboration, PPT/course, or livestream teaching briefs without turning every tutorial into one house style.
-- **Video-tool fusion**: borrows bounded capabilities from Video-Use, FFmpeg, HyperFrames, Remotion, Manim/D3, and reference-video QC while keeping this workflow as the script, timing, voice, cover, render, packaging, and QC governor.
-- **Visual effects layer**: can plan Galacean/effects-runtime-style particles, fireworks, energy beams, scans, 2D/3D accents, and transition bursts as optional scene layers inside the visual motion system. Effects must have a semantic job, safe placement, asset rights, fallback, and screenshot/motion QC evidence.
-- **Whiteboard layered reveal**: supports marker/hand-drawn foreground reveal over the existing designed scene background, while subtitles and captions remain topmost.
-- **Free commercial-compatible stock material engine**: derives scene queries from the narration or material brief, fetches/normalizes B-roll from authorized local files, direct URLs, NASA, Pexels, Pixabay, or local fixtures, writes a source/license/hash ledger, and inserts the clips into the rendered scene design.
-- **Incremental repair**: can patch a single scene window on top of a previously generated package and emit incremental lineage, timing, screenshots, decoder checks, and QC evidence.
-- **QC evidence**: emits final MP4, screenshots, subtitles, manifests, FFprobe data, black-frame checks, volume checks, and `logs/qc.json`.
-- **Final loudness normalization**: raises delivered MP4 narration to a clear playback level and records the filter in `workflow/final-audio-normalization.json`.
-
-## How Users Trigger Capabilities
-
-Users do not need to know template IDs or JSON fields. Describe the viewing experience in natural language, for example:
-
-- `Reveal the process layer by layer and draw an animated line between the steps.`
-- `Keep the personal-IP page unchanged; add only foreground circles, underlines, semantic paths, and subtitles.`
-- `Make this feel interactive and progressive instead of a static slide deck.`
-
-The conversation should surface only the 2-3 capabilities relevant to the current content. The default full-auto flow continues through planning, generation, render, QC, and packaging. Semi-auto/custom mode writes a reviewable configuration page only when the user explicitly requests configuration or page review.
-
-Use four stable user-facing signals: no visual-mode signal selects the default HTML animation and its content-driven layered semantic-motion flow, now styled with the personal-IP visual grammar without activating a persona; `personal IP` selects verified native personal-IP pages with foreground motion off; `personal IP + animation` combines the stable native page with continuous cue-bound progress, focus, connector, and draw-reveal foreground layers; and `whiteboard` selects the framework animation plus a behind-content whiteboard reveal. Explicit `personalIpAnimation` / `addHandDrawnImageAnimation` fields override natural language. A plain `personalIp` field resolves animation to `off`.
-
-For deterministic triggering, set `brief.layeredMotion.mode` to `semantic-path` or pass `--layered-motion semantic-path`. The run writes `workflow/layered-motion-plan.json`, and `semi-auto-config.html` shows the selected layered-motion preview. See `assets/examples/layered-semantic-motion-brief.json` for a complete example.
-
-## Quick Start
-
-Install this skill into a Codex skill folder:
-
-```bash
-mkdir -p ~/.codex/skills
-rsync -a .agents/skills/codex-video-workflow ~/.codex/skills/
-```
-
-Or install it into a workspace-local skill folder:
-
-```bash
-mkdir -p /path/to/project/.agents/skills
-rsync -a .agents/skills/codex-video-workflow /path/to/project/.agents/skills/
-```
-
-Restart Codex after copying so the skill list refreshes.
-
-## Requirements
-
-Required:
-
-- Node.js 18+
-- FFmpeg / FFprobe
-- local CosyVoice or MeloTTS workspace for production narration
-
-Optional:
-
-- local `html-video` clone/build at `research/html-video-research/html-video/packages/cli/dist/index.js`
-- macOS `say` only for explicitly degraded smoke checks
-- macOS Quick Look (`qlmanage`) for the FFmpeg fallback card path
-- `OPENAI_API_KEY` only when running the direct API path with `--image-source image2`; Codex built-in `image_gen` assets do not require it.
-- Free-stock provider keys only when those adapters are enabled: `PEXELS_API_KEY` for Pexels and `PIXABAY_API_KEY` for Pixabay. The NASA adapter is no-key. The `fixture` adapter is only for local demo/smoke validation and is not publication-ready external stock.
-- Galacean/effects-runtime package and project-authored or explicitly licensed effect JSON/textures/models only when the visual-effects layer is active. The runtime does not make third-party effect assets publication-ready by itself.
-
-The default scene-image path is `image2-dryrun`: it writes GPT Image 2 compatible prompts without calling the OpenAI API. Covers are different: the normal final-quality cover path is Context Image2 / Codex built-in `image_gen`. The workflow first writes the core cover strategy and prompts, including `workflow/context-image2-cover-requests.json` and `prompts/context-image2-covers/*.txt`; generate the complete cover from those requests in the Codex app, save it under the project, then ingest it so the workflow verifies ratio and upload readiness. Files named with `cover`, `thumbnail`, `封面`, `海报`, `integrated`, `typography`, `final`, `完整`, `成品`, or `带字` are automatically prioritized as complete cover assets.
-
-Runtime defaults are centralized in `assets/runtime-defaults.json`. Each run writes `workflow/runtime-config.json` with the resolved image, voice, material, cover, and frame-limit policies. Command-line flags and brief fields can override the defaults, but environment capabilities such as `OPENAI_API_KEY` only enable explicit routes; they do not silently change the default `image2-dryrun` path.
-
-## Validate Install
-
-Run from the target workspace:
-
-```bash
-node --check .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs
-node --check .agents/skills/codex-video-workflow/scripts/self-test-full-framework.mjs
-node .agents/skills/codex-video-workflow/scripts/validate-voice-pause-policy.mjs
-node .agents/skills/codex-video-workflow/scripts/validate-cover-targets.mjs
-node .agents/skills/codex-video-workflow/scripts/self-test-capability-routing.mjs --out-root /tmp/codex-video-workflow-capability-routing
-node .agents/skills/codex-video-workflow/scripts/self-test-full-framework.mjs --out-root /tmp/codex-video-workflow-full-framework
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/codex-video-workflow
-```
-
-## Smoke Test
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
-  --brief .agents/skills/codex-video-workflow/assets/examples/authorized-brief.json \
-  --out research/codex-video-workflow-poc/install-smoke \
-  --mode recommended \
-  --duration 30 \
-  --voice-backend melotts_local \
-  --speech-style conversational \
-  --image-source image2-dryrun
-```
-
-Cover-only prompt/review package without binding generated cover assets:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
-  --brief .agents/skills/codex-video-workflow/assets/examples/authorized-brief.json \
-  --out research/codex-video-workflow-poc/cover-only \
-  --cover-only \
-  --speech-style conversational \
-  --image-source image2-dryrun
-```
-
-Final-quality cover package with Codex built-in Image 2 assets:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
-  --brief .agents/skills/codex-video-workflow/assets/examples/authorized-brief.json \
-  --out research/codex-video-workflow-poc/cover-only-codex-image2 \
-  --cover-only \
-  --speech-style conversational \
-  --image-source codex-builtin \
-  --codex-image-assets-dir research/codex-video-workflow-inputs/codex-image2-covers
-```
-
-The asset directory should contain project-bound cover images generated in Codex/Cos X Image 2, preferably native target-ratio files such as `horizontal-16x9-integrated-cover.png`, `horizontal-4x3-integrated-cover.png`, `vertical-9x16-integrated-cover.png`, `vertical-3x4-integrated-cover.png`, `reels-420x654-integrated-cover.png`, and `square-1x1-integrated-cover.png`.
-
-English demo path with the same local voice workflow:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
-  --brief .agents/skills/codex-video-workflow/media/oral-materials/skill-capability-brief-en.json \
-  --out research/codex-video-workflow-promo/runs/skill-capability-oral-series-en \
-  --mode recommended \
-  --voice-backend auto \
-  --speech-style conversational \
-  --image-source image2-dryrun
-```
-
-Free-stock material engine demo:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/poc-video-workflow.mjs \
-  --brief .agents/skills/codex-video-workflow/assets/examples/free-stock-material-demo-brief.json \
-  --out research/codex-video-workflow-poc/free-stock-material-video-demo \
-  --mode recommended \
-  --voice-backend melotts_local \
-  --image-source local \
-  --free-stock-engine \
-  --free-stock-provider-order fixture \
-  --allow-free-stock-fixture \
-  --no-open-delivery-page
-```
-
-For publishable runs, prefer `local-authorized,direct-url,nasa,pexels,pixabay` and keep a human rights review. `fixture` creates local test clips only to validate the pipeline and layout gates.
-
-Incremental scene repair / fusion export:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/incremental-video-edit.mjs \
-  --base research/codex-video-workflow-poc/authorized-video \
-  --out research/codex-video-workflow-poc/authorized-video-revision-01 \
-  --scene-id product-ui \
-  --label "review patch: product-ui visual element" \
-  --force
-```
-
-Use this path when a generated package already passed the full workflow and the requested fix is localized to a scene-level visual element while narration, subtitle text, cue timing, and music timing remain unchanged. It copies the base package, preserves `renders/final.base.mp4`, modifies only the selected scene window, reuses planner/TTS/audio/non-target scenes, and fuses a new `renders/final.mp4`. If the fix changes spoken text, cue duration, scene boundaries, voice settings, or rights-sensitive media, rebuild the affected nodes and downstream sync/QC instead of claiming full reuse.
-
-## Output Evidence
-
-Typical output includes:
-
-- `final.mp4`
-- `<current-video-title>.mp4`
-- `workflow/aesthetic-brief.json`
-- `workflow/aesthetic-quality-rubric.md`
-- `workflow/content-presentation-design.json`
-- `workflow/caption-style-plan.json`
-- `workflow/motion-template-selection.json`
-- `workflow/motion-grammar-plan.json`
-- `workflow/voice-direction.json`
-- `workflow/cover-design.json`
-- `workflow/cover-image2-prompts.json`
-- `workflow/context-image2-cover-requests.json` and `prompts/context-image2-covers/*.txt`
-- `workflow/cover-image2-qc.json`
-- `workflow/cover-size-selection.json`
-- `semi-auto-config.html` cover module with a real sample-cover preview, click-to-open large preview, and one visible target card for every supported cover resolution in `workflow/cover-size-selection.json`
-- `cover/cover-video-opening-16x9.svg`
-- `cover/cover-master-16x9-3840x2160.svg`
-- `cover/cover-16x9-1920x1080.svg`
-- `cover/cover-16x9-1280x720.svg`
-- `cover/cover-horizontal-4x3-1600x1200.svg`
-- `cover/cover-bilibili-1146x717.svg`
-- `cover/cover-vertical-1080x1920.svg`
-- `cover/cover-vertical-profile-1080x1440.svg`
-- `cover/cover-instagram-reels-420x654.svg`
-- `cover/cover-square-1200x1200.svg`
-- `最终成品/` as the topic's only user-facing upload cover delivery directory; it contains Chinese group folders such as `横版16比9/`, `横版4比3/`, `竖版9比16/`, `竖版3比4/`, and `方形1比1/`, and contains only true native target-ratio Image 2/Codex outputs
-- `封面预览-非上传终版/` only when a local target-ratio recomposition preview is explicitly created before a native Image 2/Codex target-ratio asset exists; these previews are review-only and never counted as upload-ready
-- `最终成品/需原生重生成清单.md` for missing native target-ratio sizes such as `横版4比3`, `竖版3比4`, `B站常用1146x717`, or `Reels封面420x654` when the run only has a non-target-ratio source
-- batch-friendly `_封面总索引/封面总索引.html` generated by `scripts/build-cover-size-selection-index.mjs --root <batch-root>` when producing multi-topic cover packages; final image files stay inside each topic's own `最终成品/`, while duplicate root copies and old `按尺寸选择/` folders are cleaned
-- `script/narration.txt`
-- `script/narration-spoken.txt`
-- `workflow/design-plan.json`
-- `workflow/image-generation-strategy.json`
-- `workflow/image2-prompts.json`
-- `workflow/visual-asset-manifest.json`
-- `workflow/visual-relevance-audit.json`
-- `workflow/visual-rhythm-plan.json`
-- `workflow/external-capability-fusion-plan.json`
-- `workflow/galacean-effects-plan.json` when Galacean visual effects are active
-- `workflow/whiteboard-layered-reveal-plan.json` when whiteboard layered reveal is active
-- `workflow/ip-diagram-creator-plan.json`, `workflow/ip-diagram-creator-native-jobs.json`, and `workflow/ip-diagram-layout-audit.json` when personal-IP / teaching-diagram routing is active
-- `workflow/free-stock-material-plan.json`, `workflow/free-stock-asset-ledger.json`, `materials/free-stock/raw/*`, and `assets/free-stock/*.mp4` when free-stock enrichment is active
-- `workflow/raw-footage-inventory.json`, `workflow/raw-transcript-index.json`, `workflow/takes-packed.md`, `workflow/word-boundary-map.json`, `workflow/edit-decision-list.json`, `workflow/cut-boundary-qc.json`, and `workflow/source-media-normalization-plan.json` when authorized raw footage is provided
-- `workflow/voice-subtitle-manifest.json`
-- `workflow/chinese-pronunciation-preflight.json`
-- `workflow/effective-pronunciation-plan.json`
-- `workflow/pronunciation-application-verification.json`
-- `workflow/final-audio-normalization.json`
-- `logs/qc.json`
-- `screenshots/frame-*.png`
-- Incremental repair packages also include `workflow/incremental-edit-lineage.json`, `workflow/incremental-timing-summary.json`, `logs/incremental-qc.json`, `logs/incremental-ffprobe.json`, `logs/incremental-blackdetect.log`, `logs/incremental-volumedetect.log`, `screenshots/incremental-base-target-scene.png`, and `screenshots/incremental-patched-target-scene.png`
-
-QC passes only when video/audio metadata, local voice compliance, voice pause policy, direct first-scene start with zero-second narration by default, final MP4 loudness, integrated Image 2 cover evidence across required platform families, cover title source, cover Image 2 prompts, PNG/JPG byte-size evidence, title-named MP4 and `最终成品/` cover copies, aesthetic planning, premium caption style planning, HTML motion-template selection, Remotion-inspired frame-driven motion primitives, image-generation strategy, image prompt manifests, narration-bound visual relevance evidence, visual rhythm density evidence, inserted visuals, single-line sequential subtitle display, screenshots, and black-frame checks are present. When Galacean visual effects are active, QC also requires `workflow/galacean-effects-plan.json`, selected/rejected effect decisions, asset rights, subtitle-safe layer order, deterministic exact-text ownership, fallback, and pre/peak/post effect evidence. Incremental repair QC additionally requires `logs/incremental-qc.json` with duration drift within `0.2s`, changed target-scene screenshot hash, clean blackdetect, preserved/audible audio when the base has audio, and delivery-grade bitrate; a copied full-run `logs/qc.json` alone is stale evidence for the repair. If raw footage is active, QC also requires the Video-Use-style contract: source inventory, transcript index, packed transcript reading surface, word-boundary map, EDL, cut-boundary self-review, and source-media normalization plan. Cloud ASR remains explicit opt-in only.
-
-After editing motion templates, run:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/validate-html-motion-templates.mjs
-```
-
-After editing voice pause logic, run:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/validate-voice-pause-policy.mjs
-```
-
-After editing cover targets, run:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/validate-cover-targets.mjs
-```
-
-After editing subtitle timing, visual caption wrapping, or cover-title logic, run this against a generated package:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/validate-subtitle-cover-contract.mjs \
-  --out research/codex-video-workflow-poc/authorized-video \
-  --brief .agents/skills/codex-video-workflow/assets/examples/authorized-brief.json
-```
-
-After an incremental scene repair, run the decoder check and package validator:
-
-```bash
-ffmpeg -v error -i research/codex-video-workflow-poc/authorized-video-revision-01/renders/final.mp4 -f null -
-node .agents/skills/codex-video-workflow/scripts/validate-subtitle-cover-contract.mjs \
-  --out research/codex-video-workflow-poc/authorized-video-revision-01 \
-  --brief research/codex-video-workflow-poc/authorized-video-revision-01/brief.json
-```
-
-After editing raw-footage / Video-Use-style routing, run:
-
-```bash
-node .agents/skills/codex-video-workflow/scripts/validate-raw-footage-editing-contract.mjs \
-  --out research/codex-video-workflow-poc/authorized-video \
-  --brief .agents/skills/codex-video-workflow/assets/examples/authorized-brief.json
-```
-
-## Runtime Options
-
-Voice:
-
-```bash
---voice-backend auto
---voice-backend cosyvoice_local
---voice-backend melotts_local
---voice-backend say
---allow-say-fallback
-```
-
-Use `say` or `--allow-say-fallback` only for explicitly degraded smoke checks. Final-quality videos in any language should use CosyVoice or MeloTTS.
-
-Before generated Chinese TTS, the workflow analyzes the complete finalized spoken manuscript and writes candidate occurrences, context, selected tone3 pinyin, sources, and unresolved items to `workflow/chinese-pronunciation-preflight.json`. Unresolved items block TTS by default. Add manuscript-specific readings through brief `ttsPronunciations`, for example `{ "phrase": "凡人修仙传", "pinyin": ["fan2", "ren2", "xiu1", "xian1", "zhuan4"] }`. The effective plan is injected into both `pypinyin` and `jieba`, validated through the real MeloTTS frontend, bound into cache/manifest hashes, and recorded in `workflow/effective-pronunciation-plan.json` plus `workflow/pronunciation-application-verification.json`. See `references/chinese-pronunciation-control.md`.
-
-Speech style:
-
-```bash
---speech-style auto
---speech-style conversational
---speech-style tutorial
---speech-style explainer
---speech-style story
---speech-style news
---speech-style product
---speech-style documentary
-```
-
-`conversational` adds TTS pause cues only after complete sentences or semantic beats. Comma-like punctuation (`，`, `,`, `、`) stays a short in-clause pause; if an explicit duration is inserted, use `0.5s`, while sentence-ending punctuation keeps the backend/default pause. The original narration stays in `script/narration.txt`; the TTS-ready version is written to `script/narration-spoken.txt`.
-
-Cover-only:
-
-```bash
---cover-only
-```
-
-This writes `workflow/cover-design.json`, `cover/cover-video-opening-16x9.svg`, and standalone resolution exports without generating audio or rendering the MP4. Standalone covers use one master cover concept reflowed to common sizes; the video-opening cover asset must match the final video aspect ratio, but default MP4 renders start directly on the first content scene unless `--opening-cover` or `--cover-intro-seconds` is supplied.
-Normal cover-only output uses `defaultCoverEngine: "image2-integrated-typography-cover"` in `workflow/cover-design.json`. The older title-card/promise-seal SVG design and subject-only bitmap plus local overlay path are review fallbacks, not the default final-quality path.
-
-Images:
-
-```bash
---image-source image2-dryrun
---image-source local
---image-source codex-builtin --codex-image-assets-dir <dir>
---image-source image2
-```
-
-`--image-source codex-builtin` consumes project-bound images generated by Codex/Cos X built-in `image_gen` and does not require `OPENAI_API_KEY`. For covers, prefer names like `horizontal-16x9-integrated-cover.png`, `horizontal-4x3-integrated-cover.png`, `vertical-9x16-integrated-cover.png`, `vertical-3x4-integrated-cover.png`, `square-1x1-integrated-cover.png`, `封面-完整.png`, or `海报-带字.png` inside `--codex-image-assets-dir`. `--image-source image2` calls the OpenAI Images API and requires `OPENAI_API_KEY`; it is not the default cover path. Scene subtitles, claims, and logos should remain deterministic HTML/SVG overlays; cover title/subtitle/badge text is intentionally integrated in the Image 2/Codex cover bitmap.
-
-When filling missing cover target ratios, do not use local drawings as final upload assets. For Codex App runs, use the standalone `codex-video-cover-generation` Skill to prepare one dispatch plan containing every pending request, generate those native-ratio bitmaps with Context Image2 / built-in `image_gen`, record target-bound results and inspection evidence, then run its locked batch-ingest coordinator once. The default cover worker pool processes the pending count up to 9 concurrently; concurrency never reduces the requested count. Cover-only QC completes before the parent video workflow runs full package QC. The direct API alternative is `scripts/generate-cover-targets-image2.mjs --root <batch-root-or-topic-root> --concurrency 9` and requires `OPENAI_API_KEY`; `--limit` is forbidden, and without a real Image2/Codex bitmap the target must stay pending.
-
-Free-stock material:
-
-```bash
---free-stock-engine
---free-stock-provider-order local-authorized,direct-url,nasa,pexels,pixabay
---allow-free-stock-fixture
-```
-
-The engine derives queries from `scenes[].stockQuery`, `scenes[].visualPrompt`, title/body/narration text, then writes the query plan and asset ledger before rendering. `local-authorized` and `direct-url` require explicit source/license metadata in the brief; `pexels` and `pixabay` require environment keys; `nasa` records a public-domain/review caveat; `fixture` is demo-only.
-
-## Skill Layout
+`codex-video-workflow` is not a one-prompt MP4 generator. It is a local-first production chain with visible stages and fail-closed release gates.
 
 ```text
-codex-video-workflow/
-├── SKILL.md
-├── README.md
-├── README.zh-CN.md
-├── agents/openai.yaml
-├── assets/examples/authorized-brief.json
-├── assets/examples/free-stock-material-demo-brief.json
-├── assets/galacean-effects-capability-catalog.json
-├── media/
-│   ├── galacean-vfx-showcase.html
-│   ├── codex-video-workflow-zh-cover.svg
-│   ├── codex-video-workflow-en-cover.svg
-│   ├── oral-materials/
-│   │   ├── skill-capability-brief-zh.json
-│   │   ├── skill-capability-oral-series-zh.md
-│   │   ├── skill-capability-brief-en.json
-│   │   └── skill-capability-oral-series-en.md
-├── references/
-│   ├── aesthetic-system.md
-│   ├── candidate-matrix.md
-│   ├── content-presentation-design.md
-│   ├── cover-design.md
-│   ├── external-capability-fusion.md
-│   ├── galacean-visual-effects.md
-│   ├── design-templates.md
-│   ├── failure-cases.md
-│   ├── html-motion-platforms.md
-│   ├── image-generation-routing.md
-│   ├── integration-roadmap.md
-│   ├── ip-diagram-creator-integration.md
-│   ├── methodology.md
-│   ├── motion-usage-playbook.md
-│   ├── plugin-routing.md
-│   ├── quality-gates.md
-│   ├── research-sources.md
-│   ├── whiteboard-layered-reveal.md
-│   └── voice-direction.md
-├── scripts/poc-video-workflow.mjs
-├── scripts/incremental-video-edit.mjs
-├── scripts/free-stock-material-engine.mjs
-├── scripts/render-ip-diagram-native-pages.mjs
-├── scripts/self-test-capability-routing.mjs
-├── scripts/self-test-full-framework.mjs
-├── scripts/validate-html-motion-templates.mjs
-├── scripts/validate-cover-targets.mjs
-├── scripts/validate-cover-image2-qc.mjs
-├── scripts/validate-plugin-routing-contract.mjs
-├── scripts/validate-planner-media-routing.mjs
-├── scripts/validate-subtitle-cover-contract.mjs
-├── scripts/validate-voice-pause-policy.mjs
-└── templates/html-motion/
-    ├── motion-template-registry.json
-    ├── kinetic-editorial-explainer.html
-    ├── semantic-timeline-reveal.html
-    └── interactive-proof-board.html
+Brief → content and retention plan → local voice → real timing → pages and semantic motion
+      → captions → independent cover lane → video QC / cover QC → evidence package
 ```
 
-## Rights And Safety
+| Mode | Best for | Behavior | Evidence in this refresh |
+| --- | --- | --- | --- |
+| **Full Auto** | Going directly from brief to a review video | The default when no configuration mode is requested; plans, voices, renders, checks, and packages | A new 122.1s, 1920×1080, H.264/AAC review render; native platform covers are still pending |
+| **Semi Auto** | Choosing styles, reviewing pages, or collaborating before composition | Explicit `--generation-mode semi-auto`; stops at the bilingual console and review artifacts | A generated console with 68 captions, 160 motion combinations, 12 cover logics, and 10 cover targets |
 
-- No cloned voices.
-- No copied creator assets.
-- No commercial stock by default.
-- No unlicensed music.
-- No private uploads required for local rendering.
-- Platform publishing still requires human review for licensing, AI labeling, policy, and editorial quality.
+> Status language used below: ✅ current run evidence; 🧭 configurable catalog or review preview; ⏳ generation or QC still required. Catalog counts are not counts of finished videos.
 
-## Open-Source And Reference Notes
+## Start here: V2 is a semantic reel, not a style list
 
-This skill is built around local, inspectable tooling and references:
+[![V2 semantic-motion capability reel](media/showcase/capability-reel-v2/poster.jpg)](media/showcase/capability-reel-v2/capability-showcase-v2.mp4)
 
-- [FFmpeg](https://ffmpeg.org/) and FFprobe for media inspection, muxing, fallback rendering, and audio checks.
-- [FunAudioLLM CosyVoice](https://github.com/FunAudioLLM/CosyVoice) and [MeloTTS](https://github.com/myshell-ai/MeloTTS) as local voice backend options when installed and authorized.
-- `html-video` as the preferred local HTML-motion renderer when the workspace clone/build is present.
-- [GitHub Docs on repository READMEs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes), especially relative links and images in README files.
-- Public README conventions from projects such as [awesome-readme](https://github.com/matiassingers/awesome-readme) and [Best-README-Template](https://github.com/othneildrew/Best-README-Template): show the demo early, keep setup copyable, and put acknowledgements near the end.
+V2 was redesigned against the current framework. It no longer rushes through abstract cards. Every example makes the chain explicit: **concrete content → object change → what that motion means**.
+
+![Nine key frames from the V2 reel](media/showcase/capability-reel-v2/final-contact-sheet.png)
+
+| Concrete example in the reel | Motion | Meaning communicated |
+| --- | --- | --- |
+| Six-stage review-video pipeline | Track growth, node completion, result lock | Stage progress and inspectable deliverables |
+| Data-curve proof | Axes, trace, inflection callout | Trend, magnitude, metric definition, and source |
+| Coffee value-chain image | Supply and feedback links appear | Images become evidence; connections express causality |
+| Bilingual configuration console | Input, processing, and output focus | A real product operation changes visible state |
+| Cover before/after | Compare, repair deltas, QC lock | Design improvement is structural, not a color swap |
+| Template-choice matrix | Axes, candidates, target quadrant | Deterministic planning instead of random style choice |
+| Multi-role swimlanes | Parallel work, handoff, merge | Owners, artifact boundaries, and final acceptance |
+| Multi-ratio cover wall | Compare, select, magnify rationale | Structure and promise are chosen before ratio and color |
+| Two-page Personal IP + 4.5s whiteboard | Native-page edit, trace, circle, fill | Persona continuity and layered annotation |
+
+- ✅ 71.5 seconds, 1920×1080, 30fps, H.264/AAC, local Chinese MeloTTS narration
+- ✅ The separately rendered two-page Personal-IP video is actually edited into the main reel
+- ✅ The whiteboard segment is 4.5 seconds: stable base → trace → circle → semantic fill → reading hold
+- ✅ All 68 caption styles live on one museum plane across eight semantic districts; only one narration cue owns the safe band at a time
+- ✅ Project images, covers, configuration pages, and native IP pages are recorded in the [asset manifest](media/showcase/capability-reel-v2/workflow/visual-asset-manifest.json)
+- ✅ Resolution, streams, codec, black-frame, layout, and catalog-coverage checks passed; see the [QC record](media/showcase/capability-reel-v2/logs/qc.json)
+
+<details>
+<summary><strong>Previous 38.4-second catalog-coverage reel</strong></summary>
+
+The previous reel remains useful as union-coverage evidence for 32 families × 5 variants, 44 configuration systems, and 68 captions. It is no longer the primary promo because generic geometry does not fully explain each motion's content meaning. [Watch the catalog reel](media/showcase/capability-reel/capability-showcase.mp4).
+
+</details>
+
+## 2026 core capability demo
+
+[![2026 core capability demo](media/codex-video-workflow-core-2026-zh-poster.jpg)](media/codex-video-workflow-core-2026-zh.mp4)
+
+The new demo was regenerated from the current code. It covers full-auto and semi-auto operation, the bilingual console, semantic motion, caption and cover systems, the Personal-IP routing boundary, QC, and delivery evidence.
+
+- ✅ 122.1 seconds, 1920×1080, H.264 + AAC
+- ✅ Local female MeloTTS narration with caption timing bound to actual speech cues
+- ✅ Black-frame, silence, decoding, resolution, stream, and loudness checks executed
+- ⏳ Ten platform covers remain review previews; built-in Image2 generation, human inspection, ingestion, and cover QC are incomplete, so this run is not labeled publishing-ready
+- 🧭 Personal IP is explained as a route boundary; the separate native-page evidence below is not presented as footage from this run
+
+Inspect the source brief: [core-capability-demo-2026-brief-zh.json](media/oral-materials/core-capability-demo-2026-brief-zh.json).
+
+![Eight-scene full-auto contact sheet](media/showcase/core-demo/full-auto-contact-sheet.jpg)
+
+## Two ways to use it
+
+### Full Auto: render and check by default
+
+```bash
+node scripts/poc-video-workflow.mjs \
+  --brief media/oral-materials/core-capability-demo-2026-brief-zh.json \
+  --out /tmp/codex-video-core-demo \
+  --mode recommended \
+  --voice-backend melotts_local \
+  --speech-style explainer \
+  --image-source image2-dryrun \
+  --no-open-output
+```
+
+CLI `image2-dryrun` creates inspectable image and cover requests, then remains incomplete at native-image gates. In a Codex App run with built-in `image_gen`, continue the image, cover, ingestion, and postflight stages before claiming publishing readiness.
+
+### Semi Auto: configure before composition
+
+```bash
+node scripts/poc-video-workflow.mjs \
+  --brief media/oral-materials/core-capability-demo-2026-brief-zh.json \
+  --out /tmp/codex-video-core-demo-config \
+  --generation-mode semi-auto \
+  --voice-backend melotts_local \
+  --image-source image2-dryrun \
+  --no-open-output
+```
+
+Semi Auto produces the console, horizontal and vertical motion catalogs, a generation-mode contract, the caption plan, and `workflow/cover-size-selection.json` in a few seconds.
+
+### Voice timing contract
+
+Comma-like punctuation (`，`, `,`, `、`) keeps the sentence intact and uses a 0.5s in-clause pause when an explicit pause is needed. Sentence-ending punctuation stays on the TTS backend/default pause. Visual caption wrapping never becomes a new audio split.
+
+## Bilingual configuration console
+
+The `中文 / EN` switch updates the document locale, core navigation, major sections, primary actions, accessibility labels, and URL state. Some dynamically generated catalog names retain their source language so they can be matched to the underlying manifest.
+
+| 中文基础设置 | English base settings |
+| --- | --- |
+| ![Chinese base settings](media/showcase/core-demo/config-base-zh.png) | ![English base settings](media/showcase/core-demo/config-base-en.png) |
+
+| 160 motion contracts | 68 caption styles |
+| --- | --- |
+| ![Complete motion catalog](media/showcase/core-demo/config-motion-all-families.png) | ![Complete caption catalog](media/showcase/core-demo/config-caption-gallery.png) |
+
+| 44 configuration color systems | Cover workbench: logic + ratios |
+| --- | --- |
+| ![Configuration color gallery](media/showcase/core-demo/config-color-gallery.png) | ![Cover generation workbench](media/showcase/core-demo/config-cover-workbench.png) |
+
+| Voice, locale, and dialects | Per-page content/design/caption notes |
+| --- | --- |
+| ![Voice localization controls](media/showcase/core-demo/config-voice-localization.png) | ![Page editor](media/showcase/core-demo/config-page-editor.png) |
+
+<details>
+<summary><strong>More real console captures: material routing, English catalogs, and horizontal/vertical browsers</strong></summary>
+
+| Material routing | English motion catalog |
+| --- | --- |
+| ![Material routing](media/showcase/core-demo/config-material-routing.png) | ![English motion catalog](media/showcase/core-demo/config-motion-en.png) |
+
+| English captions | English cover workbench |
+| --- | --- |
+| ![English caption catalog](media/showcase/core-demo/config-caption-en.png) | ![English cover workbench](media/showcase/core-demo/config-cover-en.png) |
+
+| Horizontal motion browser | Vertical motion browser |
+| --- | --- |
+| ![Horizontal motion browser](media/showcase/core-demo/motion-style-review-horizontal.png) | ![Vertical motion browser](media/showcase/core-demo/motion-style-review-vertical.png) |
+
+</details>
+
+The console covers format, video type, motion, color, captions, local assets, covers, voice, and per-page content/design/caption notes.
+
+## Motion: 32 families × 5 variants
+
+🧭 The catalog exposes **160 reviewable combinations**, plus **6 executable core HTML templates** and **14 scene-level motion capabilities**. It does not claim 160 QC-passed finished videos.
+
+The V2 reel explains the catalog through eight readable examples; the console remains the complete choice surface.
+
+| Semantic-motion examples | Complete Semi Auto catalog |
+| --- | --- |
+| [![V2 semantic-motion examples](media/showcase/capability-reel-v2/final-contact-sheet.png)](media/showcase/capability-reel-v2/capability-showcase-v2.mp4) | [![Motion catalog in the semi-auto console](media/showcase/core-demo/config-motion-all-families.png)](media/showcase/core-demo/motion-style-template-review.html) |
+
+<p align="center">
+  <img src="media/showcase/templates/gsap-semantic-flow.png" width="48%" alt="GSAP semantic flow">
+  <img src="media/showcase/templates/kinetic-editorial-explainer.png" width="48%" alt="Kinetic editorial explainer">
+</p>
+<p align="center">
+  <img src="media/showcase/templates/semantic-timeline-reveal.png" width="48%" alt="Semantic timeline reveal">
+  <img src="media/showcase/templates/interactive-proof-board.png" width="48%" alt="Interactive proof board">
+</p>
+<p align="center">
+  <img src="media/showcase/templates/data-curve-trace.png" width="48%" alt="Data curve trace">
+  <img src="media/showcase/templates/dark-saas-magic-ui.png" width="48%" alt="Dark product motion">
+</p>
+<p align="center">
+  <img src="media/showcase/templates/typed-black-white-opener.png" width="48%" alt="Typed black and white opener">
+</p>
+
+Motion is selected by meaning—reveal, compare, trace, connect, accumulate, emphasize, transition, chart, path, inspect, derive, edit, caption rhythm, or cover payoff—not by random decoration. Every public example must include readable content, a real or project-owned asset, an object change, an explicit conclusion, caption-safe space, and provenance.
+
+## Captions: 68 styles in 8 design groups
+
+V2 arranges all 68 styles on one “caption museum” plane. All eight districts exist in the overview; the camera focuses one semantic group at a time while the rest recede. A single real narration cue keeps ownership of the bottom safe band.
+
+| All 68 styles on one page | Active semantic district |
+| --- | --- |
+| ![Caption museum overview](media/showcase/capability-reel-v2/screenshots/captionsOverview.png) | ![Caption museum district focus](media/showcase/capability-reel-v2/screenshots/captionsFocus.png) |
+
+[Open the complete selectable caption catalog](media/showcase/core-demo/config-caption-gallery.png)
+
+| Group | Count | Typical use |
+| --- | ---: | --- |
+| UI | 16 | Product demos, steps, states |
+| Editorial | 14 | Claims, evidence, turns, conclusions |
+| Kinetic | 14 | Hooks, keywords, short-form rhythm |
+| Glass | 9 | Technology and dark-background overlays |
+| Minimal | 6 | Documentary, course, low-interference narration |
+| Bilingual | 3 | Two-line translation and terminology |
+| Audio | 3 | Waveform, word, and beat feedback |
+| Mobile | 3 | 9:16 safe areas and large-type reading |
+
+Captions are planned with real speech cues, keyword emphasis, single-line safety, content layers, and target format. They are not an uncoordinated final overlay.
+
+## Covers: 12 click logics × 10 native targets
+
+🧭 The console now renders all **12 cover design logics**, not only a resolution picker.
+
+![Twelve cover design logics](media/showcase/core-demo/config-cover-style-presets.png)
+
+| Logic | Narrative fit |
+| --- | --- |
+| Problem to proof | Pain → visible evidence |
+| Method roadmap | Steps, tutorials, frameworks |
+| Misdirection reveal | Myths and contrarian turns |
+| Ledger payoff | Cost, value, and result reviews |
+| Character pressure | Decisions and conflict |
+| Before/after craft | Transformation and optimization |
+| Product console proof | Tools, SaaS, feature demos |
+| Creator-IP teaching | Creators, courses, knowledge |
+| Whiteboard reveal | Structures, formulas, relations |
+| Data evidence shock | Metrics, trends, research |
+| Workflow proof stack | Systems and delivery chains |
+| Platform-native hook | Feed and short-form first frames |
+
+![Ten platform cover targets](media/showcase/core-demo/config-cover-logic.png)
+
+Targets include the in-video 16:9 opening, 4K 16:9, YouTube 1280×720, 4:3, Bilibili formats, 9:16, 3:4, Reels 420×654, and 1:1. Preview artifacts include `cover-master-16x9-3840x2160.svg`; selection is recorded in `workflow/cover-size-selection.json`. Use `--cover-only` for an isolated cover continuation.
+
+> Repository SVGs are review previews. Upload-ready covers require native-ratio bitmaps plus provenance, text, crop-safe-area, and cover-QC checks.
+
+### Committed cover examples
+
+| 16:9 | 9:16 | 1:1 |
+| --- | --- | --- |
+| ![Horizontal cover](media/showcase/covers/story-spine-horizontal-16x9.jpg) | ![Vertical cover](media/showcase/covers/story-spine-vertical-9x16.jpg) | ![Square cover](media/showcase/covers/story-spine-square-1x1.jpg) |
+
+These are separate committed cover examples, not the ten still-pending targets from the new demo.
+
+## Color and visual systems
+
+![44 configuration color systems](media/showcase/core-demo/config-color-gallery.png)
+
+🧭 The semi-auto console exposes 44 design systems spanning editorial, product UI, whiteboard, mineral glass, archive, creator IP, brand opinion, data news, monochrome, and multicolor work. At the runtime contract layer, the current engine has 10 named palettes plus 10 visual themes. The larger 44-entry configuration catalog is a curated choice surface over those runtime controls, not a claim of 44 independent render engines.
+
+## Personal IP: consistency first, animation isolated
+
+### New two-page native demo
+
+[![Two-page Personal-IP native demo](media/showcase/personal-ip/demo-v2/personal-ip-two-page-poster.jpg)](media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4)
+
+This 7.05-second horizontal clip was produced as an independent task and edited into the V2 reel. It uses two native pages from a source run whose QC reported `publishingReady`, then joins the Hook and Framework pages with a 0.35-second transition. Video and page hashes, source QC, and the non-likeness boundary are recorded in its [provenance](media/showcase/personal-ip/demo-v2/provenance.json).
+
+### Six-second horizontal and vertical demos
+
+| 16:9 native Personal-IP hand-drawn page | 9:16 native Personal-IP + whiteboard motion |
+| --- | --- |
+| [![Horizontal Personal-IP hand-drawn demo](media/showcase/personal-ip/demos/personal-ip-whiteboard-horizontal-poster.jpg)](media/showcase/personal-ip/demos/personal-ip-whiteboard-horizontal-6s.mp4) | [![Vertical Personal-IP whiteboard-motion demo](media/showcase/personal-ip/demos/personal-ip-whiteboard-vertical-poster.jpg)](media/showcase/personal-ip/demos/personal-ip-whiteboard-vertical-6s.mp4) |
+| 6s · 1920×1080 · native hand-drawn teaching page + deterministic captions | 6s · 1080×1920 · fixed native base + page-local path/node motion + topmost captions |
+
+Both clips are cut from source runs whose delivery QC reported `pass`, `videoPass`, and `publishingReady` as true. The horizontal sample proves the hand-drawn native-page route; its page-local foreground-whiteboard plan was not active. The vertical sample proves the active layered whiteboard route. Both use a generic fallback host and explicitly do **not** claim the user's likeness. See the committed [provenance record](media/showcase/personal-ip/demos/provenance.json).
+
+| Opening | Teaching | Closing |
+| --- | --- | --- |
+| ![Personal-IP opening](media/showcase/personal-ip/story-spine-opening.png) | ![Personal-IP teaching](media/showcase/personal-ip/story-spine-middle.png) | ![Personal-IP closing](media/showcase/personal-ip/story-spine-ending.png) |
+
+- Standard Personal-IP videos use provenance-backed native pages to keep persona, wardrobe, layout, and visual DNA stable.
+- “Personal IP + animation” rebuilds semantic layers only when explicitly authorized.
+- Missing native-page provenance stops full auto before composition; the workflow does not substitute an approximate HTML persona page and call it final.
+
+### 4.5-second layered whiteboard
+
+![Whiteboard critical-path example](media/showcase/capability-reel-v2/screenshots/whiteboard.png)
+
+The whiteboard does not redraw the full page. It adds semantic foreground layers over a stable project-owned base: establish, trace the primary path, circle the critical node, add an arrow and semantic fill, then hold for reading. Captions stay topmost and the drawing path avoids faces and the caption-safe band. See the [whiteboard plan](media/showcase/capability-reel-v2/workflow/whiteboard-layered-reveal-plan.json).
+
+## Extensible visual page types
+
+![Nine visual-series overview](media/showcase/visual-series/nine-scenes-contact-sheet.png)
+
+| Strategy guide | Relationship map | Interface plate |
+| --- | --- | --- |
+| ![Strategy guide](media/showcase/visual-series/strategy-guide.png) | ![Relationship map](media/showcase/visual-series/relationship-map.png) | ![Interface plate](media/showcase/visual-series/interface-plate.png) |
+
+Bundled routes cover knowledge encyclopedia, strategy guide, relationship map, collection atlas, editorial hook, surreal carrier, oriental ink, interface plate, and progression collage. Each page still passes provenance, readability, and visual QC before final-video use.
+
+## Core Skills
+
+| Skill | Role | Owns |
+| --- | --- | --- |
+| `codex-video-workflow` | **Main production engine** | Brief, script, retention, routing, local voice, captions, render, QC, and package |
+| `codex-video-cover-generation` | **Independent cover engine** | Click logic, platform ratio, Image2 requests, ingestion, provenance, and cover QC |
+| `build-*` visual modules | **Specialized page routing** | Knowledge, strategy, relationships, atlas, editorial, abstract, ink, UI, and progression scenes |
+
+The main and cover Skills enforce local/global version parity. Restart Codex after installation so the catalog reloads.
+
+## Evidence-backed delivery package
+
+```text
+<output>/
+├── delivery.html
+├── <title>.mp4
+├── delivery-manifest.json
+├── script/
+│   ├── narration.txt
+│   ├── narration-spoken.txt
+│   ├── storyboard.md
+│   └── subtitles.srt
+├── workflow/
+│   ├── generation-mode-contract.json
+│   ├── presentation-route-lock.json
+│   ├── page-decision-contract.json
+│   ├── voice-subtitle-manifest.json
+│   ├── caption-style-plan.json
+│   ├── cover-design.json
+│   ├── cover-size-selection.json
+│   └── quality-scorecard.md
+├── cover/
+├── 最终成品/
+└── logs/
+    ├── ffprobe.json
+    ├── blackdetect.log
+    ├── silencedetect.log
+    ├── volumedetect.log
+    └── qc.json
+```
+
+## Install and verify
+
+```bash
+export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+mkdir -p "$CODEX_HOME/skills/codex-video-workflow"
+rsync -a --exclude '.git/' --exclude 'research/' --exclude 'output/' ./ \
+  "$CODEX_HOME/skills/codex-video-workflow/"
+
+for skill_name in \
+  codex-video-cover-generation \
+  build-collection-atlas build-editorial-hook build-interface-plate \
+  build-knowledge-encyclopedia build-oriental-ink build-progression-collage \
+  build-relationship-map build-strategy-guide build-surreal-carrier; do
+  skill_dir="skills/$skill_name"
+  [ -f "$skill_dir/SKILL.md" ] || continue
+  mkdir -p "$CODEX_HOME/skills/$skill_name"
+  rsync -a "$skill_dir/" "$CODEX_HOME/skills/$skill_name/"
+done
+
+node --check scripts/poc-video-workflow.mjs
+node --check scripts/build-semi-auto-config-html.mjs
+node scripts/self-test-generation-mode-default.mjs
+node scripts/validate-cover-targets.mjs
+node scripts/validate-html-motion-templates.mjs
+```
+
+## Release boundary
+
+- A successful render is not publishing readiness; covers, provenance, caption safety, and QC must all converge.
+- Catalog previews, dry-run SVGs, and planning files do not replace native bitmaps, runtime pixels, or human visual review.
+- The 68-style caption catalog is present, but the current caption strategy routing regression still has six failing cases; do not describe automatic scene-to-caption routing as fully green yet.
+- The repository currently has no root license file. Maintainers should choose and add an explicit `LICENSE` before public reuse or redistribution.
+
+## References
+
+- [Generation modes](references/generation-modes.md)
+- [Quality gates](references/quality-gates.md)
+- [Cover lifecycle](references/cover-generation-workflow.md)
+- [Cover design method](references/cover-design.md)
+- [Visual-series routing](references/gpt-image-2-visual-series.md)
+- [Showcase provenance](media/showcase/README.md)

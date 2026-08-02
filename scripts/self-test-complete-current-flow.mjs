@@ -599,6 +599,7 @@ function validateFullAutoPackage(out, briefPath, failures) {
     "workflow/quality-consistency-contract.json",
     "workflow/page-decision-contract.json",
     "workflow/voice-subtitle-manifest.json",
+    "workflow/script-fidelity.json",
     "workflow/html-video-render.json",
     "workflow/cover-design.json",
     "workflow/cover-image2-prompts.json",
@@ -608,6 +609,7 @@ function validateFullAutoPackage(out, briefPath, failures) {
   for (const file of required) assert(existsSync(join(out, file)), `missing full-auto artifact: ${file}`, failures);
   if (!existsSync(join(out, "logs", "qc.json"))) return {};
   const qc = readJson(join(out, "logs", "qc.json"));
+  const scriptFidelity = readJson(join(out, "workflow", "script-fidelity.json"));
   const generation = readJson(join(out, "workflow", "generation-mode-contract.json"));
   const caption = readJson(join(out, "workflow", "caption-style-plan.json"));
   const motionSelection = readJson(join(out, "workflow", "motion-template-selection.json"));
@@ -622,6 +624,7 @@ function validateFullAutoPackage(out, briefPath, failures) {
   const coverSizeSelection = readJson(join(out, "workflow", "cover-size-selection.json"));
   const ffprobe = readJson(join(out, "logs", "ffprobe.json"));
   assert(qc.videoPass === true, "full-auto video QC must pass before the external platform-cover gate", failures);
+  assert(scriptFidelity.pass === true && scriptFidelity.failures.length === 0, "full-auto口播稿 fidelity audit must pass", failures);
   assert(qc.publishingReady === false && qc.pass === false, "dry-run cover generation must remain publishing-blocked until native image_gen covers are inspected and ingested", failures);
   assert((qc.publishingBlockers || []).length > 0, "publishing-blocked dry run must record the remaining cover blocker", failures);
   assert(qc.renderer === "html-video", "full-auto renderer must be html-video", failures);
