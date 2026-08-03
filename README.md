@@ -30,10 +30,10 @@
 
 ## Promotional film
 
-[![Watch the Codex Video Workflow promotional film](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@3e15897fadc49d643c863280f68ccc6f359da02e/media/showcase/workflow-film/codex-video-workflow.mp4)
+[![Watch the Codex Video Workflow promotional film](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@27cacce954acd426ef9e0738fe7f863a539e7679/media/showcase/workflow-film/codex-video-workflow.mp4)
 
 <p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@3e15897fadc49d643c863280f68ccc6f359da02e/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ Watch the 73-second capability film</strong></a> ·
+  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@27cacce954acd426ef9e0738fe7f863a539e7679/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ Watch the 73-second capability film</strong></a> ·
   <a href="https://github.com/wpowen/videocreat/raw/main/media/showcase/workflow-film/codex-video-workflow.mp4">Download the original MP4</a>
 </p>
 
