@@ -30,10 +30,10 @@
 
 ## 宣传视频
 
-[![观看 Codex Video Workflow 宣传视频](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@e27d6887da0bc93676da1fd84699e2ba73a6f2a8/media/showcase/workflow-film/codex-video-workflow.mp4)
+[![观看 Codex Video Workflow 宣传视频](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@dbc24e2c04ca92d062e8bf2d28aa878532c8d248/media/showcase/workflow-film/codex-video-workflow.mp4)
 
 <p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@e27d6887da0bc93676da1fd84699e2ba73a6f2a8/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ 播放 59 秒能力宣传片</strong></a> ·
+  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@dbc24e2c04ca92d062e8bf2d28aa878532c8d248/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ 播放 73 秒能力宣传片</strong></a> ·
   <a href="https://github.com/wpowen/videocreat/raw/main/media/showcase/workflow-film/codex-video-workflow.mp4">下载原始 MP4</a>
 </p>
 
