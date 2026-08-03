@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="#宣传视频"><strong>观看宣传视频</strong></a> ·
   <a href="#如何工作"><strong>如何工作</strong></a> ·
   <a href="#核心能力"><strong>查看核心能力</strong></a> ·
   <a href="#快速开始"><strong>快速开始</strong></a> ·
@@ -24,6 +25,19 @@
 </p>
 
 ---
+
+<a id="宣传视频"></a>
+
+## 宣传视频
+
+[![观看 Codex Video Workflow 宣传视频](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4)
+
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ 播放 71 秒框架宣传片</strong></a> ·
+  <a href="https://github.com/wpowen/videocreat/raw/main/media/showcase/workflow-film/codex-video-workflow.mp4">下载原始 MP4</a>
+</p>
+
+宣传片展示语义动效、真实的双语配置台、视觉页面、平台封面、个人 IP 与手绘白板、字幕路由和最终交付包。视频入口与下方静态工作流分开呈现，即使暂时不播放，也能直接读懂框架能力。
 
 ## 框架覆盖什么
 

@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="#promotional-film"><strong>Watch the film</strong></a> ·
   <a href="#how-it-works"><strong>How it works</strong></a> ·
   <a href="#core-capabilities"><strong>Explore capabilities</strong></a> ·
   <a href="#quick-start"><strong>Quick start</strong></a> ·
@@ -24,6 +25,19 @@
 </p>
 
 ---
+
+<a id="promotional-film"></a>
+
+## Promotional film
+
+[![Watch the Codex Video Workflow promotional film](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4)
+
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ Watch the 71-second framework film</strong></a> ·
+  <a href="https://github.com/wpowen/videocreat/raw/main/media/showcase/workflow-film/codex-video-workflow.mp4">Download the original MP4</a>
+</p>
+
+The film demonstrates semantic motion, the real bilingual configuration console, visual pages, platform covers, Personal-IP and whiteboard content, caption routing, and the final delivery package. It is presented separately from the static workflow below so the README remains understandable even before playback.
 
 ## What the framework covers
 
