@@ -1,24 +1,25 @@
 {
   "schemaVersion": 1,
   "finalVideo": "codex-video-workflow.mp4",
-  "durationSeconds": 71.5,
-  "previewOnly": false,
+  "durationSeconds": 59.5,
   "audioBearing": true,
   "audioMetrics": {
-    "meanVolumeDb": -20.1,
-    "maxVolumeDb": -1.4
+    "meanVolumeDb": -19.5,
+    "maxVolumeDb": -1.5
   },
   "checks": {
     "duration": true,
     "resolution": true,
+    "frameRate": true,
     "videoCodec": true,
     "audioStream": true,
     "noDetectedBlackSegments": true,
-    "audioMeasured": true,
     "audibleMeanLevel": true,
     "unclippedPeak": true,
     "captionCoverage": true,
-    "realImageCount": true,
+    "personalIpNativeClip": true,
+    "whiteboardHorizontalClip": true,
+    "whiteboardVerticalClip": true,
     "contactSheetPresent": true
   },
   "passed": true

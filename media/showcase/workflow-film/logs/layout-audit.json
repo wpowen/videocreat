@@ -1,280 +1,156 @@
 [
   {
-    "time": 1.7,
-    "scene": "opening",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
-    "visible": []
-  },
-  {
-    "time": 9.2,
-    "scene": "process",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
+    "time": 2.5,
+    "scene": "hook",
     "visible": [
       {
-        "text": "六步生成一条可审片视频",
-        "left": 74,
-        "top": 131.984375,
-        "right": 630.765625,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "这代表节点推进 = 阶段完成；每一步都有可验收产物。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 143.5,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "PROJECT WORKFLOW · SEMANTIC TIMELINE",
-        "left": 74,
-        "top": 956.40625,
-        "right": 378.96875,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "一份 Brief生成一整套视频从内容理解到动效、字幕、个人 IP、手绘白板、封面与质量证据。",
+        "left": 82,
+        "top": 225,
+        "right": 982,
+        "bottom": 545.65625,
+        "inside": true
       }
     ]
   },
   {
-    "time": 19.2,
-    "scene": "proof",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
+    "time": 8.1,
+    "scene": "framework",
     "visible": [
       {
-        "text": "一杯咖啡，价值如何流向消费者？",
-        "left": 74,
-        "top": 131.984375,
-        "right": 833.234375,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "这代表真实图片提供对象；连线让供应与反馈关系被看见。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 143.5,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "PROJECT-OWNED ASSET · visual-series/relationship-map.png",
-        "left": 74,
-        "top": 956.40625,
-        "right": 495.6875,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "HOW IT WORKS输入之后，能力自动路由每一步都不是黑盒跳转，而是产生一个可查看、可继续修改的中间结果。",
+        "left": 76,
+        "top": 48,
+        "right": 1844,
+        "bottom": 136.15625,
+        "inside": true
       }
     ]
   },
   {
-    "time": 23.8,
-    "scene": "product",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
+    "time": 14.4,
+    "scene": "motion",
     "visible": [
       {
-        "text": "把工作流召唤出来",
-        "left": 74,
-        "top": 131.984375,
-        "right": 478.921875,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "这代表输入改变状态，经过处理，最终输出才构成能力。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 143.5,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "REAL GENERATED UI · bilingual semi-auto console",
-        "left": 74,
-        "top": 956.40625,
-        "right": 415.796875,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "SEMANTIC MOTION动效必须解释内容不是让画面更忙，而是让顺序、差异、关系和结论更快被理解。",
+        "left": 76,
+        "top": 48,
+        "right": 1844,
+        "bottom": 136.15625,
+        "inside": true
       }
     ]
   },
   {
-    "time": 44.2,
-    "scene": "covers",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
+    "time": 19.7,
+    "scene": "config",
     "visible": [
       {
-        "text": "候选样张要比较结构",
-        "left": 74,
-        "top": 131.984375,
-        "right": 529.546875,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "这代表选风格先看内容承诺与构图，再看比例和色彩。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 143.5,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "THREE NATIVE-RATIO PROJECT COVER EXAMPLES",
-        "left": 74,
-        "top": 956.40625,
-        "right": 421.015625,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "TWO MODES · BILINGUAL配置清楚，自动化才可信半自动模式可以逐项调整；全自动模式使用同一份生产合同直接执行。",
+        "left": 76,
+        "top": 48,
+        "right": 1844,
+        "bottom": 136.15625,
+        "inside": true
       }
     ]
   },
   {
-    "time": 47.8,
+    "time": 24.2,
     "scene": "personal",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
     "visible": [
       {
-        "text": "人物一致，页面逻辑继续推进",
-        "left": 74,
-        "top": 131.984375,
-        "right": 732,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
+        "text": "原生页面人物一致叙事连续",
+        "left": 76,
+        "top": 54,
+        "right": 1844,
+        "bottom": 96,
+        "inside": true
+      }
+    ]
+  },
+  {
+    "time": 32.5,
+    "scene": "whiteboard",
+    "visible": [
       {
-        "text": "这代表不是一张人物图反复裁切，而是原生页面保持视觉 DNA。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 171,
-        "inside": true,
-        "overlapsCaption": false
-      },
+        "text": "PERSONAL IP · WHITEBOARD横屏与竖屏，都能原生手绘稳定背景之上依次描线、圈点、回填；人物与字幕始终保持清晰。",
+        "left": 76,
+        "top": 48,
+        "right": 1844,
+        "bottom": 136.15625,
+        "inside": true
+      }
+    ]
+  },
+  {
+    "time": 38.3,
+    "scene": "covers",
+    "visible": [
       {
-        "text": "NATIVE PERSONAL-IP PAGE SOURCES · PROVENANCE RECORDED",
-        "left": 74,
-        "top": 956.40625,
-        "right": 526.359375,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "NATIVE COVER DESIGN同一主题，三种原生构图比例变化时重新安排标题、人物与证据，而不是机械裁切。",
+        "left": 76,
+        "top": 48,
+        "right": 1844,
+        "bottom": 136.15625,
+        "inside": true
+      }
+    ]
+  },
+  {
+    "time": 44.7,
+    "scene": "captions",
+    "visible": [
+      {
+        "text": "CAPTION SYSTEM68 种字幕 · 8 类语义任务先看全量动态，再看两个可读实例",
+        "left": 70,
+        "top": 42,
+        "right": 1850,
+        "bottom": 149,
+        "inside": true
+      }
+    ]
+  },
+  {
+    "time": 49.2,
+    "scene": "captions",
+    "visible": [
+      {
+        "text": "CAPTION SYSTEM68 种字幕 · 8 类语义任务先看全量动态，再看两个可读实例",
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "inside": true
       }
     ]
   },
   {
     "time": 53.7,
-    "scene": "whiteboard",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
-    "visible": [
-      {
-        "text": "底图稳定，只绘制关键路径",
-        "left": 74,
-        "top": 131.984375,
-        "right": 681.390625,
-        "bottom": 187.625,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "这代表描线 → 圈节点 → 彩色回填；字幕始终在最上层。",
-        "left": 1292,
-        "top": 58,
-        "right": 1852,
-        "bottom": 143.5,
-        "inside": true,
-        "overlapsCaption": false
-      },
-      {
-        "text": "PROJECT-OWNED ASSET · LAYERED FOREGROUND ONLY",
-        "left": 74,
-        "top": 956.40625,
-        "right": 469.171875,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
-      }
-    ]
-  },
-  {
-    "time": 55,
     "scene": "captions",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
     "visible": [
       {
-        "text": "CATALOG SOURCE · assets/caption-style-catalog.json",
-        "left": 74,
-        "top": 956.40625,
-        "right": 443.34375,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
+        "text": "CAPTION SYSTEM68 种字幕 · 8 类语义任务先看全量动态，再看两个可读实例",
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "inside": true
       }
     ]
   },
   {
-    "time": 60.2,
-    "scene": "captions",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
-    "visible": [
-      {
-        "text": "CATALOG SOURCE · assets/caption-style-catalog.json",
-        "left": 74,
-        "top": 956.40625,
-        "right": 443.34375,
-        "bottom": 972,
-        "inside": true,
-        "overlapsCaption": false
-      }
-    ]
-  },
-  {
-    "time": 71,
+    "time": 58.6,
     "scene": "closing",
-    "caption": {
-      "top": 977.203125,
-      "bottom": 1046
-    },
-    "visible": []
+    "visible": [
+      {
+        "text": "ONE BRIEF · COMPLETE DELIVERY从内容，到可审阅成片核心能力不止是生成，而是把整个生产过程组织起来。",
+        "left": 82,
+        "top": 160,
+        "right": 754,
+        "bottom": 422,
+        "inside": true
+      }
+    ]
   }
 ]

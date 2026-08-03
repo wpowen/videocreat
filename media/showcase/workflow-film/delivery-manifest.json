@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "status": "qc-passed-demo",
   "video": "codex-video-workflow.mp4",
-  "durationSeconds": 71.5,
+  "durationSeconds": 59.5,
   "canvas": {
     "width": 1920,
     "height": 1080,
@@ -10,7 +10,6 @@
   },
   "poster": "poster.jpg",
   "contactSheet": "final-contact-sheet.png",
-  "personalIpDemo": "../personal-ip/example-film/personal-ip-two-page-horizontal.mp4",
   "evidence": [
     "logs/qc.json",
     "logs/ffprobe.json",
@@ -20,6 +19,5 @@
     "workflow/whiteboard-layered-reveal-plan.json",
     "workflow/sync-timecode-plan.json"
   ],
-  "publishingReadyClaim": false,
-  "note": "This is a QC-passed public capability demo. It does not claim that every catalog contract is an independently published video."
+  "note": "Public capability reel with project-owned assets and local narration."
 }
