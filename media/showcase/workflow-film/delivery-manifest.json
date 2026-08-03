@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "qc-passed-demo",
-  "video": "capability-showcase-v2.mp4",
+  "video": "codex-video-workflow.mp4",
   "durationSeconds": 71.5,
   "canvas": {
     "width": 1920,
@@ -10,7 +10,7 @@
   },
   "poster": "poster.jpg",
   "contactSheet": "final-contact-sheet.png",
-  "personalIpDemo": "../personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+  "personalIpDemo": "../personal-ip/example-film/personal-ip-two-page-horizontal.mp4",
   "evidence": [
     "logs/qc.json",
     "logs/ffprobe.json",

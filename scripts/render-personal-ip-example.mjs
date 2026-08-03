@@ -7,7 +7,7 @@ import { dirname, relative, resolve } from 'node:path';
 import { chromiumLaunchOptions, loadPlaywright } from './lib/load-playwright.mjs';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
-const OUT = resolve(ROOT, 'media/showcase/personal-ip/demo-v2');
+const OUT = resolve(ROOT, 'media/showcase/personal-ip/example-film');
 const SOURCE_DIR = resolve(ROOT, 'research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto');
 const PAGE_1 = resolve(SOURCE_DIR, 'assets/native-pages/001-page-01.png');
 const PAGE_2 = resolve(SOURCE_DIR, 'assets/native-pages/002-page-02.png');

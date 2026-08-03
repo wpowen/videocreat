@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "pass",
-  "output": "media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+  "output": "media/showcase/personal-ip/example-film/personal-ip-two-page-horizontal.mp4",
   "outputSha256": "51b8adac71407b5643aba5d5f56089f253a025be6e4499186e2df0f74e849ae4",
   "outputProbe": {
     "streams": [
@@ -166,14 +166,14 @@
     "pages": [
       {
         "page": "ip-page-01",
-        "file": "media/showcase/personal-ip/demo-v2/source-page-01.png",
+        "file": "media/showcase/personal-ip/example-film/source-page-01.png",
         "sourceProjectPath": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/assets/native-pages/001-page-01.png",
         "sha256": "299b42a06ed00e269cf0f147c0b910c1d4a0688cfaf327e72179dc6d92f00e2a",
         "semanticRole": "hook and story spine"
       },
       {
         "page": "ip-page-02",
-        "file": "media/showcase/personal-ip/demo-v2/source-page-02.png",
+        "file": "media/showcase/personal-ip/example-film/source-page-02.png",
         "sourceProjectPath": "research/教你如何撑起故事的脊梁-个人IP横屏-20260716-fullauto/assets/native-pages/002-page-02.png",
         "sha256": "94a8fce0219676e8c30fce9696450395f553b59fe094346273857140cadc2a41",
         "semanticRole": "central question and eight-node framework"

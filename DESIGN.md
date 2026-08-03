@@ -1,115 +1,82 @@
-# Codex Video Workflow — Showcase Design System
+# Codex Video Workflow — Product README Design System
 
-## Source of truth
+## Purpose
 
-- Product and production behavior: `SKILL.md`, `scripts/poc-video-workflow.mjs`, and the structured catalogs under `assets/`.
-- Current README evidence: `media/showcase/`, especially `core-demo/`, `personal-ip/`, `covers/`, `templates/`, and `visual-series/`.
-- Motion meaning: `assets/motion-style-template-library.json` and the motion references under `references/`.
-- Caption inventory: `assets/caption-style-catalog.json` and caption planning references under `references/`.
-- Release language must distinguish a configurable catalog, a review render, a QC-passed video, and a publishing-ready package.
+The public README is a product entrance for creators and teams. It explains what the workflow does, what users receive, how to start, and where to see real outputs. It is not a release diary, internal QA report, or template inventory.
+
+Product behavior remains defined by `SKILL.md`, the executable scripts, and the structured catalogs under `assets/`. Technical evidence and provenance belong in `media/showcase/README.md`, workflow artifacts, or the relevant reference document.
 
 ## Brand
 
-The product should feel like a small editorial production studio: precise, visual, calm, and evidence-led. It is not presented as a novelty effects generator. The primary promise is that one brief can become a reviewable video, cover set, configuration surface, and quality record.
+The product should feel like a precise editorial production studio: calm, visual, capable, and trustworthy. The brand mark combines three ideas:
 
-The showcase uses warm paper, ink black, mineral blue, copper, and restrained coral. Dark product scenes may switch to midnight navy with cyan accents, but every scene keeps the same typographic discipline and editorial voice.
+- layered frames for reusable scene systems;
+- a play symbol for video output;
+- a connected timeline for planned production stages.
 
-## Product goals
+The public wordmark is `Codex Video Workflow`. Do not add version numbers, codenames, internal route ids, or renderer names to the brand surface.
 
-1. Let a new visitor understand the complete workflow within the first screen of the README.
-2. Demonstrate motion with concrete content and a named semantic job, not abstract template thumbnails.
-3. Prove that real images, native Personal-IP pages, captions, covers, and configuration screens enter the final media pipeline.
-4. Make full-auto and semi-auto operation understandable without requiring prior knowledge of the repository.
-5. Keep capability counts credible by attaching them to catalogs, runtime artifacts, provenance, and QC evidence.
+### Palette
 
-## Personas and jobs
+- Paper: `#F7F5EF`
+- Ink: `#171A1F`
+- Secondary text: `#60656D`
+- Rule: `#D9D5CA`
+- Signal coral: `#EF6A45`
+- Signal red: `#D7432F`
 
-- Creator: wants a fast path from an idea to a polished, platform-ready review package.
-- Content lead: wants to choose style, voice, format, covers, and page-level direction before rendering.
-- Reviewer: wants to see what is real, what is a preview, what passed QC, and what still blocks release.
-- Contributor: wants stable entry points, explicit contracts, and examples that explain why a template exists.
+Use coral only for the brand signal, selected actions, and directional emphasis. Avoid generic dark cinematic gradients, ornamental technology imagery, and decorative waveforms that do not explain a capability.
 
-## Information architecture
+## README information architecture
 
-The README follows a persuasion sequence:
+1. Brand lockup, user benefit, and two primary actions.
+2. The problem solved and the audience served.
+3. Tangible outputs a user receives.
+4. One representative workflow film.
+5. Core capabilities supported by real screenshots and finished examples.
+6. Full-auto and review/configuration modes.
+7. Installation and natural-language quick start.
+8. Simplified output structure.
+9. Honest limitations, safety boundaries, included Skills, and references.
 
-1. Promise and primary demo.
-2. Concrete motion examples: content, movement, and meaning.
-3. Full-auto and semi-auto operation.
-4. Caption atlas, color systems, and cover logic.
-5. Personal IP and layered whiteboard.
-6. Visual-page and real-image routing.
-7. Skills, evidence package, installation, and honest release boundaries.
+## Content rules
 
-The capability reel follows the same order so the README and video reinforce one another.
+- Lead with user outcomes, not catalog size.
+- Name a capability by the job it performs: explain a relationship, trace a trend, keep a presenter consistent, or adapt a cover to a platform.
+- Use one public name for each example. Never expose `V1`, `V2`, “old”, “new”, “current run”, or “regression proof” in the README.
+- Keep durations, hashes, codec details, QC booleans, workflow JSON paths, and implementation labels outside the primary narrative.
+- Avoid emoji status legends and release-state dashboards in marketing sections.
+- Do not present configurable combinations as completed videos.
+- Keep caveats concise and user-relevant. Detailed evidence belongs in linked technical documentation.
 
-## Design principles
+## Media rules
 
-- One scene, one idea. Every scene has one claim, one visual proof, and one reason to continue.
-- Motion explains. It must reveal grouping, causality, transformation, progression, comparison, or completion.
-- Real content first. Screenshots, native pages, covers, and visual-series images are semantic objects, not background decoration.
-- Captions stay readable. A single active narration caption owns the bottom safe band; style samples never compete with it.
-- Counts need context. `160`, `68`, and `44` are presented as catalogs or configuration surfaces, never as independent finished videos or render engines.
-- Status remains honest. Review previews, native outputs, QC passes, and publishing readiness use different labels.
+- The hero must be a brand asset or a product image with clear explanatory value.
+- Every screenshot must answer a user question: what can I configure, what can it create, or what will I receive?
+- Prefer finished videos, covers, Personal-IP pages, whiteboard examples, and real configuration screens.
+- Do not feature contact sheets, logs, manifests, validation screenshots, internal captions museums, or decorative AI-generated collages in the public README.
+- Dense screenshots should be linked to the full-size source and accompanied by a short benefit statement.
+- Keep alt text descriptive and language-appropriate.
 
-## Visual language
+## Voice
 
-- Base: `#F5F0E6` paper, `#15191F` ink, `#C6563C` coral, `#C9973E` copper, `#2D6F78` mineral teal.
-- Dark UI: `#0C1320`, `#142236`, `#58D3D8`, `#FB6B72`.
-- Type: system Chinese sans for body and labels; condensed or black-weight display type for hooks; monospace only for technical evidence.
-- Surfaces: paper cards, fine rules, quiet shadows, rounded product panels, and hand-drawn annotations. Avoid glossy generic gradients as the default language.
-- Motion: trace, connect, compare, scan, accumulate, lock, and resolve. Decorative floating or random staggering is not a primary action.
+Chinese copy is concise, concrete, and user-first. English copy is direct and product-oriented rather than a literal translation. Prefer “生成平台封面” over “通过封面生命周期门禁”, and “逐页审阅” over “写入页面决策合同”.
 
-## Components
+## Accessibility and responsive behavior
 
-- Hero: one strong promise, a single primary demo link, and a compact capability line.
-- Semantic example plate: left title and meaning, center content object, right motion legend. The legend names the action and what it communicates.
-- Evidence board: source cards, connecting thread, focused conclusion, and provenance note.
-- Process track: labeled stages, current node, completed nodes, and a result card.
-- Product path: real interface image with input, processing, and output focus states.
-- Cover wall: real 16:9, 9:16, and 1:1 assets with a selected rationale.
-- Caption museum: one large plane divided into eight districts, all 68 style names visible, one current district in focus, and one active narration caption.
-- Personal-IP spread: two native pages with consistent character and layout, plus a clear non-likeness statement.
-- Whiteboard overlay: stable base page, drawn path, circled node, colored semantic fill, then a reading hold.
-- Provenance note: source type, native or preview status, and claim boundary.
+- Maintain high text contrast and avoid text embedded only in low-resolution images.
+- Use no more than two columns for dense screenshots; key media should be full width.
+- Linked images must remain understandable when GitHub stacks tables on narrow screens.
+- Do not rely on color alone to explain workflow stages.
+- Keep animated examples optional; the README must remain understandable from posters and text.
 
-## Accessibility
+## Maintenance checklist
 
-- Maintain WCAG AA contrast for body copy and captions.
-- Keep active narration captions in the bottom safe band with a single readable line whenever possible.
-- Do not rely on color alone for process state; use labels, shapes, and completion marks.
-- README images require descriptive alt text and linked full-size versions when dense.
-- Motion must preserve a final hold long enough to read and should avoid rapid flashing.
+Before publishing a README change:
 
-## Responsive behavior
-
-- README media stacks into one column on narrow screens; paired comparison images remain individually clickable.
-- Dense configuration captures use full-width links rather than tiny multi-column thumbnails.
-- Video scenes are authored for 16:9, with critical text inside a conservative center and bottom safe area.
-- Vertical Personal-IP examples remain native 9:16 assets and are never produced by cropping a horizontal master.
-
-## Interaction states
-
-- Configuration UI: default, selected, hover/focus, language-switched, review-required, and blocked states.
-- Motion examples: establish, animate, resolve, and reading hold.
-- Caption museum: overview, district focus, representative sample, and overview return.
-- Cover and material selection: candidate, selected, rejected with reason, pending native generation, and QC passed.
-
-## Content voice
-
-Use short, concrete Chinese-first language. Name the content, the motion, and the meaning: “节点推进代表阶段完成,” not “炫酷时间线.” Avoid hype that cannot be proven. English copy should be direct rather than literal or promotional filler.
-
-## Implementation constraints
-
-- Final motion demos are deterministic HTML-to-frame renders at 1920×1080 and 30 fps, encoded with H.264/AAC.
-- Narration uses a local supported TTS backend; captions derive from the final spoken script and remain deterministic.
-- README media must live outside ignored production directories and include stable relative links.
-- Native Personal-IP imagery keeps provenance and persona consistency; generic hosts never claim the user's likeness.
-- Whiteboard animation modifies only semantic foreground layers and keeps captions topmost.
-- Final packages include probe, black-frame, audio, screenshot, text-safety, asset-manifest, and provenance evidence where applicable.
-
-## Open questions
-
-- Which cover targets should be regenerated as native Image2 bitmaps before the next public release?
-- Should the public README lead with the Chinese or English capability reel audio track?
-- Which of the nine visual-page routes should receive full standalone demo videos after this general-purpose reel?
+- search both language files for version labels and internal QA vocabulary;
+- validate every local link and image path;
+- verify the hero mark in light and dark GitHub themes;
+- confirm capability claims against `SKILL.md` and tracked examples;
+- confirm the README license statement matches the repository;
+- inspect the rendered GitHub page on desktop and narrow widths.

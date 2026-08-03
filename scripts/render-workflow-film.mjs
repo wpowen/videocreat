@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Render the public V2 capability demo as concrete semantic examples.
+ * Render the public workflow film as concrete semantic examples.
  *
- * V1 was a useful catalog coverage reel, but its generic geometry did not
- * explain what each motion meant. V2 renders real project-owned images,
- * readable example data, named motion verbs, and an explicit conclusion in
- * every scene. The caption catalog is presented as one navigable museum plane.
+ * Every scene uses project-owned images, readable example data, named motion
+ * verbs, and an explicit conclusion. The caption catalog is presented as one
+ * navigable plane rather than a versioned template inventory.
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -61,7 +60,7 @@ const IMAGE_ASSETS = {
 
 function parseArgs(argv) {
   const options = {
-    out: join(ROOT, "media/showcase/capability-reel-v2"),
+    out: join(ROOT, "media/showcase/workflow-film"),
     providedAudio: "",
     keepFrames: false,
     previewOnly: false,
@@ -73,7 +72,7 @@ function parseArgs(argv) {
     else if (arg === "--keep-frames") options.keepFrames = true;
     else if (arg === "--preview-only") options.previewOnly = true;
     else if (arg === "--help") {
-      console.log(`Usage: node scripts/render-capability-showcase-v2.mjs [options]\n\n` +
+      console.log(`Usage: node scripts/render-workflow-film.mjs [options]\n\n` +
         `  --out <dir>             Output directory\n` +
         `  --provided-audio <wav>  Optional narration mix\n` +
         `  --preview-only          Render audit screenshots, not the full MP4\n` +
@@ -329,7 +328,7 @@ async function main() {
     copyFileSync(source, join(options.out, "assets", `${name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}${extension}`));
   }
 
-  const htmlPath = join(options.out, "capability-showcase-v2.html");
+  const htmlPath = join(options.out, "codex-video-workflow.html");
   write(htmlPath, makeHtml(captions));
   write(join(options.out, "workflow", "content-presentation-design.json"), JSON.stringify({
     schemaVersion: 1,
@@ -384,7 +383,7 @@ async function main() {
   write(join(options.out, "workflow", "visual-asset-manifest.json"), JSON.stringify({
     schemaVersion: 1,
     assets: Object.entries(IMAGE_ASSETS).map(([id, path]) => ({ id, source: path, ownership: "project-showcase", use: "semantic scene object", embedded: `assets/${id.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}${path.endsWith(".jpg") ? ".jpg" : ".png"}` })),
-    personalIpClip: { source: "media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4", policy: "generic host; do not claim user likeness" },
+    personalIpClip: { source: "media/showcase/personal-ip/example-film/personal-ip-two-page-horizontal.mp4", policy: "generic host; do not claim user likeness" },
   }, null, 2));
   write(join(options.out, "workflow", "quality-consistency-contract.json"), JSON.stringify({
     schemaVersion: 1,
@@ -414,12 +413,12 @@ async function main() {
   }
   await browser.close();
 
-  const htmlVideo = join(options.out, "capability-showcase-v2-html.mp4");
+  const htmlVideo = join(options.out, "codex-video-workflow-html.mp4");
   run("ffmpeg", ["-y", "-v", "error", "-framerate", String(FPS), "-i", join(options.out, "frames", "frame-%05d.png"), "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", htmlVideo]);
 
   const ipScene = SCENES.find(scene => scene.id === "personal");
-  const ipClip = join(ROOT, "media/showcase/personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4");
-  const silentVideo = join(options.out, "capability-showcase-v2-silent.mp4");
+  const ipClip = join(ROOT, "media/showcase/personal-ip/example-film/personal-ip-two-page-horizontal.mp4");
+  const silentVideo = join(options.out, "codex-video-workflow-silent.mp4");
   if (existsSync(ipClip)) {
     run("ffmpeg", ["-y", "-v", "error", "-i", htmlVideo, "-ss", "0", "-t", String(ipScene.duration), "-i", ipClip, "-filter_complex", `[1:v]setpts=PTS+${ipScene.start}/TB[ip];[0:v][ip]overlay=0:0:eof_action=pass:shortest=0[v]`, "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", silentVideo]);
   } else copyFileSync(htmlVideo, silentVideo);
@@ -429,7 +428,7 @@ async function main() {
     if (!existsSync(options.providedAudio)) throw new Error(`Provided audio not found: ${options.providedAudio}`);
     const packagedAudio = join(options.out, "assets", "narration.wav");
     if (resolve(options.providedAudio) !== resolve(packagedAudio)) copyFileSync(options.providedAudio, packagedAudio);
-    finalVideo = join(options.out, "capability-showcase-v2.mp4");
+    finalVideo = join(options.out, "codex-video-workflow.mp4");
     run("ffmpeg", ["-y", "-v", "error", "-i", silentVideo, "-i", options.providedAudio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-af", `apad=pad_dur=${DURATION}`, "-t", String(DURATION), "-movflags", "+faststart", finalVideo]);
   }
   run("ffmpeg", ["-y", "-v", "error", "-ss", "0.8", "-i", finalVideo, "-frames:v", "1", "-q:v", "2", join(options.out, "poster.jpg")]);
@@ -470,12 +469,12 @@ async function main() {
     video: relative(options.out, finalVideo).split("\\").join("/"),
     poster: "poster.jpg",
     contactSheet: relative(options.out, contactSheet).split("\\").join("/"),
-    personalIpDemo: "../personal-ip/demo-v2/personal-ip-two-page-horizontal.mp4",
+    personalIpDemo: "../personal-ip/example-film/personal-ip-two-page-horizontal.mp4",
     evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json"],
     publishingReadyClaim: false,
     note: "This is a QC-passed public capability demo. It does not claim that every catalog contract is an independently published video.",
   }, null, 2));
-  if (!passed) throw new Error(`V2 QC failed: ${Object.entries(checks).filter(([, value]) => !value).map(([name]) => name).join(", ")}`);
+  if (!passed) throw new Error(`Workflow film QC failed: ${Object.entries(checks).filter(([, value]) => !value).map(([name]) => name).join(", ")}`);
   if (!options.keepFrames) rmSync(join(options.out, "frames"), { recursive: true, force: true });
   console.log(JSON.stringify({ out: options.out, finalVideo, durationSeconds: DURATION, qc: join(options.out, "logs", "qc.json"), passed }, null, 2));
 }

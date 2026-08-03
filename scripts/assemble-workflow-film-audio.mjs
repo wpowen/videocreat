@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const SEGMENTS_JSON = join(ROOT, "media/oral-materials/capability-showcase-v2-narration-segments.json");
+const SEGMENTS_JSON = join(ROOT, "media/oral-materials/workflow-film-narration-segments.json");
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -16,14 +16,14 @@ function run(command, args) {
 
 function parseArgs(argv) {
   const options = {
-    segmentsDir: join(ROOT, "media/showcase/capability-reel-v2/audio-segments"),
-    out: join(ROOT, "media/showcase/capability-reel-v2/assets/narration.wav"),
+    segmentsDir: join(ROOT, "media/showcase/workflow-film/audio-segments"),
+    out: join(ROOT, "media/showcase/workflow-film/assets/narration.wav"),
   };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--segments-dir") options.segmentsDir = resolve(argv[++index]);
     else if (argv[index] === "--out") options.out = resolve(argv[++index]);
     else if (argv[index] === "--help") {
-      console.log("Usage: node scripts/assemble-capability-showcase-v2-audio.mjs [--segments-dir <dir>] [--out <wav>]");
+      console.log("Usage: node scripts/assemble-workflow-film-audio.mjs [--segments-dir <dir>] [--out <wav>]");
       process.exit(0);
     } else throw new Error(`Unknown option: ${argv[index]}`);
   }
