@@ -12,10 +12,13 @@
     {
       "codec_name": "aac",
       "codec_type": "audio",
+      "sample_rate": "48000",
+      "channels": 2,
+      "channel_layout": "stereo",
       "r_frame_rate": "0/0"
     }
   ],
   "format": {
-    "duration": "59.500000"
+    "duration": "73.100000"
   }
 }

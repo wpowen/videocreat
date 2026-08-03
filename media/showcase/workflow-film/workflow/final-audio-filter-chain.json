@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "filterChain": "aresample=48000,acompressor=threshold=0.125:ratio=1.5:attack=20:release=180,loudnorm=I=-19:TP=-2:LRA=5,alimiter=limit=0.891:attack=5:release=50,apad=pad_dur=73.1",
+  "purpose": [
+    "restrained compression",
+    "program loudness normalization",
+    "true-peak limiting",
+    "48 kHz stereo delivery"
+  ]
+}

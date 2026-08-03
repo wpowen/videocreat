@@ -19,19 +19,19 @@ const HEIGHT = 1080;
 const FPS = 30;
 
 const SCENES = [
-  { id: "hook", duration: 4, caption: "一份 Brief，不只是生成一个片段，而是一整套可以审阅、修改和交付的视频生产包。" },
-  { id: "framework", duration: 5, caption: "内容进入后，框架会完成拆页、视觉路由、语音字幕、封面适配和质量检查。" },
+  { id: "hook", duration: 7.4, caption: "一份 Brief，不只是生成一个片段，而是一整套可以审阅、修改和交付的视频生产包。" },
+  { id: "framework", duration: 6.4333333333, caption: "内容进入后，框架会完成拆页、视觉路由、语音字幕、封面适配和质量检查。" },
   { id: "motion", duration: 7, caption: "推进、对比、连线、聚焦，每一种动效都对应明确的信息含义。" },
-  { id: "config", duration: 5, caption: "半自动模式提供中英文配置页面；全自动模式则从内容直接推进到成片。" },
-  { id: "personal", duration: 7, caption: "个人 IP 使用原生页面保持人物、构图与叙事风格一致，不是简单裁切同一张图。" },
-  { id: "whiteboard", duration: 6, caption: "手绘白板支持横屏与竖屏，按描线、圈点、回填的顺序，让知识路径被看见。" },
-  { id: "covers", duration: 5.5, caption: "封面不是一张图套三个尺寸，而是为横版、竖版和方形分别重组信息。" },
-  { id: "captions", duration: 16, captions: [
-    { until: 0.5, text: "字幕系统当前包含六十八种样式，分为八类；这里每一格都在运行自己的进场与强调效果。" },
-    { until: 0.75, text: "例如节奏型字幕会突出关键词，而不是让整行文字一起抖动。" },
+  { id: "config", duration: 6.9666666667, caption: "半自动模式提供中英文配置页面；全自动模式则从内容直接推进到成片。" },
+  { id: "personal", duration: 7.1, caption: "个人 IP 使用原生页面保持人物、构图与叙事风格一致，不是简单裁切同一张图。" },
+  { id: "whiteboard", duration: 7.5, caption: "手绘白板支持横屏与竖屏，按描线、圈点、回填的顺序，让知识路径被看见。" },
+  { id: "covers", duration: 6.6333333333, caption: "封面不是一张图套三个尺寸，而是为横版、竖版和方形分别重组信息。" },
+  { id: "captions", duration: 18.7666666667, captions: [
+    { until: 0.4262877442, text: "字幕系统当前包含六十八种样式，分为八类；这里每一格都在运行自己的进场与强调效果。" },
+    { until: 0.7424511545, text: "例如节奏型字幕会突出关键词，而不是让整行文字一起抖动。" },
     { until: 1, text: "双语和玻璃字幕，则把层级、可读性与安全区放在第一位。" },
   ] },
-  { id: "closing", duration: 4, caption: "从一份 Brief，到可审阅的视频、字幕、封面、配置和质量证据。" },
+  { id: "closing", duration: 5.3, caption: "从一份 Brief，到可审阅的视频、字幕、封面、配置和质量证据。" },
 ];
 
 let timelineCursor = 0;
@@ -245,14 +245,17 @@ function renderCaptions(progress){
   const glass=document.getElementById('hero-glass');
   const title=document.querySelector('#captions .caption-title');
   const count=document.querySelector('#captions .caption-count');
-  const wallActive=progress<.5;
-  const kineticActive=progress>=.5&&progress<.75;
+  const captionScene=scenes.find(scene=>scene.id==='captions');
+  const kineticStart=captionScene.captions[0].until;
+  const glassStart=captionScene.captions[1].until;
+  const wallActive=progress<kineticStart;
+  const kineticActive=progress>=kineticStart&&progress<glassStart;
   wall.style.display=wallActive?'grid':'none';
   title.style.display=wallActive?'flex':'none';
   count.style.display=wallActive?'block':'none';
   kinetic.classList.toggle('active',kineticActive);
-  glass.classList.toggle('active',progress>=.75);
-  const heroProgress=kineticActive?(progress-.5)/.25:progress>=.75?(progress-.75)/.25:0;
+  glass.classList.toggle('active',progress>=glassStart);
+  const heroProgress=kineticActive?(progress-kineticStart)/(glassStart-kineticStart):progress>=glassStart?(progress-glassStart)/(1-glassStart):0;
   document.getElementById('captions').style.setProperty('--hero',ease(heroProgress));
   document.querySelectorAll('[data-caption-tile]').forEach((node,index)=>{
     const wave=(Math.sin(progress*38-index*.64)+1)/2;
@@ -310,7 +313,7 @@ function writeContracts(out, catalog, families) {
   write(join(out, "workflow", "visual-asset-manifest.json"), JSON.stringify({ schemaVersion: 1, ownership: "project-owned generated showcase assets", images: IMAGE_ASSETS, videos: VIDEO_ASSETS, personalIp: { persona: "generic fixed host", likenessClaim: false, nativePageSource: true } }, null, 2));
   write(join(out, "workflow", "quality-consistency-contract.json"), JSON.stringify({ schemaVersion: 1, requiredChecks: ["1920x1080", "30fps", "H.264", "AAC audio", "no black segment", "critical labels in canvas", "68 caption styles shown", "Personal IP native clip", "horizontal and vertical whiteboard clips"] }, null, 2));
   write(join(out, "workflow", "sync-timecode-plan.json"), JSON.stringify({ schemaVersion: 1, fps: FPS, durationSeconds: DURATION, cues }, null, 2));
-  write(join(out, "workflow", "voice-subtitle-manifest.json"), JSON.stringify({ schemaVersion: 1, backend: "melotts_local", displayMode: "single-line-sequential", safeArea: "bottom-caption-band", cues }, null, 2));
+  write(join(out, "workflow", "voice-subtitle-manifest.json"), JSON.stringify({ schemaVersion: 1, backend: "melotts_local", language: "ZH", device: "cpu", synthesisSpeed: 0.95, playbackSpeed: 1, normalization: "measured per-segment gain before concat; restrained compression, loudnorm and limiting at final mux", displayMode: "single-line-sequential", safeArea: "bottom-caption-band", cues }, null, 2));
   write(join(out, "script", "narration.txt"), cues.map((cue) => cue.text).join("\n"));
   write(join(out, "script", "subtitles.srt"), cues.map((cue, index) => `${index + 1}\n${srtTime(cue.start)} --> ${srtTime(cue.end)}\n${cue.text}`).join("\n\n") + "\n");
   write(join(ROOT, "media/oral-materials/workflow-film-narration-segments.json"), JSON.stringify(narrationSegments, null, 2) + "\n");
@@ -375,7 +378,9 @@ async function main() {
     const packagedAudio = join(options.out, "assets", "narration.wav");
     if (resolve(options.providedAudio) !== resolve(packagedAudio)) copyFileSync(options.providedAudio, packagedAudio);
     finalVideo = join(options.out, "codex-video-workflow.mp4");
-    run("ffmpeg", ["-y", "-v", "error", "-i", silentVideo, "-i", options.providedAudio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-af", `apad=pad_dur=${DURATION}`, "-t", String(DURATION), "-movflags", "+faststart", finalVideo]);
+    const finalAudioFilter = `aresample=48000,acompressor=threshold=0.125:ratio=1.5:attack=20:release=180,loudnorm=I=-19:TP=-2:LRA=5,alimiter=limit=0.891:attack=5:release=50,apad=pad_dur=${DURATION}`;
+    run("ffmpeg", ["-y", "-v", "error", "-i", silentVideo, "-i", options.providedAudio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-af", finalAudioFilter, "-t", String(DURATION), "-movflags", "+faststart", finalVideo]);
+    write(join(options.out, "workflow", "final-audio-filter-chain.json"), JSON.stringify({ schemaVersion: 1, filterChain: finalAudioFilter, purpose: ["restrained compression", "program loudness normalization", "true-peak limiting", "48 kHz stereo delivery"] }, null, 2));
   }
 
   run("ffmpeg", ["-y", "-v", "error", "-ss", "1.4", "-i", finalVideo, "-frames:v", "1", "-q:v", "2", join(options.out, "poster.jpg")]);
@@ -408,16 +413,57 @@ async function main() {
   }
   const meanVolume = Number(volume.match(/mean_volume:\s*([\-\d.]+)\s*dB/)?.[1]);
   const maxVolume = Number(volume.match(/max_volume:\s*([\-\d.]+)\s*dB/)?.[1]);
-  const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height,r_frame_rate", "-of", "json", finalVideo]));
+  let loudnessDynamics = null;
+  if (options.providedAudio) {
+    const loudnessOutput = run("ffmpeg", ["-hide_banner", "-nostats", "-i", finalVideo, "-af", "loudnorm=I=-19:TP=-2:LRA=5:print_format=json", "-vn", "-f", "null", "-"]);
+    const blocks = loudnessOutput.match(/\{\s*"input_i"[\s\S]*?\}/g) || [];
+    const measured = JSON.parse(blocks.at(-1));
+    loudnessDynamics = {
+      schemaVersion: 1,
+      measurementFilter: "loudnorm=I=-19:TP=-2:LRA=5:print_format=json",
+      integratedLoudnessLufs: Number(measured.input_i),
+      loudnessRangeLu: Number(measured.input_lra),
+      truePeakDbtp: Number(measured.input_tp),
+      maximumAllowedLoudnessRangeLu: 5.5,
+      passed: Number(measured.input_lra) <= 5.5,
+    };
+    write(join(options.out, "workflow", "loudness-dynamics-audit.json"), JSON.stringify(loudnessDynamics, null, 2));
+  }
+  const probe = JSON.parse(run("ffprobe", ["-v", "error", "-show_entries", "format=duration:stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels,channel_layout", "-of", "json", finalVideo]));
   write(join(options.out, "logs", "ffprobe.json"), JSON.stringify(probe, null, 2));
   const videoStream = probe.streams?.find((stream) => stream.codec_type === "video");
   const audioStream = probe.streams?.find((stream) => stream.codec_type === "audio");
+  const segmentLoudnessAuditPath = join(options.out, "workflow", "speech-segment-loudness.json");
+  const segmentLoudnessAudit = options.providedAudio && existsSync(segmentLoudnessAuditPath) ? JSON.parse(readFileSync(segmentLoudnessAuditPath, "utf8")) : null;
+  let finalSegmentLoudness = null;
+  if (options.providedAudio) {
+    const segments = captionCues().map((cue, index) => {
+      const output = run("ffmpeg", ["-hide_banner", "-nostats", "-ss", String(cue.start), "-t", String(cue.end - cue.start), "-i", finalVideo, "-vn", "-af", "volumedetect", "-f", "null", "-"]);
+      return {
+        index,
+        scene: cue.scene,
+        startSeconds: Number(cue.start.toFixed(3)),
+        durationSeconds: Number((cue.end - cue.start).toFixed(3)),
+        meanVolumeDb: Number(output.match(/mean_volume:\s*([\-\d.]+)\s*dB/)?.[1]),
+        maxVolumeDb: Number(output.match(/max_volume:\s*([\-\d.]+)\s*dB/)?.[1]),
+      };
+    });
+    const means = segments.map((segment) => segment.meanVolumeDb);
+    const meanVolumeSpreadDb = Number((Math.max(...means) - Math.min(...means)).toFixed(2));
+    finalSegmentLoudness = { schemaVersion: 1, source: "final MP4 AAC stream", maximumAllowedMeanVolumeSpreadDb: 2.5, meanVolumeSpreadDb, passed: meanVolumeSpreadDb <= 2.5, segments };
+    write(join(options.out, "workflow", "final-segment-loudness.json"), JSON.stringify(finalSegmentLoudness, null, 2));
+  }
   const checks = {
     duration: Math.abs(Number(probe.format?.duration) - DURATION) <= 0.18,
     resolution: videoStream?.width === WIDTH && videoStream?.height === HEIGHT,
     frameRate: videoStream?.r_frame_rate === "30/1",
     videoCodec: videoStream?.codec_name === "h264",
     audioStream: options.providedAudio ? Boolean(audioStream) : true,
+    audioDeliveryFormat: options.providedAudio ? audioStream?.sample_rate === "48000" && audioStream?.channels === 2 : true,
+    naturalPlaybackSpeed: options.providedAudio ? segmentLoudnessAudit?.segments?.every((entry) => entry.playbackSpeed === 1) === true : true,
+    segmentLoudnessConsistency: options.providedAudio ? segmentLoudnessAudit?.passed === true && segmentLoudnessAudit.postNormalizationSpreadDb <= 2.5 : true,
+    finalSegmentLoudnessConsistency: options.providedAudio ? finalSegmentLoudness?.passed === true : true,
+    controlledLoudnessRange: options.providedAudio ? loudnessDynamics?.passed === true : true,
     noDetectedBlackSegments: !black.includes("black_start:"),
     audibleMeanLevel: options.providedAudio ? meanVolume >= -35 && meanVolume <= -6 : true,
     unclippedPeak: options.providedAudio ? maxVolume <= 0 && maxVolume >= -12 : true,
@@ -429,7 +475,7 @@ async function main() {
   };
   const passed = Object.values(checks).every(Boolean);
   write(join(options.out, "logs", "qc.json"), JSON.stringify({ schemaVersion: 1, finalVideo: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, audioBearing: Boolean(options.providedAudio), audioMetrics: options.providedAudio ? { meanVolumeDb: meanVolume, maxVolumeDb: maxVolume } : null, checks, passed }, null, 2));
-  write(join(options.out, "delivery-manifest.json"), JSON.stringify({ schemaVersion: 1, status: passed ? "qc-passed-demo" : "failed", video: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, canvas: { width: WIDTH, height: HEIGHT, fps: FPS }, poster: "poster.jpg", contactSheet: "final-contact-sheet.png", evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json", "workflow/sync-timecode-plan.json"], note: "Public capability reel with project-owned assets and local narration." }, null, 2));
+  write(join(options.out, "delivery-manifest.json"), JSON.stringify({ schemaVersion: 1, status: passed ? "qc-passed-demo" : "failed", video: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, canvas: { width: WIDTH, height: HEIGHT, fps: FPS }, poster: "poster.jpg", contactSheet: "final-contact-sheet.png", evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/audio-repair-plan.json", "workflow/speech-segment-loudness.json", "workflow/final-segment-loudness.json", "workflow/loudness-dynamics-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json", "workflow/sync-timecode-plan.json"], note: "Public capability reel with project-owned assets and local narration." }, null, 2));
   if (!passed) throw new Error(`Workflow film QC failed: ${Object.entries(checks).filter(([, value]) => !value).map(([name]) => name).join(", ")}`);
   if (!options.keepFrames) rmSync(join(options.out, "frames"), { recursive: true, force: true });
   console.log(JSON.stringify({ out: options.out, finalVideo, durationSeconds: DURATION, passed }, null, 2));

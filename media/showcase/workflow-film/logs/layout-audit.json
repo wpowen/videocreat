@@ -14,7 +14,7 @@
     ]
   },
   {
-    "time": 8.1,
+    "time": 11.5,
     "scene": "framework",
     "visible": [
       {
@@ -28,7 +28,7 @@
     ]
   },
   {
-    "time": 14.4,
+    "time": 19.233333333300003,
     "scene": "motion",
     "visible": [
       {
@@ -42,7 +42,7 @@
     ]
   },
   {
-    "time": 19.7,
+    "time": 24.5333333333,
     "scene": "config",
     "visible": [
       {
@@ -56,7 +56,7 @@
     ]
   },
   {
-    "time": 24.2,
+    "time": 31,
     "scene": "personal",
     "visible": [
       {
@@ -70,7 +70,7 @@
     ]
   },
   {
-    "time": 32.5,
+    "time": 39.4,
     "scene": "whiteboard",
     "visible": [
       {
@@ -84,7 +84,7 @@
     ]
   },
   {
-    "time": 38.3,
+    "time": 46.699999999999996,
     "scene": "covers",
     "visible": [
       {
@@ -98,7 +98,7 @@
     ]
   },
   {
-    "time": 44.7,
+    "time": 54.2333333333,
     "scene": "captions",
     "visible": [
       {
@@ -112,7 +112,7 @@
     ]
   },
   {
-    "time": 49.2,
+    "time": 58.733333333299996,
     "scene": "captions",
     "visible": [
       {
@@ -126,7 +126,7 @@
     ]
   },
   {
-    "time": 53.7,
+    "time": 63.233333333299996,
     "scene": "captions",
     "visible": [
       {
@@ -140,7 +140,7 @@
     ]
   },
   {
-    "time": 58.6,
+    "time": 70.89999999999999,
     "scene": "closing",
     "visible": [
       {

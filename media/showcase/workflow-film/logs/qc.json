@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "finalVideo": "codex-video-workflow.mp4",
-  "durationSeconds": 59.5,
+  "durationSeconds": 73.1,
   "audioBearing": true,
   "audioMetrics": {
-    "meanVolumeDb": -19.5,
-    "maxVolumeDb": -1.5
+    "meanVolumeDb": -21.2,
+    "maxVolumeDb": -3.2
   },
   "checks": {
     "duration": true,
@@ -13,6 +13,11 @@
     "frameRate": true,
     "videoCodec": true,
     "audioStream": true,
+    "audioDeliveryFormat": true,
+    "naturalPlaybackSpeed": true,
+    "segmentLoudnessConsistency": true,
+    "finalSegmentLoudnessConsistency": true,
+    "controlledLoudnessRange": true,
     "noDetectedBlackSegments": true,
     "audibleMeanLevel": true,
     "unclippedPeak": true,

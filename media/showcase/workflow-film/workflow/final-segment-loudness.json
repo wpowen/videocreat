@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "source": "final MP4 AAC stream",
+  "maximumAllowedMeanVolumeSpreadDb": 2.5,
+  "meanVolumeSpreadDb": 1.2,
+  "passed": true,
+  "segments": [
+    { "index": 0, "scene": "hook", "startSeconds": 0, "durationSeconds": 7.4, "meanVolumeDb": -20.2, "maxVolumeDb": -5 },
+    { "index": 1, "scene": "framework", "startSeconds": 7.4, "durationSeconds": 6.433, "meanVolumeDb": -21.2, "maxVolumeDb": -6.6 },
+    { "index": 2, "scene": "motion", "startSeconds": 13.833, "durationSeconds": 7, "meanVolumeDb": -21.3, "maxVolumeDb": -5.8 },
+    { "index": 3, "scene": "config", "startSeconds": 20.833, "durationSeconds": 6.967, "meanVolumeDb": -21.2, "maxVolumeDb": -7 },
+    { "index": 4, "scene": "personal", "startSeconds": 27.8, "durationSeconds": 7.1, "meanVolumeDb": -21.3, "maxVolumeDb": -6.6 },
+    { "index": 5, "scene": "whiteboard", "startSeconds": 34.9, "durationSeconds": 7.5, "meanVolumeDb": -21.4, "maxVolumeDb": -4.6 },
+    { "index": 6, "scene": "covers", "startSeconds": 42.4, "durationSeconds": 6.633, "meanVolumeDb": -21, "maxVolumeDb": -3.2 },
+    { "index": 7, "scene": "captions", "startSeconds": 49.033, "durationSeconds": 8, "meanVolumeDb": -21.3, "maxVolumeDb": -4.5 },
+    { "index": 8, "scene": "captions", "startSeconds": 57.033, "durationSeconds": 5.933, "meanVolumeDb": -21.4, "maxVolumeDb": -5.2 },
+    { "index": 9, "scene": "captions", "startSeconds": 62.966, "durationSeconds": 4.833, "meanVolumeDb": -21.3, "maxVolumeDb": -6.5 },
+    { "index": 10, "scene": "closing", "startSeconds": 67.799, "durationSeconds": 5.3, "meanVolumeDb": -21.4, "maxVolumeDb": -6.8 }
+  ]
+}

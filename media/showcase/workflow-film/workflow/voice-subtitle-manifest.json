@@ -1,73 +1,78 @@
 {
   "schemaVersion": 1,
   "backend": "melotts_local",
+  "language": "ZH",
+  "device": "cpu",
+  "synthesisSpeed": 0.95,
+  "playbackSpeed": 1,
+  "normalization": "measured per-segment gain before concat; restrained compression, loudnorm and limiting at final mux",
   "displayMode": "single-line-sequential",
   "safeArea": "bottom-caption-band",
   "cues": [
     {
       "scene": "hook",
       "start": 0,
-      "end": 4,
+      "end": 7.4,
       "text": "一份 Brief，不只是生成一个片段，而是一整套可以审阅、修改和交付的视频生产包。"
     },
     {
       "scene": "framework",
-      "start": 4,
-      "end": 9,
+      "start": 7.4,
+      "end": 13.8333333333,
       "text": "内容进入后，框架会完成拆页、视觉路由、语音字幕、封面适配和质量检查。"
     },
     {
       "scene": "motion",
-      "start": 9,
-      "end": 16,
+      "start": 13.8333333333,
+      "end": 20.8333333333,
       "text": "推进、对比、连线、聚焦，每一种动效都对应明确的信息含义。"
     },
     {
       "scene": "config",
-      "start": 16,
-      "end": 21,
+      "start": 20.8333333333,
+      "end": 27.8,
       "text": "半自动模式提供中英文配置页面；全自动模式则从内容直接推进到成片。"
     },
     {
       "scene": "personal",
-      "start": 21,
-      "end": 28,
+      "start": 27.8,
+      "end": 34.9,
       "text": "个人 IP 使用原生页面保持人物、构图与叙事风格一致，不是简单裁切同一张图。"
     },
     {
       "scene": "whiteboard",
-      "start": 28,
-      "end": 34,
+      "start": 34.9,
+      "end": 42.4,
       "text": "手绘白板支持横屏与竖屏，按描线、圈点、回填的顺序，让知识路径被看见。"
     },
     {
       "scene": "covers",
-      "start": 34,
-      "end": 39.5,
+      "start": 42.4,
+      "end": 49.0333333333,
       "text": "封面不是一张图套三个尺寸，而是为横版、竖版和方形分别重组信息。"
     },
     {
       "scene": "captions",
-      "start": 39.5,
-      "end": 47.5,
+      "start": 49.0333333333,
+      "end": 57.03333333280088,
       "text": "字幕系统当前包含六十八种样式，分为八类；这里每一格都在运行自己的进场与强调效果。"
     },
     {
       "scene": "captions",
-      "start": 47.5,
-      "end": 51.5,
+      "start": 57.03333333280088,
+      "end": 62.96666666610808,
       "text": "例如节奏型字幕会突出关键词，而不是让整行文字一起抖动。"
     },
     {
       "scene": "captions",
-      "start": 51.5,
-      "end": 55.5,
+      "start": 62.96666666610808,
+      "end": 67.8,
       "text": "双语和玻璃字幕，则把层级、可读性与安全区放在第一位。"
     },
     {
       "scene": "closing",
-      "start": 55.5,
-      "end": 59.5,
+      "start": 67.8,
+      "end": 73.1,
       "text": "从一份 Brief，到可审阅的视频、字幕、封面、配置和质量证据。"
     }
   ]

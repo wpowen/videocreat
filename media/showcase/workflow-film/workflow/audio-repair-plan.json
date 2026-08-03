@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "rootCause": "Narration segments were independently accelerated to fit fixed visual windows, while only the concatenated track received loudness normalization.",
+  "rejectedFilter": "per-segment atempo plus concat-only loudnorm",
+  "replacement": "natural-speed segment timing plus measured per-segment gain normalization; final bus processing occurs during MP4 mux",
+  "invariants": [
+    "playbackSpeed equals 1 for every segment",
+    "post-normalization mean-volume spread is at most 2.5 dB",
+    "scene duration follows natural narration"
+  ]
+}
