@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "pronunciations": [
+    { "phrase": "框架", "pinyin": ["kuang4", "jia4"], "note": "framework; 框读 kuàng" },
+    { "phrase": "拆页", "pinyin": ["chai1", "ye4"], "note": "split content into pages" },
+    { "phrase": "视觉路由", "pinyin": ["shi4", "jue2", "lu4", "you2"], "note": "visual routing" },
+    { "phrase": "对应", "pinyin": ["dui4", "ying4"], "note": "correspond to; 应读 yìng" },
+    { "phrase": "半自动模式", "pinyin": ["ban4", "zi4", "dong4", "mo2", "shi4"], "note": "semi-automatic mode; 模读 mó" },
+    { "phrase": "全自动模式", "pinyin": ["quan2", "zi4", "dong4", "mo2", "shi4"], "note": "fully automatic mode; 模读 mó" },
+    { "phrase": "提供", "pinyin": ["ti2", "gong1"], "note": "provide; 供读 gōng" },
+    { "phrase": "裁切", "pinyin": ["cai2", "qie1"], "note": "crop/cut; 切读 qiē" },
+    { "phrase": "横屏", "pinyin": ["heng2", "ping2"], "note": "landscape screen; 屏读 píng" },
+    { "phrase": "竖屏", "pinyin": ["shu4", "ping2"], "note": "portrait screen; 屏读 píng" },
+    { "phrase": "圈点", "pinyin": ["quan1", "dian3"], "note": "circle and mark; 圈读 quān" },
+    { "phrase": "看见", "pinyin": ["kan4", "jian4"], "note": "to see" },
+    { "phrase": "为横版", "pinyin": ["wei4", "heng2", "ban3"], "note": "for horizontal format; 为读 wèi" },
+    { "phrase": "分为", "pinyin": ["fen1", "wei2"], "note": "divide into; 为读 wéi" },
+    { "phrase": "重组", "pinyin": ["chong2", "zu3"], "note": "reorganize; 重读 chóng" },
+    { "phrase": "运行", "pinyin": ["yun4", "xing2"], "note": "run/operate; 行读 xíng" },
+    { "phrase": "强调", "pinyin": ["qiang2", "diao4"], "note": "emphasize; 强读 qiáng，调读 diào" },
+    { "phrase": "整行文字", "pinyin": ["zheng3", "hang2", "wen2", "zi4"], "note": "the whole line of text; 行读 háng" },
+    { "phrase": "质量检查", "pinyin": ["zhi4", "liang4", "jian3", "cha2"], "note": "quality inspection" },
+    { "phrase": "可读性", "pinyin": ["ke3", "du2", "xing4"], "note": "readability; 读作 dú" },
+    { "phrase": "第一位", "pinyin": ["di4", "yi1", "wei4"], "note": "first priority; ordinal 一 remains yī" }
+  ]
+}

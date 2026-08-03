@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "measurementFilter": "loudnorm=I=-19:TP=-2:LRA=5:print_format=json",
-  "integratedLoudnessLufs": -17.87,
-  "loudnessRangeLu": 3.6,
-  "truePeakDbtp": -3.19,
+  "integratedLoudnessLufs": -17.89,
+  "loudnessRangeLu": 3.8,
+  "truePeakDbtp": -4.09,
   "maximumAllowedLoudnessRangeLu": 5.5,
   "passed": true
 }

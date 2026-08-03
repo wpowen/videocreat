@@ -1,0 +1,951 @@
+{
+  "schemaVersion": 1,
+  "stage": "locked-before-tts",
+  "narration": "script/narration-spoken.txt",
+  "narrationHash": "3b91e137bca638c5f431a25636d27ae66035f9a84f3c28132bf3cec9ef05287e",
+  "effectivePronunciationHash": "bec9880fa557bebb25064229427afc0cbedca0c7d4982d1eba935e316dbf7059",
+  "backendStrategy": "melotts-pypinyin-plus-jieba-phrase-injection",
+  "degraded": false,
+  "matchingPolicy": "run override > base lexicon > pypinyin built-in phrase; longest non-overlapping phrase wins; strict unresolved blocking is limited to characters covered by the reviewed base/run phrase lexicon",
+  "phrases": [
+    {
+      "phrase": "全自动模式",
+      "pinyin": [
+        "quan2",
+        "zi4",
+        "dong4",
+        "mo2",
+        "shi4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "凡人修仙传",
+      "pinyin": [
+        "fan2",
+        "ren2",
+        "xiu1",
+        "xian1",
+        "zhuan4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "半自动模式",
+      "pinyin": [
+        "ban4",
+        "zi4",
+        "dong4",
+        "mo2",
+        "shi4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "整行文字",
+      "pinyin": [
+        "zheng3",
+        "hang2",
+        "wen2",
+        "zi4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "视觉路由",
+      "pinyin": [
+        "shi4",
+        "jue2",
+        "lu4",
+        "you2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "质量检查",
+      "pinyin": [
+        "zhi4",
+        "liang4",
+        "jian3",
+        "cha2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "一行人",
+      "pinyin": [
+        "yi1",
+        "xing2",
+        "ren2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "为横版",
+      "pinyin": [
+        "wei4",
+        "heng2",
+        "ban3"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "伏地魔",
+      "pinyin": [
+        "fu2",
+        "di4",
+        "mo2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "削苹果",
+      "pinyin": [
+        "xiao1",
+        "ping2",
+        "guo3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "可读性",
+      "pinyin": [
+        "ke3",
+        "du2",
+        "xing4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "第一位",
+      "pinyin": [
+        "di4",
+        "yi1",
+        "wei4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "血淋淋",
+      "pinyin": [
+        "xie3",
+        "lin2",
+        "lin2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "传略",
+      "pinyin": [
+        "zhuan4",
+        "lve4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "传记",
+      "pinyin": [
+        "zhuan4",
+        "ji4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "倔强",
+      "pinyin": [
+        "jue2",
+        "jiang4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "分为",
+      "pinyin": [
+        "fen1",
+        "wei2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "创伤",
+      "pinyin": [
+        "chuang1",
+        "shang1"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "创口",
+      "pinyin": [
+        "chuang1",
+        "kou3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "削皮",
+      "pinyin": [
+        "xiao1",
+        "pi2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "剥削",
+      "pinyin": [
+        "bo1",
+        "xue1"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "剥皮",
+      "pinyin": [
+        "bao1",
+        "pi2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "勉强",
+      "pinyin": [
+        "mian3",
+        "qiang3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "吞咽",
+      "pinyin": [
+        "tun1",
+        "yan4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "呜咽",
+      "pinyin": [
+        "wu1",
+        "ye4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "咽喉",
+      "pinyin": [
+        "yan1",
+        "hou2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "圈点",
+      "pinyin": [
+        "quan1",
+        "dian3"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "埋怨",
+      "pinyin": [
+        "man2",
+        "yuan4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "处处",
+      "pinyin": [
+        "chu4",
+        "chu4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "处所",
+      "pinyin": [
+        "chu4",
+        "suo3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "对应",
+      "pinyin": [
+        "dui4",
+        "ying4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "屏息",
+      "pinyin": [
+        "bing3",
+        "xi1"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "屏退",
+      "pinyin": [
+        "bing3",
+        "tui4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "强调",
+      "pinyin": [
+        "qiang2",
+        "diao4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "强迫",
+      "pinyin": [
+        "qiang3",
+        "po4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "扎实",
+      "pinyin": [
+        "zha1",
+        "shi5"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "拆页",
+      "pinyin": [
+        "chai1",
+        "ye4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "拗口",
+      "pinyin": [
+        "ao4",
+        "kou3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "挣扎",
+      "pinyin": [
+        "zheng1",
+        "zha2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "挣钱",
+      "pinyin": [
+        "zheng4",
+        "qian2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "提供",
+      "pinyin": [
+        "ti2",
+        "gong1"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "框架",
+      "pinyin": [
+        "kuang4",
+        "jia4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "模板",
+      "pinyin": [
+        "mu2",
+        "ban3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "模样",
+      "pinyin": [
+        "mu2",
+        "yang4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "横屏",
+      "pinyin": [
+        "heng2",
+        "ping2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "炮制",
+      "pinyin": [
+        "pao2",
+        "zhi4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "炮烙",
+      "pinyin": [
+        "pao2",
+        "luo4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "看见",
+      "pinyin": [
+        "kan4",
+        "jian4"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "竖屏",
+      "pinyin": [
+        "shu4",
+        "ping2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "累赘",
+      "pinyin": [
+        "lei2",
+        "zhui5"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "结实",
+      "pinyin": [
+        "jie1",
+        "shi5"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "脉脉",
+      "pinyin": [
+        "mo4",
+        "mo4"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "血压",
+      "pinyin": [
+        "xue4",
+        "ya1"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "血型",
+      "pinyin": [
+        "xue4",
+        "xing2"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "裁切",
+      "pinyin": [
+        "cai2",
+        "qie1"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "转圈",
+      "pinyin": [
+        "zhuan4",
+        "quan1"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "转场",
+      "pinyin": [
+        "zhuan3",
+        "chang3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "运行",
+      "pinyin": [
+        "yun4",
+        "xing2"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "重组",
+      "pinyin": [
+        "chong2",
+        "zu3"
+      ],
+      "source": "run-override"
+    },
+    {
+      "phrase": "露水",
+      "pinyin": [
+        "lu4",
+        "shui3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "露脸",
+      "pinyin": [
+        "lou4",
+        "lian3"
+      ],
+      "source": "base-lexicon"
+    },
+    {
+      "phrase": "露面",
+      "pinyin": [
+        "lou4",
+        "mian4"
+      ],
+      "source": "base-lexicon"
+    }
+  ],
+  "phraseMatches": [
+    {
+      "phrase": "框架",
+      "pinyin": [
+        "kuang4",
+        "jia4"
+      ],
+      "source": "run-override",
+      "note": "framework; 框读 kuàng",
+      "start": 48,
+      "end": 50
+    },
+    {
+      "phrase": "拆页",
+      "pinyin": [
+        "chai1",
+        "ye4"
+      ],
+      "source": "run-override",
+      "note": "split content into pages",
+      "start": 53,
+      "end": 55
+    },
+    {
+      "phrase": "视觉路由",
+      "pinyin": [
+        "shi4",
+        "jue2",
+        "lu4",
+        "you2"
+      ],
+      "source": "run-override",
+      "note": "visual routing",
+      "start": 56,
+      "end": 60
+    },
+    {
+      "phrase": "质量检查",
+      "pinyin": [
+        "zhi4",
+        "liang4",
+        "jian3",
+        "cha2"
+      ],
+      "source": "run-override",
+      "note": "quality inspection",
+      "start": 71,
+      "end": 75
+    },
+    {
+      "phrase": "对应",
+      "pinyin": [
+        "dui4",
+        "ying4"
+      ],
+      "source": "run-override",
+      "note": "correspond to; 应读 yìng",
+      "start": 95,
+      "end": 97
+    },
+    {
+      "phrase": "半自动模式",
+      "pinyin": [
+        "ban4",
+        "zi4",
+        "dong4",
+        "mo2",
+        "shi4"
+      ],
+      "source": "run-override",
+      "note": "semi-automatic mode; 模读 mó",
+      "start": 106,
+      "end": 111
+    },
+    {
+      "phrase": "提供",
+      "pinyin": [
+        "ti2",
+        "gong1"
+      ],
+      "source": "run-override",
+      "note": "provide; 供读 gōng",
+      "start": 111,
+      "end": 113
+    },
+    {
+      "phrase": "全自动模式",
+      "pinyin": [
+        "quan2",
+        "zi4",
+        "dong4",
+        "mo2",
+        "shi4"
+      ],
+      "source": "run-override",
+      "note": "fully automatic mode; 模读 mó",
+      "start": 121,
+      "end": 126
+    },
+    {
+      "phrase": "裁切",
+      "pinyin": [
+        "cai2",
+        "qie1"
+      ],
+      "source": "run-override",
+      "note": "crop/cut; 切读 qiē",
+      "start": 170,
+      "end": 172
+    },
+    {
+      "phrase": "横屏",
+      "pinyin": [
+        "heng2",
+        "ping2"
+      ],
+      "source": "run-override",
+      "note": "landscape screen; 屏读 píng",
+      "start": 184,
+      "end": 186
+    },
+    {
+      "phrase": "竖屏",
+      "pinyin": [
+        "shu4",
+        "ping2"
+      ],
+      "source": "run-override",
+      "note": "portrait screen; 屏读 píng",
+      "start": 187,
+      "end": 189
+    },
+    {
+      "phrase": "圈点",
+      "pinyin": [
+        "quan1",
+        "dian3"
+      ],
+      "source": "run-override",
+      "note": "circle and mark; 圈读 quān",
+      "start": 194,
+      "end": 196
+    },
+    {
+      "phrase": "看见",
+      "pinyin": [
+        "kan4",
+        "jian4"
+      ],
+      "source": "run-override",
+      "note": "to see",
+      "start": 209,
+      "end": 211
+    },
+    {
+      "phrase": "为横版",
+      "pinyin": [
+        "wei4",
+        "heng2",
+        "ban3"
+      ],
+      "source": "run-override",
+      "note": "for horizontal format; 为读 wèi",
+      "start": 228,
+      "end": 231
+    },
+    {
+      "phrase": "重组",
+      "pinyin": [
+        "chong2",
+        "zu3"
+      ],
+      "source": "run-override",
+      "note": "reorganize; 重读 chóng",
+      "start": 239,
+      "end": 241
+    },
+    {
+      "phrase": "分为",
+      "pinyin": [
+        "fen1",
+        "wei2"
+      ],
+      "source": "run-override",
+      "note": "divide into; 为读 wéi",
+      "start": 260,
+      "end": 262
+    },
+    {
+      "phrase": "运行",
+      "pinyin": [
+        "yun4",
+        "xing2"
+      ],
+      "source": "run-override",
+      "note": "run/operate; 行读 xíng",
+      "start": 272,
+      "end": 274
+    },
+    {
+      "phrase": "强调",
+      "pinyin": [
+        "qiang2",
+        "diao4"
+      ],
+      "source": "run-override",
+      "note": "emphasize; 强读 qiáng，调读 diào",
+      "start": 280,
+      "end": 282
+    },
+    {
+      "phrase": "整行文字",
+      "pinyin": [
+        "zheng3",
+        "hang2",
+        "wen2",
+        "zi4"
+      ],
+      "source": "run-override",
+      "note": "the whole line of text; 行读 háng",
+      "start": 304,
+      "end": 308
+    },
+    {
+      "phrase": "可读性",
+      "pinyin": [
+        "ke3",
+        "du2",
+        "xing4"
+      ],
+      "source": "run-override",
+      "note": "readability; 读作 dú",
+      "start": 327,
+      "end": 330
+    },
+    {
+      "phrase": "第一位",
+      "pinyin": [
+        "di4",
+        "yi1",
+        "wei4"
+      ],
+      "source": "run-override",
+      "note": "first priority; ordinal 一 remains yī",
+      "start": 336,
+      "end": 339
+    }
+  ],
+  "resolved": [
+    {
+      "character": "框",
+      "index": 48,
+      "context": "。\n内容进入后，框架会完成拆页、视",
+      "candidates": [
+        "kuang1",
+        "kuang4",
+        "kuang2"
+      ],
+      "selected": "kuang4",
+      "source": "run-override",
+      "phrase": "框架"
+    },
+    {
+      "character": "应",
+      "index": 96,
+      "context": "，每一种动效都对应明确的信息含义。",
+      "candidates": [
+        "ying1",
+        "ying4"
+      ],
+      "selected": "ying4",
+      "source": "run-override",
+      "phrase": "对应"
+    },
+    {
+      "character": "模",
+      "index": 109,
+      "context": "息含义。\n半自动模式提供中英文配置",
+      "candidates": [
+        "mo2",
+        "mu2"
+      ],
+      "selected": "mo2",
+      "source": "run-override",
+      "phrase": "半自动模式"
+    },
+    {
+      "character": "模",
+      "index": 124,
+      "context": "配置页面；全自动模式则从内容直接推",
+      "candidates": [
+        "mo2",
+        "mu2"
+      ],
+      "selected": "mo2",
+      "source": "run-override",
+      "phrase": "全自动模式"
+    },
+    {
+      "character": "切",
+      "index": 171,
+      "context": "一致，不是简单裁切同一张图。\n手绘",
+      "candidates": [
+        "qie4",
+        "qie1",
+        "qi4"
+      ],
+      "selected": "qie1",
+      "source": "run-override",
+      "phrase": "裁切"
+    },
+    {
+      "character": "屏",
+      "index": 185,
+      "context": "\n手绘白板支持横屏与竖屏，按描线、",
+      "candidates": [
+        "ping2",
+        "bing3",
+        "bing4",
+        "bing1"
+      ],
+      "selected": "ping2",
+      "source": "run-override",
+      "phrase": "横屏"
+    },
+    {
+      "character": "屏",
+      "index": 188,
+      "context": "白板支持横屏与竖屏，按描线、圈点、",
+      "candidates": [
+        "ping2",
+        "bing3",
+        "bing4",
+        "bing1"
+      ],
+      "selected": "ping2",
+      "source": "run-override",
+      "phrase": "竖屏"
+    },
+    {
+      "character": "为",
+      "index": 228,
+      "context": "套三个尺寸，而是为横版、竖版和方形",
+      "candidates": [
+        "wei4",
+        "wei2"
+      ],
+      "selected": "wei4",
+      "source": "run-override",
+      "phrase": "为横版"
+    },
+    {
+      "character": "重",
+      "index": 239,
+      "context": "、竖版和方形分别重组信息。\n字幕系",
+      "candidates": [
+        "zhong4",
+        "chong2",
+        "tong2"
+      ],
+      "selected": "chong2",
+      "source": "run-override",
+      "phrase": "重组"
+    },
+    {
+      "character": "为",
+      "index": 261,
+      "context": "六十八种样式，分为八类；这里每一格",
+      "candidates": [
+        "wei4",
+        "wei2"
+      ],
+      "selected": "wei2",
+      "source": "run-override",
+      "phrase": "分为"
+    },
+    {
+      "character": "行",
+      "index": 273,
+      "context": "这里每一格都在运行自己的进场与强调",
+      "candidates": [
+        "xing2",
+        "hang2",
+        "heng2",
+        "xing4",
+        "hang4"
+      ],
+      "selected": "xing2",
+      "source": "run-override",
+      "phrase": "运行"
+    },
+    {
+      "character": "强",
+      "index": 280,
+      "context": "运行自己的进场与强调效果。\n例如节",
+      "candidates": [
+        "qiang2",
+        "jiang4",
+        "qiang3"
+      ],
+      "selected": "qiang2",
+      "source": "run-override",
+      "phrase": "强调"
+    },
+    {
+      "character": "行",
+      "index": 305,
+      "context": "键词，而不是让整行文字一起抖动。\n",
+      "candidates": [
+        "xing2",
+        "hang2",
+        "heng2",
+        "xing4",
+        "hang4"
+      ],
+      "selected": "hang2",
+      "source": "run-override",
+      "phrase": "整行文字"
+    }
+  ],
+  "unresolved": []
+}

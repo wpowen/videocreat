@@ -11,181 +11,181 @@
       "index": 0,
       "scene": "hook",
       "text": "一份 Brief，不只是生成一个片段，而是一整套可以审阅、修改和交付的视频生产包。",
-      "sourceDurationSeconds": 7.118,
+      "sourceDurationSeconds": 6.955,
       "targetDurationSeconds": 7.4,
       "playbackSpeed": 1,
-      "gainDb": 1.869,
+      "gainDb": 2.169,
       "before": {
-        "meanVolumeDb": -23.7,
-        "maxVolumeDb": -6.8
+        "meanVolumeDb": -23.9,
+        "maxVolumeDb": -6.9
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -7.9
+        "maxVolumeDb": -7.7
       },
-      "filterChain": "volume=1.869dB,apad=pad_dur=7.4,atrim=duration=7.4,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=2.169dB,apad=pad_dur=7.4,atrim=duration=7.4,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 1,
       "scene": "framework",
       "text": "内容进入后，框架会完成拆页、视觉路由、语音字幕、封面适配和质量检查。",
-      "sourceDurationSeconds": 6.171,
+      "sourceDurationSeconds": 6.078,
       "targetDurationSeconds": 6.433,
       "playbackSpeed": 1,
-      "gainDb": -0.219,
+      "gainDb": -0.154,
       "before": {
         "meanVolumeDb": -21.6,
-        "maxVolumeDb": -6.5
+        "maxVolumeDb": -7.5
       },
       "after": {
-        "meanVolumeDb": -25,
-        "maxVolumeDb": -9.7
+        "meanVolumeDb": -25.1,
+        "maxVolumeDb": -10.7
       },
-      "filterChain": "volume=-0.219dB,apad=pad_dur=6.433,atrim=duration=6.433,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=-0.154dB,apad=pad_dur=6.433,atrim=duration=6.433,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 2,
       "scene": "motion",
       "text": "推进、对比、连线、聚焦，每一种动效都对应明确的信息含义。",
-      "sourceDurationSeconds": 5.504,
+      "sourceDurationSeconds": 5.365,
       "targetDurationSeconds": 7,
       "playbackSpeed": 1,
-      "gainDb": 5.044,
+      "gainDb": 4.856,
       "before": {
-        "meanVolumeDb": -26,
-        "maxVolumeDb": -10
+        "meanVolumeDb": -25.7,
+        "maxVolumeDb": -8.8
       },
       "after": {
-        "meanVolumeDb": -25,
-        "maxVolumeDb": -7.9
+        "meanVolumeDb": -25.1,
+        "maxVolumeDb": -6.9
       },
-      "filterChain": "volume=5.044dB,apad=pad_dur=7,atrim=duration=7,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=4.856dB,apad=pad_dur=7,atrim=duration=7,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 3,
       "scene": "config",
       "text": "半自动模式提供中英文配置页面；全自动模式则从内容直接推进到成片。",
-      "sourceDurationSeconds": 6.7,
+      "sourceDurationSeconds": 6.665,
       "targetDurationSeconds": 6.967,
       "playbackSpeed": 1,
-      "gainDb": 1.07,
+      "gainDb": 1.693,
       "before": {
-        "meanVolumeDb": -22.9,
-        "maxVolumeDb": -7.9
+        "meanVolumeDb": -23.5,
+        "maxVolumeDb": -9.7
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -9.8
+        "maxVolumeDb": -11
       },
-      "filterChain": "volume=1.070dB,apad=pad_dur=6.967,atrim=duration=6.967,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=1.693dB,apad=pad_dur=6.967,atrim=duration=6.967,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 4,
       "scene": "personal",
       "text": "个人 IP 使用原生页面保持人物、构图与叙事风格一致，不是简单裁切同一张图。",
-      "sourceDurationSeconds": 6.839,
+      "sourceDurationSeconds": 6.827,
       "targetDurationSeconds": 7.1,
       "playbackSpeed": 1,
-      "gainDb": 3.063,
+      "gainDb": 2.97,
       "before": {
-        "meanVolumeDb": -24.9,
-        "maxVolumeDb": -9
+        "meanVolumeDb": -24.8,
+        "maxVolumeDb": -10.6
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -8.9
+        "maxVolumeDb": -10.6
       },
-      "filterChain": "volume=3.063dB,apad=pad_dur=7.1,atrim=duration=7.1,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=2.970dB,apad=pad_dur=7.1,atrim=duration=7.1,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 5,
       "scene": "whiteboard",
       "text": "手绘白板支持横屏与竖屏，按描线、圈点、回填的顺序，让知识路径被看见。",
-      "sourceDurationSeconds": 7.228,
+      "sourceDurationSeconds": 7.286,
       "targetDurationSeconds": 7.5,
       "playbackSpeed": 1,
-      "gainDb": 7.96,
+      "gainDb": 7.125,
       "before": {
-        "meanVolumeDb": -29.8,
-        "maxVolumeDb": -12.8
+        "meanVolumeDb": -29,
+        "maxVolumeDb": -11.4
       },
       "after": {
-        "meanVolumeDb": -25.1,
-        "maxVolumeDb": -7.9
+        "meanVolumeDb": -25,
+        "maxVolumeDb": -7.3
       },
-      "filterChain": "volume=7.960dB,apad=pad_dur=7.5,atrim=duration=7.5,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=7.125dB,apad=pad_dur=7.5,atrim=duration=7.5,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 6,
       "scene": "covers",
       "text": "封面不是一张图套三个尺寸，而是为横版、竖版和方形分别重组信息。",
-      "sourceDurationSeconds": 6.363,
+      "sourceDurationSeconds": 6.224,
       "targetDurationSeconds": 6.633,
       "playbackSpeed": 1,
-      "gainDb": 2.08,
+      "gainDb": 2.277,
       "before": {
-        "meanVolumeDb": -23.9,
-        "maxVolumeDb": -4.7
+        "meanVolumeDb": -24,
+        "maxVolumeDb": -6
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -5.6
+        "maxVolumeDb": -6.7
       },
-      "filterChain": "volume=2.080dB,apad=pad_dur=6.633,atrim=duration=6.633,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=2.277dB,apad=pad_dur=6.633,atrim=duration=6.633,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 7,
       "scene": "captions",
       "text": "字幕系统当前包含六十八种样式，分为八类；这里每一格都在运行自己的进场与强调效果。",
-      "sourceDurationSeconds": 7.663,
+      "sourceDurationSeconds": 7.57,
       "targetDurationSeconds": 8,
       "playbackSpeed": 1,
-      "gainDb": 2.487,
+      "gainDb": 1.54,
       "before": {
-        "meanVolumeDb": -24.3,
-        "maxVolumeDb": -7.3
+        "meanVolumeDb": -23.3,
+        "maxVolumeDb": -6.7
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -7.9
+        "maxVolumeDb": -8.2
       },
-      "filterChain": "volume=2.487dB,apad=pad_dur=8,atrim=duration=8,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=1.540dB,apad=pad_dur=8,atrim=duration=8,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 8,
       "scene": "captions",
       "text": "例如节奏型字幕会突出关键词，而不是让整行文字一起抖动。",
-      "sourceDurationSeconds": 5.655,
+      "sourceDurationSeconds": 5.539,
       "targetDurationSeconds": 5.933,
       "playbackSpeed": 1,
-      "gainDb": 6.409,
+      "gainDb": 6.499,
       "before": {
         "meanVolumeDb": -28.2,
-        "maxVolumeDb": -11.8
+        "maxVolumeDb": -12.8
       },
       "after": {
         "meanVolumeDb": -25,
-        "maxVolumeDb": -8.4
+        "maxVolumeDb": -9.3
       },
-      "filterChain": "volume=6.409dB,apad=pad_dur=5.933,atrim=duration=5.933,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=6.499dB,apad=pad_dur=5.933,atrim=duration=5.933,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 9,
       "scene": "captions",
       "text": "双语和玻璃字幕，则把层级、可读性与安全区放在第一位。",
-      "sourceDurationSeconds": 4.569,
+      "sourceDurationSeconds": 4.627,
       "targetDurationSeconds": 4.833,
       "playbackSpeed": 1,
-      "gainDb": 0.944,
+      "gainDb": 0.989,
       "before": {
-        "meanVolumeDb": -22.7,
-        "maxVolumeDb": -7.7
+        "meanVolumeDb": -22.8,
+        "maxVolumeDb": -8.9
       },
       "after": {
-        "meanVolumeDb": -25.1,
-        "maxVolumeDb": -9.7
+        "meanVolumeDb": -25,
+        "maxVolumeDb": -10.9
       },
-      "filterChain": "volume=0.944dB,apad=pad_dur=4.833,atrim=duration=4.833,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=0.989dB,apad=pad_dur=4.833,atrim=duration=4.833,asetpts=N/SR/TB,aresample=48000"
     },
     {
       "index": 10,
@@ -194,16 +194,16 @@
       "sourceDurationSeconds": 5.033,
       "targetDurationSeconds": 5.3,
       "playbackSpeed": 1,
-      "gainDb": -0.176,
+      "gainDb": -0.076,
       "before": {
-        "meanVolumeDb": -21.6,
-        "maxVolumeDb": -6.8
+        "meanVolumeDb": -21.7,
+        "maxVolumeDb": -5.5
       },
       "after": {
         "meanVolumeDb": -25.1,
-        "maxVolumeDb": -10
+        "maxVolumeDb": -8.6
       },
-      "filterChain": "volume=-0.176dB,apad=pad_dur=5.3,atrim=duration=5.3,asetpts=N/SR/TB,aresample=48000"
+      "filterChain": "volume=-0.076dB,apad=pad_dur=5.3,atrim=duration=5.3,asetpts=N/SR/TB,aresample=48000"
     }
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "backend": "melotts_local",
+  "pronunciationLoaderActive": true,
+  "loadedPronunciationEntries": 62,
+  "loadedPronunciationHash": "bec9880fa557bebb25064229427afc0cbedca0c7d4982d1eba935e316dbf7059",
+  "pronunciationPlanHash": "bec9880fa557bebb25064229427afc0cbedca0c7d4982d1eba935e316dbf7059",
+  "narrationHash": "3b91e137bca638c5f431a25636d27ae66035f9a84f3c28132bf3cec9ef05287e",
+  "matchedPhraseCount": 21,
+  "segmentBoundaryAuditPassed": true,
+  "backendStrategy": "MeloTTS pypinyin.load_phrases_dict plus jieba.add_word before model inference"
+}

@@ -306,6 +306,12 @@ async function renderPreview(page, out) {
 function writeContracts(out, catalog, families) {
   const cues = captionCues();
   const narrationSegments = cues.map((cue, index) => ({ index, scene: cue.scene, duration: Number((cue.end - cue.start).toFixed(3)), text: cue.text }));
+  const pronunciationPreflightPath = join(out, "workflow", "chinese-pronunciation-preflight.json");
+  const effectivePronunciationPath = join(out, "workflow", "effective-pronunciation-plan.json");
+  const pronunciationVerificationPath = join(out, "workflow", "pronunciation-application-verification.json");
+  const pronunciationPreflight = existsSync(pronunciationPreflightPath) ? JSON.parse(readFileSync(pronunciationPreflightPath, "utf8")) : null;
+  const effectivePronunciation = existsSync(effectivePronunciationPath) ? JSON.parse(readFileSync(effectivePronunciationPath, "utf8")) : null;
+  const pronunciationVerification = existsSync(pronunciationVerificationPath) ? JSON.parse(readFileSync(pronunciationVerificationPath, "utf8")) : null;
   write(join(out, "workflow", "content-presentation-design.json"), JSON.stringify({ schemaVersion: 1, concept: "brief-to-delivery product reel", viewerPromise: "one brief becomes a reviewable video production package", openingRule: "show finished capability outcomes before process", sceneRule: "one capability, one concrete meaning, one reason to continue" }, null, 2));
   write(join(out, "workflow", "motion-template-selection.json"), JSON.stringify({ schemaVersion: 1, examples: ["progress=sequence", "compare=difference", "connect=relationship", "focus=priority"], selectionRule: "motion must explain content" }, null, 2));
   write(join(out, "workflow", "caption-style-plan.json"), JSON.stringify({ schemaVersion: 1, totalStyles: catalog.styles.length, groupCount: families.length, presentation: "68 live mini-previews followed by two readable hero examples", groups: families.map((family) => ({ id: family.id, label: family.name, count: family.styles.length, styleIds: family.styles.map((style) => style.id) })) }, null, 2));
@@ -313,7 +319,24 @@ function writeContracts(out, catalog, families) {
   write(join(out, "workflow", "visual-asset-manifest.json"), JSON.stringify({ schemaVersion: 1, ownership: "project-owned generated showcase assets", images: IMAGE_ASSETS, videos: VIDEO_ASSETS, personalIp: { persona: "generic fixed host", likenessClaim: false, nativePageSource: true } }, null, 2));
   write(join(out, "workflow", "quality-consistency-contract.json"), JSON.stringify({ schemaVersion: 1, requiredChecks: ["1920x1080", "30fps", "H.264", "AAC audio", "no black segment", "critical labels in canvas", "68 caption styles shown", "Personal IP native clip", "horizontal and vertical whiteboard clips"] }, null, 2));
   write(join(out, "workflow", "sync-timecode-plan.json"), JSON.stringify({ schemaVersion: 1, fps: FPS, durationSeconds: DURATION, cues }, null, 2));
-  write(join(out, "workflow", "voice-subtitle-manifest.json"), JSON.stringify({ schemaVersion: 1, backend: "melotts_local", language: "ZH", device: "cpu", synthesisSpeed: 0.95, playbackSpeed: 1, normalization: "measured per-segment gain before concat; restrained compression, loudnorm and limiting at final mux", displayMode: "single-line-sequential", safeArea: "bottom-caption-band", cues }, null, 2));
+  write(join(out, "workflow", "voice-subtitle-manifest.json"), JSON.stringify({
+    schemaVersion: 1,
+    backend: "melotts_local",
+    language: "ZH",
+    device: "cpu",
+    synthesisSpeed: 0.95,
+    playbackSpeed: 1,
+    pronunciationControlled: pronunciationVerification?.status === "passed",
+    pronunciationNarrationHash: pronunciationPreflight?.narrationHash || null,
+    pronunciationPlanHash: effectivePronunciation?.effectivePronunciationHash || null,
+    pronunciationLoaderActive: pronunciationVerification?.pronunciationLoaderActive === true,
+    loadedPronunciationEntries: Number(pronunciationVerification?.loadedPronunciationEntries || 0),
+    loadedPronunciationHash: pronunciationVerification?.loadedPronunciationHash || null,
+    normalization: "measured per-segment gain before concat; restrained compression, loudnorm and limiting at final mux",
+    displayMode: "single-line-sequential",
+    safeArea: "bottom-caption-band",
+    cues,
+  }, null, 2));
   write(join(out, "script", "narration.txt"), cues.map((cue) => cue.text).join("\n"));
   write(join(out, "script", "subtitles.srt"), cues.map((cue, index) => `${index + 1}\n${srtTime(cue.start)} --> ${srtTime(cue.end)}\n${cue.text}`).join("\n\n") + "\n");
   write(join(ROOT, "media/oral-materials/workflow-film-narration-segments.json"), JSON.stringify(narrationSegments, null, 2) + "\n");
@@ -436,6 +459,14 @@ async function main() {
   const finalFileSizeBytes = statSync(finalVideo).size;
   const segmentLoudnessAuditPath = join(options.out, "workflow", "speech-segment-loudness.json");
   const segmentLoudnessAudit = options.providedAudio && existsSync(segmentLoudnessAuditPath) ? JSON.parse(readFileSync(segmentLoudnessAuditPath, "utf8")) : null;
+  const pronunciationPreflightPath = join(options.out, "workflow", "chinese-pronunciation-preflight.json");
+  const effectivePronunciationPath = join(options.out, "workflow", "effective-pronunciation-plan.json");
+  const pronunciationVerificationPath = join(options.out, "workflow", "pronunciation-application-verification.json");
+  const voiceManifestPath = join(options.out, "workflow", "voice-subtitle-manifest.json");
+  const pronunciationPreflight = options.providedAudio && existsSync(pronunciationPreflightPath) ? JSON.parse(readFileSync(pronunciationPreflightPath, "utf8")) : null;
+  const effectivePronunciation = options.providedAudio && existsSync(effectivePronunciationPath) ? JSON.parse(readFileSync(effectivePronunciationPath, "utf8")) : null;
+  const pronunciationVerification = options.providedAudio && existsSync(pronunciationVerificationPath) ? JSON.parse(readFileSync(pronunciationVerificationPath, "utf8")) : null;
+  const voiceManifest = options.providedAudio && existsSync(voiceManifestPath) ? JSON.parse(readFileSync(voiceManifestPath, "utf8")) : null;
   let finalSegmentLoudness = null;
   if (options.providedAudio) {
     const segments = captionCues().map((cue, index) => {
@@ -465,6 +496,10 @@ async function main() {
     segmentLoudnessConsistency: options.providedAudio ? segmentLoudnessAudit?.passed === true && segmentLoudnessAudit.postNormalizationSpreadDb <= 2.5 : true,
     finalSegmentLoudnessConsistency: options.providedAudio ? finalSegmentLoudness?.passed === true : true,
     controlledLoudnessRange: options.providedAudio ? loudnessDynamics?.passed === true : true,
+    pronunciationArtifactsPresent: options.providedAudio ? Boolean(pronunciationPreflight && effectivePronunciation && pronunciationVerification) : true,
+    pronunciationStrictPreflightPassed: options.providedAudio ? pronunciationPreflight?.ok === true && Number(pronunciationPreflight?.counts?.unresolved || 0) === 0 && effectivePronunciation?.narrationHash === pronunciationPreflight?.narrationHash : true,
+    pronunciationApplicationVerified: options.providedAudio ? pronunciationVerification?.status === "passed" && pronunciationVerification?.pronunciationLoaderActive === true && Number(pronunciationVerification?.loadedPronunciationEntries || 0) > 0 && pronunciationVerification?.loadedPronunciationHash === pronunciationVerification?.pronunciationPlanHash && pronunciationVerification?.pronunciationPlanHash === effectivePronunciation?.effectivePronunciationHash && pronunciationVerification?.narrationHash === pronunciationPreflight?.narrationHash && pronunciationVerification?.segmentBoundaryAuditPassed === true : true,
+    voiceManifestPronunciationBound: options.providedAudio ? voiceManifest?.pronunciationControlled === true && voiceManifest?.pronunciationNarrationHash === pronunciationPreflight?.narrationHash && voiceManifest?.pronunciationPlanHash === effectivePronunciation?.effectivePronunciationHash && voiceManifest?.loadedPronunciationHash === effectivePronunciation?.effectivePronunciationHash : true,
     cdnCompatibleFileSize: finalFileSizeBytes <= 20_000_000,
     noDetectedBlackSegments: !black.includes("black_start:"),
     audibleMeanLevel: options.providedAudio ? meanVolume >= -35 && meanVolume <= -6 : true,
@@ -477,7 +512,7 @@ async function main() {
   };
   const passed = Object.values(checks).every(Boolean);
   write(join(options.out, "logs", "qc.json"), JSON.stringify({ schemaVersion: 1, finalVideo: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, finalFileSizeBytes, cdnFileSizeLimitBytes: 20_000_000, audioBearing: Boolean(options.providedAudio), audioMetrics: options.providedAudio ? { meanVolumeDb: meanVolume, maxVolumeDb: maxVolume } : null, checks, passed }, null, 2));
-  write(join(options.out, "delivery-manifest.json"), JSON.stringify({ schemaVersion: 1, status: passed ? "qc-passed-demo" : "failed", video: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, canvas: { width: WIDTH, height: HEIGHT, fps: FPS }, poster: "poster.jpg", contactSheet: "final-contact-sheet.png", evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/audio-repair-plan.json", "workflow/speech-segment-loudness.json", "workflow/final-segment-loudness.json", "workflow/loudness-dynamics-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json", "workflow/sync-timecode-plan.json"], note: "Public capability reel with project-owned assets and local narration." }, null, 2));
+  write(join(options.out, "delivery-manifest.json"), JSON.stringify({ schemaVersion: 1, status: passed ? "qc-passed-demo" : "failed", video: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, canvas: { width: WIDTH, height: HEIGHT, fps: FPS }, poster: "poster.jpg", contactSheet: "final-contact-sheet.png", evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/chinese-pronunciation-preflight.json", "workflow/effective-pronunciation-plan.json", "workflow/pronunciation-application-verification.json", "workflow/audio-repair-plan.json", "workflow/speech-segment-loudness.json", "workflow/final-segment-loudness.json", "workflow/loudness-dynamics-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json", "workflow/sync-timecode-plan.json"], note: "Public capability reel with project-owned assets and local narration." }, null, 2));
   if (!passed) throw new Error(`Workflow film QC failed: ${Object.entries(checks).filter(([, value]) => !value).map(([name]) => name).join(", ")}`);
   if (!options.keepFrames) rmSync(join(options.out, "frames"), { recursive: true, force: true });
   console.log(JSON.stringify({ out: options.out, finalVideo, durationSeconds: DURATION, passed }, null, 2));

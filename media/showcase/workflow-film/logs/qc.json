@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "finalVideo": "codex-video-workflow.mp4",
   "durationSeconds": 73.1,
-  "finalFileSizeBytes": 15154760,
+  "finalFileSizeBytes": 15143092,
   "cdnFileSizeLimitBytes": 20000000,
   "audioBearing": true,
   "audioMetrics": {
     "meanVolumeDb": -21.2,
-    "maxVolumeDb": -3.2
+    "maxVolumeDb": -4.1
   },
   "checks": {
     "duration": true,
@@ -20,6 +20,10 @@
     "segmentLoudnessConsistency": true,
     "finalSegmentLoudnessConsistency": true,
     "controlledLoudnessRange": true,
+    "pronunciationArtifactsPresent": true,
+    "pronunciationStrictPreflightPassed": true,
+    "pronunciationApplicationVerified": true,
+    "voiceManifestPronunciationBound": true,
     "cdnCompatibleFileSize": true,
     "noDetectedBlackSegments": true,
     "audibleMeanLevel": true,
