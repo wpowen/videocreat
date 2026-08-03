@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Video Workflow production flow</title>
+  <desc id="desc">A bilingual diagram showing inputs, two production modes, content planning, visual and timing design, parallel video audio and cover lanes, quality review, and delivery outputs.</desc>
+  <rect width="1600" height="800" rx="36" fill="#F7F5EF"/>
+  <rect x="1.5" y="1.5" width="1597" height="797" rx="34.5" fill="none" stroke="#D9D5CA" stroke-width="3"/>
+
+  <text x="72" y="86" fill="#171A1F" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="42" font-weight="800">One framework, two ways to work</text>
+  <text x="72" y="128" fill="#60656D" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="24" font-weight="600">一套框架，两种工作方式：从内容理解到可审阅交付</text>
+
+  <rect x="356" y="166" width="420" height="72" rx="20" fill="#171A1F"/>
+  <circle cx="394" cy="202" r="13" fill="#EF6A45"/>
+  <text x="422" y="197" fill="#FFFFFF" font-family="Inter, PingFang SC, sans-serif" font-size="20" font-weight="800">FULL AUTO · 全自动</text>
+  <text x="422" y="220" fill="#D7D9DB" font-family="Inter, PingFang SC, sans-serif" font-size="15">Plan, build, check, and package end to end</text>
+
+  <rect x="796" y="166" width="494" height="72" rx="20" fill="#FFFFFF" stroke="#171A1F" stroke-width="2"/>
+  <circle cx="834" cy="202" r="13" fill="#2F6F78"/>
+  <text x="862" y="197" fill="#171A1F" font-family="Inter, PingFang SC, sans-serif" font-size="20" font-weight="800">CONFIGURE &amp; REVIEW · 配置与审阅</text>
+  <text x="862" y="220" fill="#60656D" font-family="Inter, PingFang SC, sans-serif" font-size="15">Bilingual console and page-level review before compose</text>
+
+  <g font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif">
+    <rect x="72" y="300" width="228" height="326" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+    <text x="100" y="345" fill="#EF6A45" font-size="17" font-weight="800">INPUT · 输入</text>
+    <text x="100" y="385" fill="#171A1F" font-size="27" font-weight="800">Start with content</text>
+    <text x="100" y="414" fill="#60656D" font-size="17">从已有内容开始</text>
+    <rect x="100" y="452" width="172" height="38" rx="12" fill="#F1EEE6"/><text x="120" y="478" fill="#171A1F" font-size="17" font-weight="700">Brief / 需求</text>
+    <rect x="100" y="500" width="172" height="38" rx="12" fill="#F1EEE6"/><text x="120" y="526" fill="#171A1F" font-size="17" font-weight="700">Script / 口播稿</text>
+    <rect x="100" y="548" width="172" height="38" rx="12" fill="#F1EEE6"/><text x="120" y="574" fill="#171A1F" font-size="17" font-weight="700">Article / 文章</text>
+
+    <path d="M300 463 H342" stroke="#EF6A45" stroke-width="6" stroke-linecap="round"/>
+    <path d="M331 451 L344 463 L331 475" fill="none" stroke="#EF6A45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="356" y="300" width="250" height="326" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+    <text x="384" y="345" fill="#2F6F78" font-size="17" font-weight="800">01 · UNDERSTAND</text>
+    <text x="384" y="385" fill="#171A1F" font-size="27" font-weight="800">Shape the story</text>
+    <text x="384" y="414" fill="#60656D" font-size="17">理解内容与观看路径</text>
+    <circle cx="408" cy="474" r="15" fill="#EF6A45"/><path d="M424 474 H548" stroke="#D9D5CA" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="456" cy="474" r="11" fill="#171A1F"/><circle cx="502" cy="474" r="11" fill="#171A1F"/><circle cx="548" cy="474" r="11" fill="#171A1F"/>
+    <text x="384" y="535" fill="#171A1F" font-size="17" font-weight="700">Audience · claim · proof</text>
+    <text x="384" y="565" fill="#60656D" font-size="16">Steps · rhythm · payoff</text>
+
+    <path d="M606 463 H648" stroke="#EF6A45" stroke-width="6" stroke-linecap="round"/>
+    <path d="M637 451 L650 463 L637 475" fill="none" stroke="#EF6A45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="662" y="300" width="260" height="326" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+    <text x="690" y="345" fill="#2F6F78" font-size="17" font-weight="800">02 · DESIGN &amp; SYNC</text>
+    <text x="690" y="385" fill="#171A1F" font-size="27" font-weight="800">Plan every layer</text>
+    <text x="690" y="414" fill="#60656D" font-size="17">设计画面、声音与时序</text>
+    <rect x="690" y="452" width="204" height="42" rx="12" fill="#EAF1EF"/><text x="710" y="479" fill="#171A1F" font-size="16" font-weight="750">Visual language · 视觉</text>
+    <rect x="690" y="504" width="204" height="42" rx="12" fill="#F4EAE3"/><text x="710" y="531" fill="#171A1F" font-size="16" font-weight="750">Voice timing · 语音</text>
+    <rect x="690" y="556" width="204" height="42" rx="12" fill="#EEEAF2"/><text x="710" y="583" fill="#171A1F" font-size="16" font-weight="750">Caption plan · 字幕</text>
+
+    <path d="M922 463 H964" stroke="#EF6A45" stroke-width="6" stroke-linecap="round"/>
+    <path d="M953 451 L966 463 L953 475" fill="none" stroke="#EF6A45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="978" y="300" width="270" height="326" rx="24" fill="#171A1F"/>
+    <text x="1006" y="345" fill="#EF8A6C" font-size="17" font-weight="800">03 · BUILD IN PARALLEL</text>
+    <text x="1006" y="385" fill="#FFFFFF" font-size="27" font-weight="800">Three production lanes</text>
+    <text x="1006" y="414" fill="#C8CDD1" font-size="17">三条生产线共享同一时序</text>
+    <rect x="1006" y="452" width="214" height="42" rx="12" fill="#263238"/><circle cx="1028" cy="473" r="8" fill="#EF6A45"/><text x="1046" y="480" fill="#FFFFFF" font-size="16" font-weight="700">Pages + motion</text>
+    <rect x="1006" y="504" width="214" height="42" rx="12" fill="#263238"/><circle cx="1028" cy="525" r="8" fill="#6AB0B7"/><text x="1046" y="532" fill="#FFFFFF" font-size="16" font-weight="700">Voice + captions</text>
+    <rect x="1006" y="556" width="214" height="42" rx="12" fill="#263238"/><circle cx="1028" cy="577" r="8" fill="#D0A44C"/><text x="1046" y="584" fill="#FFFFFF" font-size="16" font-weight="700">Platform covers</text>
+
+    <path d="M1248 463 H1290" stroke="#EF6A45" stroke-width="6" stroke-linecap="round"/>
+    <path d="M1279 451 L1292 463 L1279 475" fill="none" stroke="#EF6A45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="1304" y="300" width="224" height="326" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+    <text x="1332" y="345" fill="#2F6F78" font-size="17" font-weight="800">04 · REVIEW &amp; DELIVER</text>
+    <text x="1332" y="385" fill="#171A1F" font-size="27" font-weight="800">One package</text>
+    <text x="1332" y="414" fill="#60656D" font-size="17">检查并集中交付</text>
+    <rect x="1332" y="452" width="168" height="38" rx="12" fill="#F1EEE6"/><text x="1350" y="478" fill="#171A1F" font-size="16" font-weight="700">MP4 video</text>
+    <rect x="1332" y="500" width="168" height="38" rx="12" fill="#F1EEE6"/><text x="1350" y="526" fill="#171A1F" font-size="16" font-weight="700">Delivery page</text>
+    <rect x="1332" y="548" width="168" height="38" rx="12" fill="#F1EEE6"/><text x="1350" y="574" fill="#171A1F" font-size="16" font-weight="700">Covers + scripts</text>
+  </g>
+
+  <rect x="72" y="680" width="1456" height="64" rx="18" fill="#EFECE4"/>
+  <text x="100" y="720" fill="#171A1F" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="750">Shared production context:</text>
+  <text x="350" y="720" fill="#60656D" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="18">the Brief, page decisions, timing, materials, covers, and review evidence stay connected.</text>
+</svg>

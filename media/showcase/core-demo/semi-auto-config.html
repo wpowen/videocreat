@@ -2073,7 +2073,7 @@
         </label>
     </div>
     <div class="motion-style-scene-strip">
-      <article><small>待生成</small><strong>尚无页面风格绑定</strong><span>workflow/motion-style-plan.json</span></article>
+      <article><small>自动匹配</small><strong>根据内容选择页面风格</strong><span>可在逐页审阅中调整</span></article>
     </div>
   </div>
       <div class="motion-table-grid">
@@ -2997,7 +2997,7 @@
       </label>
       <div class="caption-planner-preview">
         <b>自动规划预览</b>
-        <span><strong>待生成</strong><em>scripts/validate-caption-strategy-routing.mjs</em></span>
+        <span><strong>根据内容自动推荐</strong><em>合成前可逐页调整</em></span>
       </div>
     </div>
     <div class="caption-toolbar">
@@ -4921,6 +4921,13 @@
   <script>
     (() => {
       const english = {"视频生成配置台":"Video Production Console","界面语言":"Interface language","中文":"中文","基础":"Basics","动效":"Motion","颜色":"Color","字幕":"Captions","素材":"Media","封面":"Covers","语音":"Voice","页面":"Pages","基础参数":"Base settings","先选视频类型，再按需要调整画幅、分辨率和帧率；不再静默套用默认流程。":"Choose a video type first, then adjust orientation, resolution, and frame rate. The workflow will not silently force a default route.","分辨率":"Resolution","帧率":"Frame rate","横屏":"Horizontal","竖屏":"Vertical","创作方法课":"Creator methodology","个人 IP 讲解":"Personal-IP explainer","手绘白板":"Hand-drawn whiteboard","短视频":"Short-form video","自定义组合":"Custom composition","视觉动效":"Visual motion","动态规划":"Dynamic planning","个人 IP":"Personal IP","白板绘制":"Whiteboard","封面并行":"Parallel cover lane","颜色体系":"Color systems","自动选择色系":"Auto-select color system","多色体系":"Multi-color","单色体系":"Monochrome","纯黑/深色":"Black / dark","无黑色":"No black","全部":"All","字幕样式":"Caption styles","自动字幕":"Automatic captions","关键词高亮":"Keyword emphasis","素材来源":"Media sources","素材入口独立配置，避免生成阶段能力混用。":"Configure each media source independently so generation capabilities do not become mixed or ambiguous.","本地素材路径":"Local media path","选择素材目录或文件":"Choose a media folder or files","封面设计":"Cover design","默认生成上传封面；左侧审核最终封面，右侧收窄平台尺寸。":"Generate upload covers by default. Review the final cover on the left and narrow platform targets on the right.","审核点击逻辑、模板方向与平台尺寸；参考预览不等于已通过 QC 的上传终版。":"Review click logic, creative direction, and platform targets. A reference preview is not an upload-ready cover that has passed QC.","设计逻辑":"Design logic","12 类可审核方向":"12 reviewable directions","模板":"Templates","选择封面设计方向":"Choose a cover design direction","比例":"Ratios","默认全部生成，可收窄选择":"Generate all by default; narrow the selection when needed","封面选项":"Cover options","默认选中":"Selected by default","示例封面":"Example cover","当前为封面审核预览":"Cover review preview","当前包用于审核封面样式、模板方向和平台比例；上传终版需要原生比例 bitmap 通过封面 QC 后进入最终成品。":"This package reviews cover styles, creative direction, and platform ratios. Upload-ready delivery requires native-ratio bitmaps that pass cover QC.","个人 IP / 手绘融合":"Personal IP / hand-drawn composition","启用个人 IP 模式":"Enable Personal-IP mode","白板描线":"Whiteboard line reveal","彩色组件":"Color components","字幕顶层":"Topmost caption layer","启用白板绘制":"Enable whiteboard","已验证 POC":"Validated POC","字幕最后合成":"Captions composite last","语音模块":"Voice module","默认生成口播/旁白音频；语言、性别、音色和方言选项旁可直接试听。":"Generate narration audio by default. Preview available language, gender, tone, and dialect options in place.","中文普通话":"Mandarin Chinese","英文口播":"English narration","中英双语":"Chinese + English","方言 / 口音":"Dialect / accent","女声":"Female voice","男声":"Male voice","自然口播":"Conversational","课程讲解":"Tutorial","知识解释":"Explainer","故事叙事":"Story","新闻分析":"News analysis","产品演示":"Product demo","纪录片感":"Documentary","自动匹配":"Auto match","可试听方言":"Previewable dialects","具体方言":"Dialect","暂无":"Unavailable","页面级编辑":"Page-level editing","内容":"Content","设计":"Design","主信息、支撑信息、口播节拍、屏幕文字。":"Primary message, supporting detail, narration beat, and on-screen copy.","版式、颜色、视觉隐喻、图片/图表/白板构图。":"Layout, color, visual metaphor, image/chart/whiteboard composition.","68 种字幕样式、安全区、关键词强调、时间绑定。":"68 caption styles, safe areas, keyword emphasis, and timing binding.","确认配置与页面批注后进入最终合成。":"Enter final composition after confirming settings and page annotations.","生成页面审核包":"Generate page review package","确认并合成":"Confirm and compose","大图":"Large preview","关闭":"Close","待生成":"Pending","尚无页面风格绑定":"No page style is bound yet","分层动画线与路径揭示":"Layered paths and progressive reveal","视频级动效风格库":"Video-level motion catalog","打开横屏模板":"Open horizontal templates","打开竖屏模板":"Open vertical templates","示例题材":"Example topic","内容类别":"Content category","目标观众":"Target audience","封面承诺":"Cover promise","点击动机":"Click motivation","模板响应":"Template response","成片证据":"Output evidence","自动按封面设计规范生成":"Generate from the cover design contract","本地示例资产可用":"Local example assets available","未找到本地示例资产":"No local example assets found"};
+      Object.assign(english, {
+        "根据内容选择页面风格": "Choose page styles from the content",
+        "可在逐页审阅中调整": "Adjust during page review",
+        "根据内容自动推荐": "Recommended from the content",
+        "合成前可逐页调整": "Adjust page by page before composition",
+        "自动规划预览": "Automatic planning preview"
+      });
       const originals = new WeakMap();
       const attributeOriginals = new WeakMap();
       const textWalker = () => document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {

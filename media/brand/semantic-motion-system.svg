@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">Semantic motion system</title>
+  <desc id="desc">Six clean examples show how motion reveals, compares, connects, traces, transforms, and resolves information.</desc>
+  <rect width="1600" height="760" rx="36" fill="#F7F5EF"/>
+  <rect x="1.5" y="1.5" width="1597" height="757" rx="34.5" fill="none" stroke="#D9D5CA" stroke-width="3"/>
+  <text x="70" y="82" fill="#171A1F" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="42" font-weight="800">Motion has a job</text>
+  <text x="70" y="124" fill="#60656D" font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="24" font-weight="600">每一种动作都对应一种信息任务，而不是随机装饰</text>
+
+  <g font-family="Inter, PingFang SC, Noto Sans CJK SC, sans-serif">
+    <g transform="translate(70 174)">
+      <rect width="460" height="230" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+      <text x="28" y="44" fill="#EF6A45" font-size="17" font-weight="800">REVEAL · 揭示</text>
+      <text x="28" y="79" fill="#171A1F" font-size="22" font-weight="800">Show information in reading order</text>
+      <rect x="28" y="116" width="116" height="72" rx="14" fill="#171A1F"/>
+      <rect x="158" y="116" width="116" height="72" rx="14" fill="#F0E8DE"/>
+      <rect x="288" y="116" width="116" height="72" rx="14" fill="#E6EFEC"/>
+      <path d="M128 202 H304" stroke="#EF6A45" stroke-width="5" stroke-linecap="round"/>
+      <path d="M292 191 L306 202 L292 213" fill="none" stroke="#EF6A45" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(570 174)">
+      <rect width="460" height="230" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+      <text x="28" y="44" fill="#2F6F78" font-size="17" font-weight="800">COMPARE · 对比</text>
+      <text x="28" y="79" fill="#171A1F" font-size="22" font-weight="800">Make differences visible at a glance</text>
+      <rect x="44" y="119" width="150" height="76" rx="16" fill="#F3E2DC"/>
+      <rect x="266" y="119" width="150" height="76" rx="16" fill="#DDEBE7"/>
+      <text x="97" y="166" fill="#9B4A32" font-size="18" font-weight="800">BEFORE</text>
+      <text x="323" y="166" fill="#2F6F78" font-size="18" font-weight="800">AFTER</text>
+      <path d="M210 157 H250" stroke="#171A1F" stroke-width="5" stroke-linecap="round"/>
+      <path d="M239 146 L252 157 L239 168" fill="none" stroke="#171A1F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(1070 174)">
+      <rect width="460" height="230" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+      <text x="28" y="44" fill="#D0A44C" font-size="17" font-weight="800">CONNECT · 连接</text>
+      <text x="28" y="79" fill="#171A1F" font-size="22" font-weight="800">Explain relationships and causality</text>
+      <circle cx="88" cy="154" r="35" fill="#171A1F"/>
+      <circle cx="230" cy="126" r="35" fill="#EF6A45"/>
+      <circle cx="372" cy="172" r="35" fill="#2F6F78"/>
+      <path d="M123 148 C158 130 180 126 195 126" fill="none" stroke="#D0A44C" stroke-width="6" stroke-linecap="round"/>
+      <path d="M265 132 C304 140 328 154 337 162" fill="none" stroke="#D0A44C" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(70 438)">
+      <rect width="460" height="230" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+      <text x="28" y="44" fill="#2F6F78" font-size="17" font-weight="800">TRACE · 追踪</text>
+      <text x="28" y="79" fill="#171A1F" font-size="22" font-weight="800">Follow a trend, route, or process</text>
+      <path d="M44 190 H416 M44 190 V112" fill="none" stroke="#D9D5CA" stroke-width="3"/>
+      <path d="M56 178 C118 174 142 159 192 160 S278 132 318 138 S372 105 410 112" fill="none" stroke="#EF6A45" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="410" cy="112" r="10" fill="#171A1F"/>
+    </g>
+
+    <g transform="translate(570 438)">
+      <rect width="460" height="230" rx="24" fill="#FFFFFF" stroke="#D9D5CA" stroke-width="2"/>
+      <text x="28" y="44" fill="#EF6A45" font-size="17" font-weight="800">TRANSFORM · 转换</text>
+      <text x="28" y="79" fill="#171A1F" font-size="22" font-weight="800">Show how one state becomes another</text>
+      <rect x="46" y="119" width="126" height="76" rx="16" fill="#F3E2DC" stroke="#C78370" stroke-width="2"/>
+      <path d="M202 157 H258" stroke="#171A1F" stroke-width="6" stroke-linecap="round"/>
+      <path d="M246 145 L260 157 L246 169" fill="none" stroke="#171A1F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="350" cy="157" r="44" fill="#DDEBE7" stroke="#2F6F78" stroke-width="3"/>
+      <path d="M330 157 L344 171 L373 140" fill="none" stroke="#2F6F78" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(1070 438)">
+      <rect width="460" height="230" rx="24" fill="#171A1F"/>
+      <text x="28" y="44" fill="#EF8A6C" font-size="17" font-weight="800">RESOLVE · 完成</text>
+      <text x="28" y="79" fill="#FFFFFF" font-size="22" font-weight="800">Confirm the result and next action</text>
+      <rect x="42" y="118" width="330" height="18" rx="9" fill="#3A4145"/>
+      <rect x="42" y="118" width="330" height="18" rx="9" fill="#EF6A45"/>
+      <circle cx="399" cy="127" r="28" fill="#FFFFFF"/>
+      <path d="M386 127 L396 138 L414 117" fill="none" stroke="#2F6F78" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="187" fill="#C8CDD1" font-size="17">Result locked · review can continue</text>
+    </g>
+  </g>
+</svg>

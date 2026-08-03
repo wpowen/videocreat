@@ -39,6 +39,7 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
   const configUrl = `${options.baseUrl}/media/showcase/core-demo/semi-auto-config.html`;
   await page.goto(configUrl, { waitUntil: "networkidle" });
+  await page.addStyleTag({ content: ".topbar{position:static!important}.shell{padding-top:18px!important}" });
 
   const zhSections = [
     ["#base", "config-base-zh.png"],

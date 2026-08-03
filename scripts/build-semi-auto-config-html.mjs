@@ -5357,7 +5357,7 @@ function renderMotionStyleCatalog(model) {
           <small>${escapeHtml(scene.sceneId)} / ${escapeHtml(scene.selectedTemplate)}</small>
           <strong>${escapeHtml(scene.familyLabelZh)} · ${escapeHtml(scene.variantLabelZh)}</strong>
           <span>${escapeHtml(scene.layoutIntent || scene.decisionReason || "")}</span>
-        </article>`).join("") : `<article><small>待生成</small><strong>尚无页面风格绑定</strong><span>${escapeHtml(catalog.plan.path)}</span></article>`}
+        </article>`).join("") : `<article><small>自动匹配</small><strong>根据内容选择页面风格</strong><span>可在逐页审阅中调整</span></article>`}
     </div>
   </div>`;
 }
@@ -5521,7 +5521,7 @@ function renderCaptionSection(model) {
       <div class="caption-planner-preview">
         <b>自动规划预览</b>
         ${autoRows.length ? autoRows.map((row) => `
-          <span><strong>${escapeHtml(row.sceneJob || row.sceneId)}</strong><em>${escapeHtml(row.group || "-")} / ${escapeHtml(row.selectedStyleId || "-")}</em></span>`).join("") : `<span><strong>待生成</strong><em>${escapeHtml(model.captionStyles.autoSubtitle.validation)}</em></span>`}
+          <span><strong>${escapeHtml(row.sceneJob || row.sceneId)}</strong><em>${escapeHtml(row.group || "-")} / ${escapeHtml(row.selectedStyleId || "-")}</em></span>`).join("") : `<span><strong>根据内容自动推荐</strong><em>合成前可逐页调整</em></span>`}
       </div>
     </div>
     <div class="caption-toolbar">
@@ -8543,6 +8543,11 @@ function renderLocaleScript() {
     "产品演示": "Product demo",
     "纪录片感": "Documentary",
     "自动匹配": "Auto match",
+    "根据内容选择页面风格": "Choose page styles from the content",
+    "可在逐页审阅中调整": "Adjust during page review",
+    "根据内容自动推荐": "Recommended from the content",
+    "合成前可逐页调整": "Adjust page by page before composition",
+    "自动规划预览": "Automatic planning preview",
     "可试听方言": "Previewable dialects",
     "具体方言": "Dialect",
     "暂无": "Unavailable",
