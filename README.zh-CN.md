@@ -30,14 +30,14 @@
 
 ## 宣传视频
 
-[![观看 Codex Video Workflow 宣传视频](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4)
+[![观看 Codex Video Workflow 宣传视频](media/showcase/workflow-film/poster.jpg)](https://cdn.jsdelivr.net/gh/wpowen/videocreat@e27d6887da0bc93676da1fd84699e2ba73a6f2a8/media/showcase/workflow-film/codex-video-workflow.mp4)
 
 <p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@4729a0e9f77fe44db39a08ada3bea427f1938872/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ 播放 71 秒框架宣传片</strong></a> ·
+  <a href="https://cdn.jsdelivr.net/gh/wpowen/videocreat@e27d6887da0bc93676da1fd84699e2ba73a6f2a8/media/showcase/workflow-film/codex-video-workflow.mp4"><strong>▶ 播放 59 秒能力宣传片</strong></a> ·
   <a href="https://github.com/wpowen/videocreat/raw/main/media/showcase/workflow-film/codex-video-workflow.mp4">下载原始 MP4</a>
 </p>
 
-宣传片展示语义动效、真实的双语配置台、视觉页面、平台封面、个人 IP 与手绘白板、字幕路由和最终交付包。视频入口与下方静态工作流分开呈现，即使暂时不播放，也能直接读懂框架能力。
+宣传片先展示最终成品，再依次呈现完整生产路径、四种有明确含义的语义动效、真实的中英双语配置台、原生个人 IP 页面、横竖屏手绘白板、平台原生封面，以及 68 种动态字幕总览和两个可读的大型字幕实例。
 
 ## 框架覆盖什么
 
