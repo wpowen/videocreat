@@ -71,10 +71,6 @@
 | --- | --- |
 | ![把概念、层级和连接关系画清楚](media/showcase/visual-series/relationship-map.png) | ![把方法转成可执行视觉路线](media/showcase/visual-series/strategy-guide.png) |
 
-<p align="center">
-  <img src="media/showcase/visual-series/interface-plate.png" alt="用于展示产品状态、操作和证据的界面型页面" width="100%">
-</p>
-
 ### 动效承担具体的信息任务
 
 按阅读顺序揭示信息、比较两种状态、连接因果、追踪趋势、展示状态转换，或确认结果。语义任务决定动作如何发生，口播、字幕和镜头切换则共享同一套时序。

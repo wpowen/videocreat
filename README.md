@@ -71,10 +71,6 @@ The framework identifies the audience, central claim, steps, evidence, contrasts
 | --- | --- |
 | ![Relationship map showing connected concepts and hierarchy](media/showcase/visual-series/relationship-map.png) | ![Strategy guide turning a method into an actionable visual route](media/showcase/visual-series/strategy-guide.png) |
 
-<p align="center">
-  <img src="media/showcase/visual-series/interface-plate.png" alt="Interface plate for product states, controls, and evidence" width="100%">
-</p>
-
 ### Motion has an explanatory job
 
 Reveal information in reading order, compare two states, connect causes and effects, trace a trend, transform one state into another, or confirm a result. These semantic jobs let motion explain the content while voice, captions, and scene changes follow the same timing source.
