@@ -7,7 +7,7 @@
  * capability with project-owned assets. Internal renderer names and QC labels
  * remain in manifests, never in viewer-facing frames.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -370,7 +370,7 @@ async function main() {
     `[3:v]trim=duration=${whiteboard.duration},setpts=PTS-STARTPTS+${whiteboard.start}/TB,scale=360:640[wv]`,
     `[v2][wv]overlay=1486:246:eof_action=pass:shortest=0[v]`,
   ].join(";");
-  run("ffmpeg", ["-y", "-v", "error", "-i", htmlVideo, "-i", join(ROOT, VIDEO_ASSETS.personal), "-i", join(ROOT, VIDEO_ASSETS.whiteboardHorizontal), "-i", join(ROOT, VIDEO_ASSETS.whiteboardVertical), "-filter_complex", filter, "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", silentVideo]);
+  run("ffmpeg", ["-y", "-v", "error", "-i", htmlVideo, "-i", join(ROOT, VIDEO_ASSETS.personal), "-i", join(ROOT, VIDEO_ASSETS.whiteboardHorizontal), "-i", join(ROOT, VIDEO_ASSETS.whiteboardVertical), "-filter_complex", filter, "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p", "-movflags", "+faststart", silentVideo]);
 
   let finalVideo = silentVideo;
   if (options.providedAudio) {
@@ -433,6 +433,7 @@ async function main() {
   write(join(options.out, "logs", "ffprobe.json"), JSON.stringify(probe, null, 2));
   const videoStream = probe.streams?.find((stream) => stream.codec_type === "video");
   const audioStream = probe.streams?.find((stream) => stream.codec_type === "audio");
+  const finalFileSizeBytes = statSync(finalVideo).size;
   const segmentLoudnessAuditPath = join(options.out, "workflow", "speech-segment-loudness.json");
   const segmentLoudnessAudit = options.providedAudio && existsSync(segmentLoudnessAuditPath) ? JSON.parse(readFileSync(segmentLoudnessAuditPath, "utf8")) : null;
   let finalSegmentLoudness = null;
@@ -464,6 +465,7 @@ async function main() {
     segmentLoudnessConsistency: options.providedAudio ? segmentLoudnessAudit?.passed === true && segmentLoudnessAudit.postNormalizationSpreadDb <= 2.5 : true,
     finalSegmentLoudnessConsistency: options.providedAudio ? finalSegmentLoudness?.passed === true : true,
     controlledLoudnessRange: options.providedAudio ? loudnessDynamics?.passed === true : true,
+    cdnCompatibleFileSize: finalFileSizeBytes <= 20_000_000,
     noDetectedBlackSegments: !black.includes("black_start:"),
     audibleMeanLevel: options.providedAudio ? meanVolume >= -35 && meanVolume <= -6 : true,
     unclippedPeak: options.providedAudio ? maxVolume <= 0 && maxVolume >= -12 : true,
@@ -474,7 +476,7 @@ async function main() {
     contactSheetPresent: existsSync(join(options.out, "final-contact-sheet.png")),
   };
   const passed = Object.values(checks).every(Boolean);
-  write(join(options.out, "logs", "qc.json"), JSON.stringify({ schemaVersion: 1, finalVideo: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, audioBearing: Boolean(options.providedAudio), audioMetrics: options.providedAudio ? { meanVolumeDb: meanVolume, maxVolumeDb: maxVolume } : null, checks, passed }, null, 2));
+  write(join(options.out, "logs", "qc.json"), JSON.stringify({ schemaVersion: 1, finalVideo: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, finalFileSizeBytes, cdnFileSizeLimitBytes: 20_000_000, audioBearing: Boolean(options.providedAudio), audioMetrics: options.providedAudio ? { meanVolumeDb: meanVolume, maxVolumeDb: maxVolume } : null, checks, passed }, null, 2));
   write(join(options.out, "delivery-manifest.json"), JSON.stringify({ schemaVersion: 1, status: passed ? "qc-passed-demo" : "failed", video: relative(options.out, finalVideo).split("\\").join("/"), durationSeconds: DURATION, canvas: { width: WIDTH, height: HEIGHT, fps: FPS }, poster: "poster.jpg", contactSheet: "final-contact-sheet.png", evidence: ["logs/qc.json", "logs/ffprobe.json", "logs/layout-audit.json", "workflow/audio-repair-plan.json", "workflow/speech-segment-loudness.json", "workflow/final-segment-loudness.json", "workflow/loudness-dynamics-audit.json", "workflow/visual-asset-manifest.json", "workflow/caption-style-plan.json", "workflow/whiteboard-layered-reveal-plan.json", "workflow/sync-timecode-plan.json"], note: "Public capability reel with project-owned assets and local narration." }, null, 2));
   if (!passed) throw new Error(`Workflow film QC failed: ${Object.entries(checks).filter(([, value]) => !value).map(([name]) => name).join(", ")}`);
   if (!options.keepFrames) rmSync(join(options.out, "frames"), { recursive: true, force: true });
